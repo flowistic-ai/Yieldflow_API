@@ -1,83 +1,77 @@
+"""Database configuration and connection management"""
+
 from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from typing import AsyncGenerator
 
 from app.core.config import settings
 
+# SQLAlchemy database URL
+DATABASE_URL = settings.DATABASE_URL
+
 # Create async engine
-async_engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    future=True,
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,  # Set to True for SQL debugging
     pool_pre_ping=True,
     pool_recycle=300,
 )
 
-# Create sync engine for migrations
-sync_engine = create_engine(
-    settings.DATABASE_URL_SYNC,
-    echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_recycle=300,
-)
-
-# Create session factories
-AsyncSessionLocal = sessionmaker(
-    bind=async_engine,
+# Create async session factory
+async_session = async_sessionmaker(
+    engine,
     class_=AsyncSession,
     expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
-)
-
-SessionLocal = sessionmaker(
-    bind=sync_engine,
-    autocommit=False,
-    autoflush=False,
 )
 
 # Create declarative base
 Base = declarative_base()
 
 
-async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get async database session"""
-    async with AsyncSessionLocal() as session:
+async def get_db():
+    """Dependency to get database session"""
+    async with async_session() as session:
         try:
             yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
         finally:
             await session.close()
 
 
-def get_sync_session():
-    """Dependency to get sync database session"""
-    session = SessionLocal()
+def create_tables():
+    """
+    Create all database tables
+    This is a synchronous version for startup
+    """
     try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+        # Import all models to ensure they're registered with Base
+        from app.models import user, company, financial_statements
+        
+        # Create synchronous engine for table creation
+        sync_engine = create_engine(
+            DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://"),
+            echo=False
+        )
+        
+        # Create all tables
+        Base.metadata.create_all(bind=sync_engine)
+        print("✅ Database tables created/verified successfully")
+        
+    except Exception as e:
+        print(f"⚠️  Database table creation failed: {e}")
+        print("ℹ️  This might be normal if database is not running")
 
 
-async def init_db() -> None:
-    """Initialize database tables"""
-    # Import all models here to ensure they are registered with SQLAlchemy
-    from app.models import database, financial, user  # noqa
-    
-    async with async_engine.begin() as conn:
+async def init_db():
+    """Initialize the database (async version)"""
+    async with engine.begin() as conn:
+        # Import all models to ensure they're registered with Base
+        from app.models import user, company, financial_statements
+        
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def close_db() -> None:
+async def close_db():
     """Close database connections"""
-    await async_engine.dispose()
+    await engine.dispose()

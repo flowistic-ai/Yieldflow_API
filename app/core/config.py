@@ -1,121 +1,85 @@
-from typing import List, Optional, Union
-from pydantic import AnyHttpUrl, EmailStr, field_validator
-from pydantic_settings import BaseSettings
 import os
+from typing import Dict, List, Any, ClassVar, Optional
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 
 class Settings(BaseSettings):
-    # API Configuration
-    API_V1_STR: str = "/api/v1"
+    # Application settings
     PROJECT_NAME: str = "Yieldflow API"
     VERSION: str = "1.0.0"
-    DESCRIPTION: str = "Comprehensive Financial Analytics API"
-    DEBUG: bool = True
+    API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = Field(default="test-secret-key-for-development", description="Secret key for JWT token generation")
     
-    # Security
-    SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    API_KEY_EXPIRE_DAYS: int = 365
+    # Database settings
+    DATABASE_URL: str = Field(default="postgresql://syedzeewaqarhussain:password@localhost/yieldflow_db", description="PostgreSQL database URL")
     
-    # Database Configuration
-    DATABASE_URL: str
-    DATABASE_URL_SYNC: str
+    # Redis settings
+    REDIS_URL: str = Field(default="redis://localhost:6379", description="Redis cache URL")
     
-    # Redis Configuration
-    REDIS_URL: str
+    # External API keys
+    ALPHA_VANTAGE_API_KEY: str = Field(default="8U60647QE9JL1KKX", description="Alpha Vantage API key")
+    FMP_API_KEY: str = Field(default="", description="Financial Modeling Prep API key")
+    OPENAI_API_KEY: str = Field(default="", description="OpenAI API key for AI insights")
     
-    # External API Keys
-    ALPHA_VANTAGE_API_KEY: str
-    FMP_API_KEY: str
-    OPENAI_API_KEY: Optional[str] = None
-    FRED_API_KEY: Optional[str] = None
+    # CORS settings
+    BACKEND_CORS_ORIGINS: List[str] = Field(
+        default=["http://localhost:3000", "http://localhost:8000", "https://localhost:3000"],
+        description="List of allowed CORS origins"
+    )
     
-    # Rate Limiting Configuration
-    RATE_LIMIT_FREE_DAILY: int = 100
-    RATE_LIMIT_FREE_MINUTE: int = 10
-    RATE_LIMIT_BASIC_DAILY: int = 1000
-    RATE_LIMIT_BASIC_MINUTE: int = 60
-    RATE_LIMIT_PRO_DAILY: int = 10000
-    RATE_LIMIT_PRO_MINUTE: int = 300
+    # Security settings
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="JWT token expiration in minutes")
+    ALGORITHM: str = Field(default="HS256", description="JWT algorithm")
     
-    # Caching Configuration
-    CACHE_TTL_HOT_DATA: int = 3600  # 1 hour
-    CACHE_TTL_ANALYTICS: int = 86400  # 24 hours
-    CACHE_TTL_CHARTS: int = 604800  # 1 week
-    CACHE_TTL_STATIC: int = 2592000  # 1 month
+    # Rate limiting settings
+    RATE_LIMIT_ENABLED: bool = Field(default=True, description="Enable rate limiting")
     
-    # Logging
-    LOG_LEVEL: str = "INFO"
-    SENTRY_DSN: Optional[str] = None
+    # Logging settings
+    LOG_LEVEL: str = Field(default="INFO", description="Logging level")
     
-    # CORS Configuration
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    # Cache TTL settings (in seconds)
+    CACHE_TTL_HOT: int = Field(default=300, description="Hot data cache TTL (5 minutes)")
+    CACHE_TTL_ANALYTICS: int = Field(default=3600, description="Analytics cache TTL (1 hour)")
+    CACHE_TTL_CHARTS: int = Field(default=7200, description="Charts cache TTL (2 hours)")
+    CACHE_TTL_STATIC: int = Field(default=86400, description="Static data cache TTL (24 hours)")
     
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
-    
-    # Email Configuration
-    SMTP_TLS: bool = True
-    SMTP_PORT: Optional[int] = None
-    SMTP_HOST: Optional[str] = None
-    SMTP_USER: Optional[str] = None
-    SMTP_PASSWORD: Optional[str] = None
-    EMAILS_FROM_EMAIL: Optional[EmailStr] = None
-    EMAILS_FROM_NAME: Optional[str] = None
-    
-    # Celery Configuration
-    CELERY_BROKER_URL: str = "redis://localhost:6379/1"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
-    
-    # Chart Generation
-    CHART_WIDTH: int = 800
-    CHART_HEIGHT: int = 600
-    CHART_DPI: int = 100
-    
-    # European Compliance
-    BASE_CURRENCY: str = "EUR"
-    SUPPORTED_CURRENCIES: List[str] = ["EUR", "USD", "GBP", "CHF", "SEK", "NOK", "DKK"]
-    
-    # AI Model Configuration
-    AI_MODEL_VERSION: str = "v2.1"
-    AI_CONFIDENCE_THRESHOLD: float = 0.7
-    
-    # API Plans Configuration
-    API_PLANS = {
+    # API Plans configuration - using ClassVar to indicate this is not a field
+    API_PLANS: ClassVar[Dict[str, Dict[str, Any]]] = {
         "free": {
-            "daily_limit": RATE_LIMIT_FREE_DAILY,
-            "minute_limit": RATE_LIMIT_FREE_MINUTE,
+            "daily_limit": 100,
+            "minute_limit": 10,
             "features": ["basic_financials", "simple_ratios"]
         },
         "basic": {
-            "daily_limit": RATE_LIMIT_BASIC_DAILY,
-            "minute_limit": RATE_LIMIT_BASIC_MINUTE,
+            "daily_limit": 1000,
+            "minute_limit": 60,
             "features": ["basic_financials", "simple_ratios", "basic_analytics", "charts"]
         },
-        "pro": {
-            "daily_limit": RATE_LIMIT_PRO_DAILY,
-            "minute_limit": RATE_LIMIT_PRO_MINUTE,
+        "professional": {
+            "daily_limit": 10000,
+            "minute_limit": 300,
             "features": ["all_financials", "advanced_analytics", "ai_insights", "charts", "compliance"]
         },
         "enterprise": {
-            "daily_limit": -1,  # unlimited
+            "daily_limit": -1,  # Unlimited
             "minute_limit": 1000,
             "features": ["all"]
         }
     }
     
+    # Feature flags
+    ENABLE_AI_INSIGHTS: bool = Field(default=False, description="Enable AI insights feature")
+    ENABLE_COMPLIANCE_FEATURES: bool = Field(default=True, description="Enable European compliance features")
+    ENABLE_CACHING: bool = Field(default=True, description="Enable caching")
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Allow extra fields in environment but ignore them
 
 
-# Create settings instance
+# Global settings instance
 settings = Settings()
 
 
