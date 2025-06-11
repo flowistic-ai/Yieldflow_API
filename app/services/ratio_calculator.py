@@ -177,17 +177,18 @@ class RatioCalculator:
             ratios['equity_ratio'] = self._safe_divide(shareholders_equity, total_assets)
             
             # Debt composition ratios
-            total_debt = long_term_debt + short_term_debt
-            ratios['debt_to_capital'] = self._safe_divide(
-                total_debt, total_debt + shareholders_equity
-            )
+            total_debt = (long_term_debt or 0) + (short_term_debt or 0)
+            total_debt_plus_equity = total_debt + (shareholders_equity or 0)
+            
+            ratios['debt_to_capital'] = self._safe_divide(total_debt, total_debt_plus_equity)
             
             ratios['long_term_debt_to_equity'] = self._safe_divide(
                 long_term_debt, shareholders_equity
             )
             
+            long_term_debt_plus_equity = (long_term_debt or 0) + (shareholders_equity or 0)
             ratios['long_term_debt_to_capital'] = self._safe_divide(
-                long_term_debt, long_term_debt + shareholders_equity
+                long_term_debt, long_term_debt_plus_equity
             )
             
             # Asset quality ratios
@@ -237,20 +238,24 @@ class RatioCalculator:
             cost_of_revenue = latest_income.get('cost_of_revenue', 0)
             
             # Asset turnover ratios
-            avg_total_assets = (latest_balance.get('total_assets', 0) + 
-                              prev_balance.get('total_assets', 0)) / 2
+            current_assets = latest_balance.get('total_assets', 0) or 0
+            previous_assets = prev_balance.get('total_assets', 0) or 0
+            avg_total_assets = (current_assets + previous_assets) / 2
             
             ratios['asset_turnover'] = self._safe_divide(revenue, avg_total_assets)
             
             # Working capital efficiency
-            avg_accounts_receivable = (latest_balance.get('accounts_receivable', 0) + 
-                                     prev_balance.get('accounts_receivable', 0)) / 2
+            current_ar = latest_balance.get('accounts_receivable', 0) or 0
+            previous_ar = prev_balance.get('accounts_receivable', 0) or 0
+            avg_accounts_receivable = (current_ar + previous_ar) / 2
             
-            avg_inventory = (latest_balance.get('inventory', 0) + 
-                           prev_balance.get('inventory', 0)) / 2
+            current_inv = latest_balance.get('inventory', 0) or 0
+            previous_inv = prev_balance.get('inventory', 0) or 0
+            avg_inventory = (current_inv + previous_inv) / 2
             
-            avg_accounts_payable = (latest_balance.get('accounts_payable', 0) + 
-                                  prev_balance.get('accounts_payable', 0)) / 2
+            current_ap = latest_balance.get('accounts_payable', 0) or 0
+            previous_ap = prev_balance.get('accounts_payable', 0) or 0
+            avg_accounts_payable = (current_ap + previous_ap) / 2
             
             # Receivables ratios
             ratios['receivables_turnover'] = self._safe_divide(revenue, avg_accounts_receivable)
@@ -265,15 +270,15 @@ class RatioCalculator:
             ratios['days_payable_outstanding'] = self._safe_divide(365, ratios.get('payables_turnover'))
             
             # Cash conversion cycle
-            ratios['cash_conversion_cycle'] = (
-                (ratios.get('days_sales_outstanding', 0) or 0) +
-                (ratios.get('days_inventory_outstanding', 0) or 0) -
-                (ratios.get('days_payable_outstanding', 0) or 0)
-            )
+            dso = ratios.get('days_sales_outstanding', 0) or 0
+            dio = ratios.get('days_inventory_outstanding', 0) or 0
+            dpo = ratios.get('days_payable_outstanding', 0) or 0
+            ratios['cash_conversion_cycle'] = dso + dio - dpo
             
             # Fixed asset efficiency
-            avg_ppe = (latest_balance.get('property_plant_equipment', 0) + 
-                      prev_balance.get('property_plant_equipment', 0)) / 2
+            current_ppe = latest_balance.get('property_plant_equipment', 0) or 0
+            previous_ppe = prev_balance.get('property_plant_equipment', 0) or 0
+            avg_ppe = (current_ppe + previous_ppe) / 2
             
             ratios['fixed_asset_turnover'] = self._safe_divide(revenue, avg_ppe)
             
@@ -638,11 +643,14 @@ class RatioCalculator:
     
     def _calculate_cagr(self, values: List[float]) -> Optional[float]:
         """Calculate Compound Annual Growth Rate"""
-        if len(values) < 2 or values[0] <= 0 or values[-1] <= 0:
+        # Filter out None values and ensure we have valid numbers
+        valid_values = [v for v in values if v is not None and v > 0]
+        
+        if len(valid_values) < 2:
             return None
         
-        periods = len(values) - 1
-        return ((values[-1] / values[0]) ** (1/periods)) - 1
+        periods = len(valid_values) - 1
+        return ((valid_values[-1] / valid_values[0]) ** (1/periods)) - 1
     
     def _calculate_sustainable_growth_rate(
         self,

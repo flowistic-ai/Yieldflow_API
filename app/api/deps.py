@@ -6,59 +6,124 @@ Handles authentication, authorization, and feature access control
 from typing import Optional, Dict, Any
 from fastapi import Depends, HTTPException, status, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.models.user import User, APIKey
-from app.core.config import settings
 import structlog
+import json
+import os
+from datetime import datetime
 
 logger = structlog.get_logger()
 security = HTTPBearer()
 
 
+class MockUser:
+    """Mock user class for development when database is not available"""
+    def __init__(self, id: int, email: str, plan: str, is_active: bool = True):
+        self.id = id
+        self.email = email
+        self.plan = plan
+        self.is_active = is_active
+        self.is_admin = False
+
+
+def load_test_api_keys():
+    """Load test API keys from generated files"""
+    test_keys = {}
+    
+    # Load from generated API key files
+    for plan in ["free", "basic", "pro", "enterprise"]:
+        key_file = f"api_key_{plan}.json"
+        if os.path.exists(key_file):
+            try:
+                with open(key_file, 'r') as f:
+                    data = json.load(f)
+                    api_key = data["api_key"]
+                    test_keys[api_key] = {
+                        "user_id": data["user_data"]["id"],
+                        "email": data["user_data"]["email"],
+                        "plan": data["user_data"]["plan"],
+                        "is_active": True,
+                        "expires_at": data["api_key_data"]["expires_at"]
+                    }
+            except Exception as e:
+                logger.warning(f"Could not load {key_file}", error=str(e))
+    
+    # Add some hardcoded test keys for convenience
+    test_keys.update({
+        "test_free_key": {"user_id": 100, "email": "free@test.com", "plan": "free", "is_active": True},
+        "test_basic_key": {"user_id": 101, "email": "basic@test.com", "plan": "basic", "is_active": True},
+        "test_pro_key": {"user_id": 102, "email": "pro@test.com", "plan": "pro", "is_active": True},
+        "test_enterprise_key": {"user_id": 103, "email": "enterprise@test.com", "plan": "enterprise", "is_active": True},
+    })
+    
+    return test_keys
+
+
+# Load test keys at startup
+TEST_API_KEYS = load_test_api_keys()
+
+
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(security),
-    db: Session = Depends(get_db)
-) -> User:
+    credentials: HTTPAuthorizationCredentials = Security(security)
+) -> MockUser:
     """
     Get current user from API key
     """
     try:
         api_key = credentials.credentials
         
-        # Query API key from database
-        db_api_key = db.query(APIKey).filter(
-            APIKey.key == api_key,
-            APIKey.is_active == True
-        ).first()
-        
-        if not db_api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API key"
+        # First try test API keys (for development)
+        if api_key in TEST_API_KEYS:
+            key_data = TEST_API_KEYS[api_key]
+            logger.info("Using test API key", 
+                       user_id=key_data["user_id"], 
+                       plan=key_data["plan"],
+                       email=key_data["email"])
+            
+            return MockUser(
+                id=key_data["user_id"],
+                email=key_data["email"], 
+                plan=key_data["plan"],
+                is_active=key_data["is_active"]
             )
         
-        # Check if API key is expired
-        if db_api_key.is_expired():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API key expired"
-            )
+        # Try database lookup (when database is available) - disabled for now
+        # try:
+        #     from app.models.user import User, APIKey
+        #     from app.core.database import get_db
+        #     
+        #     # Query API key from database
+        #     db_api_key = db.query(APIKey).filter(
+        #         APIKey.key_hash == api_key,  # In production, store hashed keys
+        #         APIKey.is_active == True
+        #     ).first()
+        #     
+        #     if db_api_key:
+        #         # Check if API key is expired
+        #         if hasattr(db_api_key, 'is_expired') and db_api_key.is_expired():
+        #             raise HTTPException(
+        #                 status_code=status.HTTP_401_UNAUTHORIZED,
+        #                 detail="API key expired"
+        #             )
+        #         
+        #         # Get associated user
+        #         user = db.query(User).filter(User.id == db_api_key.user_id).first()
+        #         if user and user.is_active:
+        #             # Update last used timestamp
+        #             if hasattr(db_api_key, 'update_usage'):
+        #                 db_api_key.update_usage()
+        #                 db.commit()
+        #             
+        #             logger.info("User authenticated from database", user_id=user.id, plan=user.plan)
+        #             return user
+        #             
+        # except Exception as db_error:
+        #     logger.warning("Database authentication failed, trying test keys", error=str(db_error))
         
-        # Get associated user
-        user = db.query(User).filter(User.id == db_api_key.user_id).first()
-        if not user or not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User account inactive"
-            )
-        
-        # Update last used timestamp
-        db_api_key.update_usage()
-        db.commit()
-        
-        logger.info("User authenticated", user_id=user.id, plan=user.plan)
-        return user
+        # If we get here, the API key is invalid
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key"
+        )
         
     except HTTPException:
         raise
@@ -74,7 +139,7 @@ def require_feature_access(feature: str):
     """
     Create a dependency that checks if user has access to specific feature
     """
-    async def _check_feature_access(current_user: User = Depends(get_current_user)) -> User:
+    async def _check_feature_access(current_user = Depends(get_current_user)):
         plan_features = {
             "free": [
                 "basic_company_info",
@@ -129,7 +194,7 @@ def require_feature_access(feature: str):
     return _check_feature_access
 
 
-def get_rate_limit_info(user: User) -> Dict[str, Any]:
+def get_rate_limit_info(user) -> Dict[str, Any]:
     """
     Get rate limiting information for user's plan
     """
@@ -160,8 +225,8 @@ def get_rate_limit_info(user: User) -> Dict[str, Any]:
 
 
 async def check_rate_limit(
-    current_user: User = Depends(get_current_user)
-) -> User:
+    current_user = Depends(get_current_user)
+):
     """
     Check if user has exceeded rate limits
     This is a simplified version - in production you'd use Redis for tracking
@@ -178,12 +243,13 @@ async def check_rate_limit(
 
 # Optional: Admin access
 async def require_admin_access(
-    current_user: User = Depends(get_current_user)
-) -> User:
+    current_user = Depends(get_current_user)
+):
     """
     Require admin access for sensitive endpoints
     """
-    if not current_user.is_admin:
+    is_admin = getattr(current_user, 'is_admin', False) or getattr(current_user, 'is_superuser', False)
+    if not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
@@ -193,18 +259,18 @@ async def require_admin_access(
 
 # Feature-specific dependencies
 async def require_basic_access(
-    current_user: User = Depends(require_feature_access("basic_financial_data"))
-) -> User:
+    current_user = Depends(require_feature_access("basic_financial_data"))
+):
     return current_user
 
 
 async def require_advanced_analytics(
-    current_user: User = Depends(require_feature_access("advanced_analytics"))
-) -> User:
+    current_user = Depends(require_feature_access("advanced_analytics"))
+):
     return current_user
 
 
 async def require_pro_features(
-    current_user: User = Depends(require_feature_access("forecasting"))
-) -> User:
+    current_user = Depends(require_feature_access("forecasting"))
+):
     return current_user 

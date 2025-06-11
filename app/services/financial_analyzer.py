@@ -180,8 +180,9 @@ class FinancialAnalyzer:
             latest_cf = cash_flows[0]  # Most recent
             
             # Calculate free cash flow
-            free_cash_flow = (latest_cf.get('operating_cash_flow', 0) - 
-                            abs(latest_cf.get('capital_expenditures', 0)))
+            operating_cf = latest_cf.get('operating_cash_flow', 0) or 0
+            capex = abs(latest_cf.get('capital_expenditures', 0) or 0)
+            free_cash_flow = operating_cf - capex
             
             # Calculate cash flow ratios
             ocf_to_sales = self._safe_divide(
@@ -195,8 +196,10 @@ class FinancialAnalyzer:
             )
             
             # Calculate capex intensity
-            capex_intensity = abs(latest_cf.get('capital_expenditures', 0) / 
-                                latest_cf.get('operating_cash_flow', 1))
+            capex_intensity = self._safe_divide(
+                abs(latest_cf.get('capital_expenditures', 0)),
+                latest_cf.get('operating_cash_flow', 1)
+            ) or 0
             
             # Assess operating cash flow quality
             operating_quality = self._assess_operating_cf_quality(latest_cf, cash_flows)
@@ -289,7 +292,7 @@ class FinancialAnalyzer:
     # Helper methods for trend calculations
     def _calculate_revenue_trend(self, statements: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Calculate revenue trend and growth rates"""
-        revenues = [stmt.get('revenue', 0) for stmt in statements if stmt.get('revenue')]
+        revenues = [stmt.get('revenue') for stmt in statements if stmt.get('revenue') is not None and stmt.get('revenue') > 0]
         
         if len(revenues) < 2:
             return {'trend': 'insufficient_data'}
@@ -319,7 +322,7 @@ class FinancialAnalyzer:
         if len(revenues) >= 3:
             initial_revenue = revenues[-3]
             final_revenue = revenues[-1]
-            if initial_revenue > 0:
+            if initial_revenue and initial_revenue > 0 and final_revenue and final_revenue > 0:
                 cagr_3y = ((final_revenue / initial_revenue) ** (1/2)) - 1
         
         return {
@@ -336,8 +339,8 @@ class FinancialAnalyzer:
         net_margins = []
         
         for stmt in statements:
-            revenue = stmt.get('revenue', 0)
-            if revenue > 0:
+            revenue = stmt.get('revenue')
+            if revenue is not None and revenue > 0:
                 if stmt.get('gross_profit') is not None:
                     gross_margins.append(stmt['gross_profit'] / revenue)
                 if stmt.get('operating_income') is not None:
@@ -363,10 +366,10 @@ class FinancialAnalyzer:
         growth_rates = {}
         
         for metric in ['revenue', 'gross_profit', 'operating_income', 'net_income']:
-            current = latest.get(metric, 0)
-            prior = previous.get(metric, 0)
+            current = latest.get(metric)
+            prior = previous.get(metric)
             
-            if prior != 0:
+            if current is not None and prior is not None and prior != 0:
                 growth_rates[f'{metric}_growth'] = (current - prior) / prior
         
         return growth_rates
@@ -379,8 +382,8 @@ class FinancialAnalyzer:
         latest = statements[0]
         
         # Check for consistent profitability
-        net_income = latest.get('net_income', 0)
-        operating_income = latest.get('operating_income', 0)
+        net_income = latest.get('net_income') or 0
+        operating_income = latest.get('operating_income') or 0
         
         if net_income <= 0:
             return 'poor'
@@ -547,12 +550,13 @@ class FinancialAnalyzer:
             return 5.0
         
         latest = income_statements[0]
-        revenue = latest.get('revenue', 1)
+        revenue = latest.get('revenue') or 1
         
         if revenue <= 0:
             return 1.0
         
-        net_margin = latest.get('net_income', 0) / revenue
+        net_income = latest.get('net_income') or 0
+        net_margin = net_income / revenue
         
         if net_margin >= 0.20:
             return 9.0
@@ -573,8 +577,8 @@ class FinancialAnalyzer:
             return 5.0
         
         # Asset turnover calculation
-        revenue = income_statements[0].get('revenue', 0)
-        total_assets = balance_sheets[0].get('total_assets', 1)
+        revenue = income_statements[0].get('revenue') or 0
+        total_assets = balance_sheets[0].get('total_assets') or 1
         
         asset_turnover = revenue / total_assets if total_assets > 0 else 0
         
@@ -733,8 +737,8 @@ class FinancialAnalyzer:
     def _calculate_tangible_assets_ratio(self, balance_sheet: Dict[str, Any]) -> Optional[float]:
         """Calculate tangible assets ratio"""
         total_assets = balance_sheet.get('total_assets', 0)
-        intangible_assets = balance_sheet.get('intangible_assets', 0)
-        goodwill = balance_sheet.get('goodwill', 0)
+        intangible_assets = balance_sheet.get('intangible_assets', 0) or 0
+        goodwill = balance_sheet.get('goodwill', 0) or 0
         
         if total_assets > 0:
             return (total_assets - intangible_assets - goodwill) / total_assets
@@ -773,7 +777,9 @@ class FinancialAnalyzer:
         
         fcf_values = []
         for cf in cash_flows:
-            fcf = cf.get('operating_cash_flow', 0) - abs(cf.get('capital_expenditures', 0))
+            ocf = cf.get('operating_cash_flow', 0) or 0
+            capex = abs(cf.get('capital_expenditures', 0) or 0)
+            fcf = ocf - capex
             fcf_values.append(fcf)
         
         positive_count = sum(1 for fcf in fcf_values if fcf > 0)

@@ -23,6 +23,163 @@ financial_analyzer = FinancialAnalyzer()
 ratio_calculator = RatioCalculator()
 
 
+@router.get("/test/company/{ticker}")
+async def test_get_company_info(ticker: str):
+    """
+    🧪 TEST ENDPOINT - Get company information WITHOUT authentication
+    
+    This is a test endpoint to verify the financial data services are working.
+    For production use, use the authenticated /financial/company/{ticker} endpoint.
+    """
+    try:
+        logger.info("TEST: Fetching company info", ticker=ticker)
+        
+        company_data = await data_provider.get_company_info(ticker)
+        
+        if not company_data:
+            raise TickerNotFoundError(ticker)
+        
+        return {
+            "ticker": ticker,
+            "status": "success",
+            "test_mode": True,
+            "message": "This is a test endpoint - use /financial/company/{ticker} with API key for production",
+            "data": company_data,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except TickerNotFoundError:
+        logger.warning("TEST: Ticker not found", ticker=ticker)
+        raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found")
+    
+    except DataSourceError as e:
+        logger.error("TEST: Data source error", ticker=ticker, error=str(e))
+        raise HTTPException(status_code=503, detail="Data source temporarily unavailable")
+    
+    except Exception as e:
+        logger.error("TEST: Unexpected error in company info", ticker=ticker, error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/test/ratios/{ticker}")
+async def test_get_financial_ratios(
+    ticker: str,
+    period: str = Query("annual", regex="^(annual|quarterly)$"),
+    ratio_category: str = Query("profitability", regex="^(profitability|liquidity|leverage|efficiency|growth)$")
+):
+    """
+    🧪 TEST ENDPOINT - Calculate financial ratios WITHOUT authentication
+    
+    This demonstrates the ratio calculation capabilities.
+    Categories: profitability, liquidity, leverage, efficiency, growth
+    """
+    try:
+        logger.info("TEST: Calculating financial ratios", 
+                   ticker=ticker, period=period, category=ratio_category)
+        
+        # Get required financial data
+        income_statements = await data_provider.get_income_statements(ticker, period, 3)
+        balance_sheets = await data_provider.get_balance_sheets(ticker, period, 3)
+        
+        if not income_statements or not balance_sheets:
+            raise TickerNotFoundError(ticker)
+        
+        # Calculate ratios based on category
+        if ratio_category == "profitability":
+            ratios = await ratio_calculator.calculate_profitability_ratios(income_statements, balance_sheets)
+        elif ratio_category == "liquidity":
+            ratios = await ratio_calculator.calculate_liquidity_ratios(balance_sheets)
+        elif ratio_category == "leverage":
+            ratios = await ratio_calculator.calculate_leverage_ratios(balance_sheets, income_statements)
+        elif ratio_category == "efficiency":
+            ratios = await ratio_calculator.calculate_efficiency_ratios(income_statements, balance_sheets)
+        elif ratio_category == "growth":
+            ratios = await ratio_calculator.calculate_growth_ratios(income_statements, balance_sheets)
+        
+        return {
+            "ticker": ticker,
+            "period": period,
+            "category": ratio_category,
+            "status": "success",
+            "test_mode": True,
+            "message": "This is a test endpoint - use /financial/ratios/{ticker} with API key for production",
+            "data": ratios,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except TickerNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Insufficient data for ratio calculation for ticker '{ticker}'")
+    
+    except CalculationError as e:
+        raise HTTPException(status_code=422, detail=f"Ratio calculation failed: {str(e)}")
+    
+    except Exception as e:
+        logger.error("TEST: Unexpected error in ratio calculation", 
+                    ticker=ticker, category=ratio_category, error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/test/overview/{ticker}")
+async def test_get_financial_overview(ticker: str):
+    """
+    🧪 TEST ENDPOINT - Get complete financial overview WITHOUT authentication
+    
+    This demonstrates the comprehensive financial analysis capabilities.
+    """
+    try:
+        logger.info("TEST: Fetching financial overview", ticker=ticker)
+        
+        # Fetch all data in parallel
+        company_info = await data_provider.get_company_info(ticker)
+        income_statements = await data_provider.get_income_statements(ticker, "annual", 3)
+        balance_sheets = await data_provider.get_balance_sheets(ticker, "annual", 3)
+        
+        if not company_info or not income_statements or not balance_sheets:
+            raise TickerNotFoundError(ticker)
+        
+        # Calculate key ratios
+        key_ratios = await ratio_calculator.calculate_profitability_ratios(
+            income_statements[:2], balance_sheets[:2]
+        )
+        
+        # Basic trend analysis
+        trend_analysis = await financial_analyzer.analyze_income_trends(income_statements)
+        
+        overview = {
+            "company_info": company_info,
+            "latest_financials": {
+                "income_statement": income_statements[0] if income_statements else None,
+                "balance_sheet": balance_sheets[0] if balance_sheets else None
+            },
+            "key_ratios": key_ratios.get("ratios", {}),
+            "trend_analysis": trend_analysis,
+            "summary": {
+                "revenue_trend": trend_analysis.get("revenue_trend", "unknown"),
+                "profitability_score": key_ratios.get("scores", {}).get("overall_score", 0),
+                "data_quality": min(
+                    income_statements[0].get("confidence_score", 0.5),
+                    balance_sheets[0].get("confidence_score", 0.5)
+                ) if income_statements and balance_sheets else 0.5
+            }
+        }
+        
+        return {
+            "ticker": ticker,
+            "status": "success",
+            "test_mode": True,
+            "message": "This is a test endpoint - use /financial/overview/{ticker} with API key for production",
+            "data": overview,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except TickerNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found or insufficient data")
+    
+    except Exception as e:
+        logger.error("TEST: Unexpected error in financial overview", ticker=ticker, error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @router.get("/company/{ticker}")
 async def get_company_info(
     ticker: str,

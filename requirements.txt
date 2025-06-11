@@ -13,6 +13,8 @@ psycopg2-binary==2.9.9
 # Security and authentication
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.1.1
+cryptography==41.0.8
 
 # Configuration and environment
 pydantic==2.5.0
@@ -28,8 +30,8 @@ httpx==0.25.2
 aiohttp==3.9.1
 
 # Data processing and analysis
-pandas>=2.1.0,<2.2.0
-numpy>=1.24.0,<1.27.0
+pandas==2.1.4
+numpy==1.25.2
 yfinance==0.2.28
 alpha-vantage==2.3.1
 
@@ -77,4 +79,8 @@ flower==2.0.1
 # black==23.11.0
 # isort==5.12.0
 # flake8==6.1.0
-# mypy==1.7.1 
+# mypy==1.7.1
+
+# Additional dependencies
+greenlet==3.0.1
+email-validator==2.1.0 
