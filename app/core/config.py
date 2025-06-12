@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     
     # Database settings
     DATABASE_URL: str = Field(default="postgresql://syedzeewaqarhussain:password@localhost/yieldflow_db", description="PostgreSQL database URL")
+    PORT: int = Field(default=8000, description="Port to run the application on")
     
     # Redis settings
     REDIS_URL: str = Field(default="redis://localhost:6379", description="Redis cache URL")
@@ -31,7 +32,12 @@ class Settings(BaseSettings):
     
     # CORS settings
     BACKEND_CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8000", "https://localhost:3000"],
+        default=[
+            "http://localhost:3000", 
+            "http://localhost:8000", 
+            "https://localhost:3000",
+            "https://yieldflow-api.onrender.com"
+        ],
         description="List of allowed CORS origins"
     )
     

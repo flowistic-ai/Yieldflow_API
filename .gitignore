@@ -167,4 +167,9 @@ alembic/versions/*.py
 
 # FastAPI specific
 .env.local
-.env.production 
+.env.production
+.env.render
+
+# Render deployment files
+render-build.sh
+.render/ 

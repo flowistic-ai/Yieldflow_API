@@ -1,0 +1,81 @@
+services:
+  # Main FastAPI application
+  - type: web
+    name: yieldflow-api
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+      - key: PORT
+        value: 10000
+      - key: DEBUG
+        value: false
+      - key: PROJECT_NAME
+        value: Yieldflow API
+      - key: VERSION
+        value: 1.0.0
+      - key: API_V1_STR
+        value: /api/v1
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RATE_LIMIT_ENABLED
+        value: true
+      - key: ENABLE_CACHING
+        value: true
+      - key: ENABLE_COMPLIANCE_FEATURES
+        value: true
+      - key: CACHE_TTL_HOT
+        value: 300
+      - key: CACHE_TTL_ANALYTICS
+        value: 3600
+      - key: CACHE_TTL_CHARTS
+        value: 7200
+      - key: CACHE_TTL_STATIC
+        value: 86400
+      - key: BACKEND_CORS_ORIGINS
+        value: '["https://yieldflow-api.onrender.com", "http://localhost:3000", "https://localhost:3000"]'
+      # Database and Redis URLs (will be auto-populated by Render)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yieldflow-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: yieldflow-redis
+          property: connectionString
+      # Secrets (to be set manually in Render dashboard)
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALPHA_VANTAGE_API_KEY
+        sync: false
+      - key: FMP_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # PostgreSQL Database
+  - type: pserv
+    name: yieldflow-db
+    env: postgresql
+    region: oregon
+    plan: starter
+    databaseName: yieldflow_db
+    databaseUser: yieldflow_user
+    ipAllowList: []
+
+  # Redis Cache
+  - type: redis
+    name: yieldflow-redis
+    region: oregon
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] 
