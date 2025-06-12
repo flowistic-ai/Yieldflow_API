@@ -1,0 +1,39 @@
+[project]
+name = "yieldflow-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+addopts = "--no-strict-markers"
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0.0"
+
+[tool.poetry]
+name = "yieldflow-api"
+version = "0.1.0"
+description = "Yieldflow API"
+authors = ["Flowistic AI <info@flowistic.ai>"]
+
+[tool.poetry.scripts]
+start = "app.main:app"
+
+[tool.poetry.urls]
+"Homepage" = "https://flowistic.ai"
+
+[tool.urllib3.ssl]
+verify_mode = "CERT_NONE"
+check_hostname = false
+
+[tool.pip]
+trusted-host = [
+    "pypi.org",
+    "pypi.python.org",
+    "files.pythonhosted.org"
+]
