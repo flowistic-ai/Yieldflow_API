@@ -21,7 +21,12 @@ class Settings(BaseSettings):
     
     # External API keys
     ALPHA_VANTAGE_API_KEY: str = Field(default="8U60647QE9JL1KKX", description="Alpha Vantage API key")
-    FMP_API_KEY: str = Field(default="", description="Financial Modeling Prep API key")
+    FMP_API_KEY: str = Field(default="demo", description="Financial Modeling Prep API key")  # Using demo key
+    POLYGON_API_KEY: str = Field(default="", description="Polygon.io API key")
+    TWELVEDATA_API_KEY: str = Field(default="", description="Twelve Data API key")
+    IEX_CLOUD_API_KEY: str = Field(default="", description="IEX Cloud API key")
+    QUANDL_API_KEY: str = Field(default="", description="Quandl API key")
+    EOD_HISTORICAL_API_KEY: str = Field(default="", description="EOD Historical Data API key")
     OPENAI_API_KEY: str = Field(default="", description="OpenAI API key for AI insights")
     
     # CORS settings

@@ -536,16 +536,16 @@ class RatioCalculator:
         previous_balance: Dict[str, Any]
     ) -> Optional[float]:
         """Calculate Return on Invested Capital"""
-        net_income = income_statement.get('net_income', 0)
+        net_income = income_statement.get('net_income') or 0
         
         # Calculate invested capital (average)
-        current_ic = (current_balance.get('shareholders_equity', 0) + 
-                     current_balance.get('long_term_debt', 0) + 
-                     current_balance.get('short_term_debt', 0))
+        current_ic = ((current_balance.get('shareholders_equity') or 0) + 
+                     (current_balance.get('long_term_debt') or 0) + 
+                     (current_balance.get('short_term_debt') or 0))
         
-        previous_ic = (previous_balance.get('shareholders_equity', 0) + 
-                      previous_balance.get('long_term_debt', 0) + 
-                      previous_balance.get('short_term_debt', 0))
+        previous_ic = ((previous_balance.get('shareholders_equity') or 0) + 
+                      (previous_balance.get('long_term_debt') or 0) + 
+                      (previous_balance.get('short_term_debt') or 0))
         
         avg_invested_capital = (current_ic + previous_ic) / 2
         
@@ -604,11 +604,11 @@ class RatioCalculator:
     
     def _calculate_tangible_assets_ratio(self, balance_sheet: Dict[str, Any]) -> Optional[float]:
         """Calculate tangible assets ratio"""
-        total_assets = balance_sheet.get('total_assets', 0)
-        intangible_assets = balance_sheet.get('intangible_assets', 0)
-        goodwill = balance_sheet.get('goodwill', 0)
+        total_assets = balance_sheet.get('total_assets')
+        intangible_assets = balance_sheet.get('intangible_assets') or 0
+        goodwill = balance_sheet.get('goodwill') or 0
         
-        if total_assets > 0:
+        if total_assets and total_assets > 0:
             return (total_assets - intangible_assets - goodwill) / total_assets
         return None
     
@@ -626,11 +626,11 @@ class RatioCalculator:
     ) -> Optional[float]:
         """Calculate debt service coverage ratio"""
         # Simplified - would need cash flow data for accurate calculation
-        operating_income = income_statement.get('operating_income', 0)
-        interest_expense = income_statement.get('interest_expense', 0)
+        operating_income = income_statement.get('operating_income') or 0
+        interest_expense = income_statement.get('interest_expense') or 0
         
         # Estimate principal payments (simplified)
-        short_term_debt = balance_sheet.get('short_term_debt', 0)
+        short_term_debt = balance_sheet.get('short_term_debt') or 0
         debt_service = interest_expense + short_term_debt
         
         return self._safe_divide(operating_income, debt_service)
@@ -658,10 +658,10 @@ class RatioCalculator:
         balance_sheet: Dict[str, Any]
     ) -> Optional[float]:
         """Calculate sustainable growth rate"""
-        net_income = income_statement.get('net_income', 0)
-        shareholders_equity = balance_sheet.get('shareholders_equity', 0)
+        net_income = income_statement.get('net_income') or 0
+        shareholders_equity = balance_sheet.get('shareholders_equity') or 0
         
-        if shareholders_equity > 0:
+        if shareholders_equity and shareholders_equity > 0:
             roe = net_income / shareholders_equity
             # Assume 100% retention rate (no dividends) for simplification
             retention_rate = 1.0

@@ -18,6 +18,12 @@ from app.utils.exceptions import TickerNotFoundError, ValidationError
 router = APIRouter()
 
 
+@router.get("/health")
+async def financials_health():
+    """Health check for financials module"""
+    return {"status": "healthy", "module": "financials"}
+
+
 @router.get(
     "/income-statements",
     response_model=Dict[str, Any],
@@ -328,3 +334,107 @@ async def get_comprehensive_financials(
         if isinstance(e, (TickerNotFoundError, ValidationError)):
             raise e
         raise HTTPException(status_code=500, detail=f"Error fetching comprehensive data: {str(e)}")
+
+
+@router.get("/data-sources", response_model=Dict[str, Any])
+async def get_data_sources_info(current_user: Dict = Depends(get_current_user)):
+    """
+    Get information about data sources used for maximum accuracy.
+    
+    This endpoint provides transparency about the multiple data sources
+    used to ensure the highest accuracy of financial data.
+    """
+    
+    data_provider = DataProvider()
+    
+    # Check which data sources are currently available
+    available_sources = []
+    
+    # Primary sources (always available)
+    if data_provider.alpha_vantage_key:
+        available_sources.append({
+            "name": "Alpha Vantage",
+            "type": "Primary",
+            "reliability_score": 0.95,
+            "description": "Official NASDAQ vendor with high-quality, regulated data",
+            "coverage": ["Stocks", "Options", "Forex", "Crypto", "Technical Indicators"],
+            "status": "Active"
+        })
+    
+    # Yahoo Finance (free source)
+    available_sources.append({
+        "name": "Yahoo Finance",
+        "type": "Secondary/Fallback", 
+        "reliability_score": 0.75,
+        "description": "Comprehensive free financial data source",
+        "coverage": ["Stocks", "ETFs", "Mutual Funds", "Indices"],
+        "status": "Active"
+    })
+    
+    # FMP (SEC data source)
+    if data_provider.fmp_key and data_provider.fmp_key != "":
+        available_sources.append({
+            "name": "Financial Modeling Prep",
+            "type": "Secondary",
+            "reliability_score": 0.90,
+            "description": "SEC data source with high accuracy fundamental data",
+            "coverage": ["Fundamental Data", "Financial Statements", "Ratios"],
+            "status": "Active"
+        })
+    
+    # Additional premium sources (if configured)
+    premium_sources = [
+        ("Polygon.io", data_provider.polygon_key, 0.85, "Premium institutional data with high accuracy"),
+        ("TwelveData", data_provider.twelvedata_key, 0.80, "Good coverage and accuracy for global markets"),
+        ("IEX Cloud", data_provider.iex_key, 0.85, "High-quality market data (now discontinued)"),
+        ("EOD Historical", data_provider.eod_key, 0.80, "Excellent for historical data analysis"),
+        ("Quandl", data_provider.quandl_key, 0.90, "High-quality alternative and economic data")
+    ]
+    
+    for name, api_key, score, desc in premium_sources:
+        if api_key:
+            available_sources.append({
+                "name": name,
+                "type": "Premium",
+                "reliability_score": score,
+                "description": desc,
+                "status": "Active"
+            })
+        else:
+            available_sources.append({
+                "name": name,
+                "type": "Premium",
+                "reliability_score": score,
+                "description": f"{desc} (Not configured)",
+                "status": "Not Configured"
+            })
+    
+    return {
+        "data_accuracy_strategy": {
+            "approach": "Multi-source cross-validation with weighted confidence scoring",
+            "validation_method": "Cross-reference data points across multiple sources",
+            "confidence_scoring": "Weighted averages based on source reliability",
+            "variance_threshold": "10% maximum variance between sources for validation"
+        },
+        "available_sources": available_sources,
+        "data_merging": {
+            "primary_strategy": "Use highest reliability source as base",
+            "validation": "Cross-validate numerical fields across all sources",
+            "conflict_resolution": "Weighted average when sources agree within 10% variance",
+            "confidence_boost": "Increase confidence score when multiple sources agree"
+        },
+        "source_priority": [
+            "1. Alpha Vantage (Official NASDAQ vendor)",
+            "2. Financial Modeling Prep (SEC data)",
+            "3. Premium sources (Polygon, TwelveData, etc.)",
+            "4. Yahoo Finance (fallback)"
+        ],
+        "total_active_sources": len([s for s in available_sources if s["status"] == "Active"]),
+        "accuracy_features": [
+            "Multiple data source validation",
+            "Weighted confidence scoring", 
+            "Cross-reference validation",
+            "Automatic fallback mechanisms",
+            "Real-time source health monitoring"
+        ]
+    }

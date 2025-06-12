@@ -121,12 +121,13 @@ async def verify_api_key(request: Request) -> Dict[str, Any]:
     hashed_key = hash_api_key(api_key)
     
     # Mock validation - replace with database lookup
-    if api_key.startswith("test_"):
+    # Accept test_ keys or yk_ (Yieldflow) keys
+    if api_key.startswith("test_") or api_key.startswith("yk_"):
         return {
             "user_id": "test_user",
-            "plan": "pro",
+            "plan": "professional",
             "api_key_hash": hashed_key,
-            "features": settings.API_PLANS["pro"]["features"]
+            "features": settings.API_PLANS["professional"]["features"]
         }
     
     raise HTTPException(
@@ -177,11 +178,26 @@ def check_feature_access(feature: str, user_data: Dict[str, Any]) -> bool:
     """Check if user has access to a specific feature"""
     user_features = user_data.get("features", [])
     
+    # Check for global access
     if "all" in user_features:
         return True
     
+    # Check for exact feature match
     if feature in user_features:
         return True
+    
+    # Check for upgraded feature access (e.g., all_financials includes basic_financials)
+    feature_hierarchy = {
+        "basic_financials": ["all_financials"],
+        "simple_ratios": ["advanced_analytics"],
+        "basic_analytics": ["advanced_analytics"],
+        "charts": ["advanced_analytics"],
+    }
+    
+    # If user has a higher-level feature, they can access the lower-level one
+    for higher_feature in feature_hierarchy.get(feature, []):
+        if higher_feature in user_features:
+            return True
     
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,

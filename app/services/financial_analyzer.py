@@ -65,6 +65,73 @@ class FinancialAnalyzer:
             logger.error("Error in income trend analysis", error=str(e))
             raise CalculationError(f"Income trend analysis failed: {str(e)}", "income_trends")
     
+    async def calculate_profitability_ratios(self, income_statements: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate key profitability ratios from income statements"""
+        
+        if not income_statements:
+            return {
+                'gross_margin': None,
+                'operating_margin': None,
+                'net_margin': None,
+                'eps_growth': None
+            }
+        
+        try:
+            latest_statement = income_statements[0]  # Most recent
+            
+            # Calculate margins
+            gross_margin = self._safe_divide(
+                latest_statement.get('gross_profit'),
+                latest_statement.get('revenue')
+            )
+            
+            operating_margin = self._safe_divide(
+                latest_statement.get('operating_income'),
+                latest_statement.get('revenue')
+            )
+            
+            net_margin = self._safe_divide(
+                latest_statement.get('net_income'),
+                latest_statement.get('revenue')
+            )
+            
+            # Calculate EPS growth if multiple periods available
+            eps_growth = None
+            if len(income_statements) >= 2:
+                latest_eps = latest_statement.get('diluted_eps') or latest_statement.get('basic_eps')
+                previous_eps = income_statements[1].get('diluted_eps') or income_statements[1].get('basic_eps')
+                
+                if latest_eps and previous_eps and previous_eps != 0:
+                    eps_growth = ((latest_eps - previous_eps) / previous_eps) * 100
+            
+            # Calculate additional profitability metrics
+            roa = self._safe_divide(
+                latest_statement.get('net_income'),
+                latest_statement.get('total_assets')  # This would come from balance sheet if available
+            )
+            
+            return {
+                'gross_margin': gross_margin * 100 if gross_margin else None,  # Convert to percentage
+                'operating_margin': operating_margin * 100 if operating_margin else None,
+                'net_margin': net_margin * 100 if net_margin else None,
+                'eps_growth': eps_growth,
+                'return_on_assets': roa * 100 if roa else None,
+                'revenue': latest_statement.get('revenue'),
+                'net_income': latest_statement.get('net_income'),
+                'gross_profit': latest_statement.get('gross_profit'),
+                'operating_income': latest_statement.get('operating_income')
+            }
+            
+        except Exception as e:
+            logger.error("Error calculating profitability ratios", error=str(e))
+            return {
+                'gross_margin': None,
+                'operating_margin': None,
+                'net_margin': None,
+                'eps_growth': None,
+                'error': str(e)
+            }
+    
     async def analyze_liquidity(self, balance_sheets: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze liquidity position and trends"""
         

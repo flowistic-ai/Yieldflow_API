@@ -54,6 +54,42 @@ if settings.BACKEND_CORS_ORIGINS:
 # Add trusted host middleware for security
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
+# Add security schemes for OpenAPI documentation
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    from fastapi.openapi.utils import get_openapi
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # Add security schemes
+    openapi_schema["components"]["securitySchemes"] = {
+        "X-API-Key": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key for authentication. Add your API key here."
+        },
+        "Bearer": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "JWT Bearer token (if available)"
+        }
+    }
+    
+    # Apply security to all endpoints by default
+    openapi_schema["security"] = [{"X-API-Key": []}]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 @app.middleware("http")
 async def logging_middleware(request: Request, call_next):
