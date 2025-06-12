@@ -8,8 +8,10 @@ class Settings(BaseSettings):
     # Application settings
     PROJECT_NAME: str = "Yieldflow API"
     VERSION: str = "1.0.0"
+    DESCRIPTION: str = "Comprehensive FastAPI Financial Analytics API - From Data to Insights in One API Call"
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = Field(default="test-secret-key-for-development", description="Secret key for JWT token generation")
+    DEBUG: bool = Field(default=True, description="Debug mode")
     
     # Database settings
     DATABASE_URL: str = Field(default="postgresql://syedzeewaqarhussain:password@localhost/yieldflow_db", description="PostgreSQL database URL")

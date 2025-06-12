@@ -29,13 +29,19 @@ async_session = async_sessionmaker(
 Base = declarative_base()
 
 
-async def get_db():
-    """Dependency to get database session"""
+async def get_async_session():
+    """Get async database session"""
     async with async_session() as session:
         try:
             yield session
         finally:
             await session.close()
+
+
+async def get_db():
+    """Dependency to get database session (FastAPI dependency)"""
+    async for session in get_async_session():
+        yield session
 
 
 def create_tables():
