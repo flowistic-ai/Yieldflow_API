@@ -51,7 +51,7 @@ def create_tables():
     """
     try:
         # Import all models to ensure they're registered with Base
-        from app.models import user, company, financial_statements
+        from app.models import User, Company, IncomeStatement, BalanceSheet, CashFlowStatement
         
         # Create synchronous engine for table creation
         sync_engine = create_engine(
@@ -72,7 +72,7 @@ async def init_db():
     """Initialize the database (async version)"""
     async with engine.begin() as conn:
         # Import all models to ensure they're registered with Base
-        from app.models import user, company, financial_statements
+        from app.models import User, Company, IncomeStatement, BalanceSheet, CashFlowStatement
         
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

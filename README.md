@@ -1,74 +1,69 @@
 # Yieldflow API
 
-**Comprehensive Financial Analytics API** - From Data to Insights in One API Call
+**Comprehensive Financial Analytics API** - Professional-grade financial data analysis with advanced ratio calculations, AI insights, and regulatory compliance features.
 
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-blue.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-6+-red.svg)](https://redis.io/)
 
 ## Overview
 
-Yieldflow is a comprehensive financial analytics API that goes beyond raw data to provide intelligent financial analysis, ratios, visualizations, and AI-powered insights. Built with FastAPI, it offers:
-
-- **Raw Financial Data**: Complete income statements, balance sheets, and cash flow statements
-- **Advanced Analytics**: Pre-calculated financial ratios and categorized analysis
-- **Visual Charts**: Built-in chart generation and data visualization
-- **AI Insights**: Machine learning-powered recommendations and analysis
-- **European Compliance**: MiFID II, CSRD compliance features
-- **Multi-tier Access**: From free tier to enterprise plans
+Yieldflow API is a comprehensive financial analytics platform that provides intelligent financial analysis beyond raw data. Built with FastAPI and designed for financial professionals, it offers multi-source data integration, advanced ratio calculations, and AI-powered insights with European regulatory compliance.
 
 ## Key Features
 
-### Core Value Proposition
-- **Intelligent Analysis**: Beyond raw data - get insights, trends, and recommendations
-- **Categorized Analytics**: Profitability, Risk, Efficiency, Growth, and Liquidity analysis
-- **Ready-to-use Ratios**: 50+ financial ratios with explanations and benchmarks
-- **Chart Generation**: Beautiful visualizations with base64-encoded images
-- **European Focus**: Multi-currency support and regulatory compliance
+### Core Analytics
+- **Financial Statements**: Complete income statements, balance sheets, and cash flow statements
+- **Advanced Ratios**: 50+ financial ratios with automated calculations and trend analysis
+- **AI Insights**: Machine learning-powered analysis and recommendations
+- **Chart Generation**: Built-in visualization with multiple chart types
+- **Multi-Source Data**: Integration with Alpha Vantage, Financial Modeling Prep, and Yahoo Finance
 
-### Technical Features
-- **High Performance**: Async FastAPI with Redis caching
-- **Multi-source Data**: Alpha Vantage, Financial Modeling Prep, Yahoo Finance
-- **Rate Limiting**: Tiered plans with smart rate limiting
-- **Data Quality**: Cross-validation and confidence scoring
-- **Comprehensive Logging**: Structured logging with monitoring
+### Enterprise Features
+- **Rate Limiting**: Tiered access plans with intelligent throttling
+- **Data Quality**: Cross-validation and confidence scoring across multiple sources
+- **Caching**: Redis-powered caching for optimal performance
+- **Compliance**: MiFID II and CSRD compliance features
+- **Monitoring**: Comprehensive logging and error tracking
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.9+
 - PostgreSQL 13+
 - Redis 6+
-- External API keys (Alpha Vantage, Financial Modeling Prep)
+- API keys for external data sources
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone and setup**
 ```bash
-git clone https://github.com/your-org/yieldflow-api.git
+git clone https://github.com/flowistic-ai/Yieldflow_API.git
 cd yieldflow-api
 ```
 
-2. **Create virtual environment**
+2. **Environment setup (uv recommended)**
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+# Using uv (recommended for development)
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv sync
 
-3. **Install dependencies**
-```bash
+# Or using pip (traditional)
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **Setup environment variables**
+3. **Environment configuration**
 ```bash
-cp env.example .env
+cp .env.example .env
 # Edit .env with your configuration
 ```
 
-5. **Setup databases**
+4. **Database setup**
 ```bash
 # PostgreSQL
 createdb yieldflow_db
@@ -77,479 +72,405 @@ createdb yieldflow_db
 redis-server
 ```
 
-6. **Run database migrations**
+5. **Run migrations**
 ```bash
 alembic upgrade head
 ```
 
-7. **Start the application**
+6. **Start the application**
 ```bash
-uvicorn app.main:app --reload
+# Using uv (faster)
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+# Or using traditional method
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-The API will be available at `http://localhost:8000`
+**Access Points:**
+- API Server: `http://localhost:8000`
+- Documentation: `http://localhost:8000/api/v1/docs`
+- ReDoc: `http://localhost:8000/api/v1/redoc`
 
-- **API Documentation**: `http://localhost:8000/api/v1/docs`
-- **ReDoc**: `http://localhost:8000/api/v1/redoc`
+## Authentication & API Keys
+
+### Generating API Keys
+
+Use the provided script to generate API keys for different access levels:
+
+```bash
+python create_api_key.py
+```
+
+**Available Plans:**
+- **Free**: 1K requests/day, 10/min - Basic financial data
+- **Basic**: 10K requests/day, 60/min - Financial ratios and analysis
+- **Pro**: 50K requests/day, 300/min - Advanced analytics and insights
+- **Enterprise**: 200K requests/day, 1000/min - Full features and bulk access
+
+The script generates:
+- API key (format: `yk_xxxxxxxxxxxxx`)
+- User credentials and plan details
+- Rate limits and feature access
+- Usage examples
+
+### Using API Keys
+
+Include the API key in the Authorization header for all authenticated requests:
+
+```bash
+curl -H "Authorization: Bearer your_api_key_here" \
+     "http://localhost:8000/api/v1/financials/income-statements?ticker=AAPL"
+```
+
+## API Endpoints
+
+### Financial Statements
+
+#### Income Statements
+```bash
+GET /api/v1/financials/income-statements?ticker={ticker}&period={period}&limit={limit}
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/financials/income-statements?ticker=AAPL&period=annual&limit=4"
+```
+
+#### Balance Sheets
+```bash
+GET /api/v1/financials/balance-sheets?ticker={ticker}&period={period}&limit={limit}
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/financials/balance-sheets?ticker=AAPL&period=annual&limit=4"
+```
+
+#### Cash Flow Statements
+```bash
+GET /api/v1/financials/cash-flows?ticker={ticker}&period={period}&limit={limit}
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/financials/cash-flows?ticker=AAPL&period=annual&limit=4"
+```
+
+**Parameters:**
+- `ticker`: Stock symbol (e.g., AAPL, MSFT)
+- `period`: `annual` or `quarterly`
+- `limit`: Number of periods to retrieve (1-10)
+
+### Financial Ratios
+
+#### Calculate All Ratios
+```bash
+GET /api/v1/ratios/calculate/{ticker}?period={period}&limit={limit}
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/ratios/calculate/AAPL?period=annual&limit=4"
+```
+
+**Available Ratio Categories:**
+- Profitability ratios (ROE, ROA, margins)
+- Liquidity ratios (current, quick, cash ratios)
+- Leverage ratios (debt-to-equity, interest coverage)
+- Efficiency ratios (asset turnover, inventory turnover)
+- Valuation ratios (P/E, P/B, EV/EBITDA)
+
+### Charts & Visualizations
+
+#### Generate Financial Charts
+```bash
+GET /api/v1/charts/generate/{ticker}?chart_type={type}&metric={metric}&period={period}&limit={limit}
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/charts/generate/AAPL?chart_type=line&metric=revenue&period=annual&limit=4"
+```
+
+**Chart Types:**
+- `line`: Line charts for trends
+- `bar`: Bar charts for comparisons
+- `area`: Area charts for cumulative data
+
+**Available Metrics:**
+- `revenue`, `profit`, `assets`, `equity`, `cash_flow`
+
+### AI Insights
+
+#### Comprehensive Analysis
+```bash
+GET /api/v1/insights/analyze/{ticker}?period={period}&limit={limit}&analysis_type={type}
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/insights/analyze/AAPL?analysis_type=comprehensive&period=annual&limit=4"
+```
+
+**Analysis Types:**
+- `comprehensive`: Complete financial analysis
+- `profitability`: Focus on profit metrics
+- `liquidity`: Liquidity and cash analysis
+- `growth`: Growth trend analysis
+
+### Compliance & ESG
+
+#### ESG Analysis
+```bash
+GET /api/v1/compliance/esg/{ticker}?period={period}&limit={limit}
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/compliance/esg/AAPL?period=annual&limit=4"
+```
+
+### Authentication
+
+#### Generate New API Key
+```bash
+POST /api/v1/auth/api-key
+
+curl -X POST "http://localhost:8000/api/v1/auth/api-key" \
+     -H "Content-Type: application/json" \
+     -d '{"plan": "pro"}'
+```
+
+#### Validate API Key
+```bash
+GET /api/v1/auth/validate
+
+curl -H "Authorization: Bearer your_api_key" \
+     "http://localhost:8000/api/v1/auth/validate"
+```
+
+## Response Format
+
+All endpoints return standardized JSON responses:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "ticker": "AAPL",
+    "period": "annual",
+    "statements": [
+      {
+        "fiscal_year": 2023,
+        "total_revenue": 394328000000,
+        "net_income": 96995000000,
+        "confidence_score": 0.95
+      }
+    ]
+  },
+  "metadata": {
+    "source": "alpha_vantage",
+    "cache_hit": false,
+    "processing_time": 0.245
+  },
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Error Response:**
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "TICKER_NOT_FOUND",
+    "message": "Ticker 'XYZ' not found or not supported",
+    "details": "Please verify the ticker symbol"
+  },
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
 
 ## Environment Configuration
 
-Key environment variables (see `env.example` for complete list):
+Required environment variables:
 
 ```bash
 # Database
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost/yieldflow_db
 REDIS_URL=redis://localhost:6379/0
 
-# API Keys
-ALPHA_VANTAGE_API_KEY=your_key_here
-FMP_API_KEY=your_key_here
-OPENAI_API_KEY=your_key_here  # Optional for AI features
+# External API Keys
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
+FMP_API_KEY=your_fmp_key
+POLYGON_API_KEY=your_polygon_key
+TWELVEDATA_API_KEY=your_twelvedata_key
 
 # Security
-SECRET_KEY=your-super-secret-key
+SECRET_KEY=your-super-secret-key-min-32-chars
+ALGORITHM=HS256
+
+# Cache Settings
+CACHE_TTL=3600
+ENABLE_RATE_LIMITING=true
 ```
-
-## API Usage
-
-### Authentication & API Key Generation
-
-#### Option 1: Generate API Key (Recommended)
-Use the provided script to generate API keys for different access tiers:
-
-```bash
-# Generate API key for testing
-python create_api_key.py
-```
-
-This will prompt you to select a plan:
-- **Free**: 1K requests/day, 10/min - Basic company info and financial data
-- **Basic**: 10K requests/day, 60/min - Financial ratios and trend analysis  
-- **Pro**: 50K requests/day, 300/min - Advanced analytics and peer comparison
-- **Enterprise**: 200K requests/day, 1000/min - Full features and bulk data
-
-The script will generate:
-- Your API key (format: `yk_xxxxxxxxxxxxx`)
-- User credentials and plan details
-- Rate limits and feature access
-- Example usage commands
-
-#### Option 2: Use Test Endpoints (No Auth Required)
-For quick testing, use the `/test/` endpoints that don't require authentication:
-
-```bash
-# Test company information
-curl "http://localhost:8000/api/v1/financial/test/company/AAPL"
-
-# Test financial ratios
-curl "http://localhost:8000/api/v1/financial/test/ratios/AAPL?ratio_category=profitability"
-
-# Test financial overview
-curl "http://localhost:8000/api/v1/financial/test/overview/AAPL"
-```
-
-#### Using Your API Key
-All authenticated endpoints require the API key in the Authorization header:
-
-```bash
-curl -H "Authorization: Bearer your_api_key_here" \
-     "http://localhost:8000/api/v1/financial/company/AAPL"
-```
-
-**Important**: Replace `your_api_key_here` with the actual API key generated from the script.
-
-### 📋 Available Endpoints
-
-#### Test Endpoints (No Authentication Required)
-Perfect for testing the API functionality before implementing authentication:
-
-```bash
-# Company Information
-GET /api/v1/financial/test/company/{ticker}
-curl "http://localhost:8000/api/v1/financial/test/company/AAPL"
-
-# Financial Ratios by Category
-GET /api/v1/financial/test/ratios/{ticker}?ratio_category={category}&period={period}
-curl "http://localhost:8000/api/v1/financial/test/ratios/AAPL?ratio_category=profitability&period=annual"
-
-# Complete Financial Overview
-GET /api/v1/financial/test/overview/{ticker}
-curl "http://localhost:8000/api/v1/financial/test/overview/AAPL"
-```
-
-**Available ratio categories**: `profitability`, `liquidity`, `leverage`, `efficiency`, `growth`
-
-#### Authenticated Endpoints
-These endpoints require a valid API key in the Authorization header:
-
-#### 1. Company Information
-```bash
-# Basic company information
-GET /api/v1/financial/company/{ticker}
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/company/AAPL"
-```
-
-#### 2. Financial Statements
-```bash
-# Get financial statements by type
-GET /api/v1/financial/statements/{ticker}?statement_type={type}&period={period}&limit={limit}
-
-# Examples:
-# Income statements (annual, last 4 years)
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/statements/AAPL?statement_type=income&period=annual&limit=4"
-
-# Balance sheets (quarterly, last 8 quarters)  
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/statements/AAPL?statement_type=balance&period=quarterly&limit=8"
-
-# Cash flow statements
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/statements/AAPL?statement_type=cash_flow&period=annual&limit=3"
-```
-
-**Statement types**: `income`, `balance`, `cash_flow`  
-**Periods**: `annual`, `quarterly`
-
-#### 3. Financial Ratios & Analysis
-```bash
-# All financial ratios
-GET /api/v1/financial/ratios/{ticker}?period={period}&ratio_category={category}
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/ratios/AAPL?ratio_category=all&period=annual"
-
-# Specific ratio category
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/ratios/AAPL?ratio_category=profitability"
-```
-
-#### 4. Financial Analysis (Pro+ Features)
-```bash
-# Comprehensive financial analysis
-GET /api/v1/financial/analysis/{ticker}?analysis_type={type}&period={period}
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/analysis/AAPL?analysis_type=comprehensive"
-
-# Specific analysis types
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/analysis/AAPL?analysis_type=trends"
-```
-
-**Analysis types**: `comprehensive`, `trends`, `liquidity`, `profitability`, `cashflow`
-
-#### 5. Financial Overview
-```bash
-# Complete financial overview with key metrics
-GET /api/v1/financial/overview/{ticker}
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/overview/AAPL"
-```
-
-## Response Examples
-
-### Test Company Information Response
-```bash
-curl "http://localhost:8000/api/v1/financial/test/company/AAPL"
-```
-
-```json
-{
-  "ticker": "AAPL",
-  "status": "success",
-  "test_mode": true,
-  "message": "This is a test endpoint - use /financial/company/AAPL with API key for production",
-  "data": {
-    "symbol": "AAPL",
-    "name": "Apple Inc.",
-    "sector": "Technology",
-    "industry": "Consumer Electronics",
-    "market_cap": 2850000000000,
-    "pe_ratio": 25.8,
-    "dividend_yield": 0.52,
-    "52_week_high": 199.62,
-    "52_week_low": 164.08,
-    "confidence_score": 0.95
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
-}
-```
-
-### Financial Ratios Response
-```bash
-curl "http://localhost:8000/api/v1/financial/test/ratios/AAPL?ratio_category=profitability"
-```
-
-```json
-{
-  "ticker": "AAPL",
-  "period": "annual",
-  "category": "profitability",
-  "status": "success",
-  "test_mode": true,
-  "data": {
-    "ratios": {
-      "gross_profit_margin": 0.434,
-      "operating_profit_margin": 0.297,
-      "net_profit_margin": 0.254,
-      "return_on_equity": 1.476,
-      "return_on_assets": 0.287
-    },
-    "explanations": {
-      "gross_profit_margin": "Measures the percentage of revenue retained after cost of goods sold",
-      "net_profit_margin": "Shows the percentage of revenue that becomes profit"
-    },
-    "benchmarks": {
-      "gross_profit_margin": {"industry_avg": 0.35, "performance": "above_average"},
-      "net_profit_margin": {"industry_avg": 0.21, "performance": "excellent"}
-    },
-    "scores": {
-      "profitability_score": 8.5,
-      "overall_score": 8.2
-    }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
-}
-```
-
-### Financial Overview Response
-```bash
-curl -H "Authorization: Bearer your_api_key" \
-     "http://localhost:8000/api/v1/financial/overview/AAPL"
-```
-
-```json
-{
-  "ticker": "AAPL",
-  "status": "success",
-  "data": {
-    "company_info": {
-      "name": "Apple Inc.",
-      "sector": "Technology",
-      "market_cap": 2850000000000
-    },
-    "latest_financials": {
-      "income_statement": {
-        "fiscal_year": 2023,
-        "total_revenue": 394328000000,
-        "gross_profit": 169148000000,
-        "operating_income": 114301000000,
-        "net_income": 96995000000
-      },
-      "balance_sheet": {
-        "fiscal_year": 2023,
-        "total_assets": 352755000000,
-        "total_liabilities": 290437000000,
-        "shareholders_equity": 62318000000
-      }
-    },
-    "key_ratios": {
-      "profitability": {
-        "gross_margin": 0.429,
-        "operating_margin": 0.290,
-        "net_margin": 0.246
-      }
-    },
-    "trend_analysis": {
-      "revenue_trend": "increasing",
-      "growth_rate_3y": 0.078,
-      "profitability_trend": "stable"
-    },
-    "summary": {
-      "revenue_trend": "increasing",
-      "profitability_score": 8.5,
-      "data_quality": 0.95
-    }
-  },
-  "timestamp": "2024-01-15T10:30:00.000Z"
-}
-```
-
-## Getting Started Guide
-
-### Quick Test (No Authentication)
-Try these commands to test the API immediately:
-
-```bash
-# 1. Test if the API is running
-curl "http://localhost:8000/api/v1/financial/test/company/AAPL"
-
-# 2. Get profitability ratios for Apple
-curl "http://localhost:8000/api/v1/financial/test/ratios/AAPL?ratio_category=profitability"
-
-# 3. Get complete financial overview for Microsoft
-curl "http://localhost:8000/api/v1/financial/test/overview/MSFT"
-```
-
-### Generate Your API Key
-```bash
-# Run the key generator
-python create_api_key.py
-
-# Select a plan (or press Enter for Pro)
-# Copy the generated API key (format: yk_xxxxxxxxxxxxx)
-```
-
-### Use Authenticated Endpoints
-```bash
-# Replace YOUR_API_KEY with the actual key from the generator
-export API_KEY="yk_your_generated_api_key_here"
-
-# Get company information
-curl -H "Authorization: Bearer $API_KEY" \
-     "http://localhost:8000/api/v1/financial/company/AAPL"
-
-# Get financial statements
-curl -H "Authorization: Bearer $API_KEY" \
-     "http://localhost:8000/api/v1/financial/statements/AAPL?statement_type=income&period=annual&limit=3"
-
-# Get financial ratios
-curl -H "Authorization: Bearer $API_KEY" \
-     "http://localhost:8000/api/v1/financial/ratios/AAPL?ratio_category=profitability"
-
-# Get comprehensive analysis (Pro+ feature)
-curl -H "Authorization: Bearer $API_KEY" \
-     "http://localhost:8000/api/v1/financial/analysis/AAPL?analysis_type=comprehensive"
-```
-
-### Common Use Cases
-
-#### 1. Financial Dashboard Data
-```bash
-# Get all key metrics for a stock dashboard
-curl -H "Authorization: Bearer $API_KEY" \
-     "http://localhost:8000/api/v1/financial/overview/AAPL"
-```
-
-#### 2. Portfolio Analysis
-```bash
-# Analyze multiple stocks
-for ticker in AAPL MSFT GOOGL AMZN; do
-  echo "Analyzing $ticker..."
-  curl -H "Authorization: Bearer $API_KEY" \
-       "http://localhost:8000/api/v1/financial/ratios/$ticker?ratio_category=profitability"
-done
-```
-
-#### 3. Sector Comparison
-```bash
-# Compare tech companies
-curl -H "Authorization: Bearer $API_KEY" \
-     "http://localhost:8000/api/v1/financial/ratios/AAPL?ratio_category=all"
-curl -H "Authorization: Bearer $API_KEY" \
-     "http://localhost:8000/api/v1/financial/ratios/MSFT?ratio_category=all"
-```
-
-## Pro Tips
-
-1. **Use Test Endpoints First**: Always test with the `/test/` endpoints before implementing authentication
-2. **Cache Results**: The API includes confidence scores - cache high-confidence data locally
-3. **Rate Limits**: Check your plan's rate limits and implement appropriate request throttling
-4. **Error Handling**: All endpoints return standardized error formats with helpful messages
-5. **Data Quality**: Check the `confidence_score` field to assess data reliability
 
 ## Development
 
 ### Project Structure
 ```
 app/
-├── core/           # Core configuration and security
-├── api/            # API endpoints and routers
-├── models/         # Database models
-├── schemas/        # Pydantic schemas
-├── services/       # Business logic services
-├── utils/          # Utility functions
-└── tests/          # Test suites
+├── core/                  # Core configuration and dependencies
+│   ├── config.py         # Settings and environment variables
+│   ├── database.py       # Database connection and models
+│   ├── security.py       # Authentication and security
+│   └── deps.py           # FastAPI dependencies
+├── api/                  # API layer
+│   └── api_v1/
+│       ├── endpoints/    # API endpoint definitions
+│       └── api.py        # Router configuration
+├── models/               # Database models
+├── schemas/              # Pydantic response/request schemas
+├── services/             # Business logic
+│   ├── data_provider.py  # Multi-source data integration
+│   ├── ratio_calculator.py # Financial ratio calculations
+│   ├── financial_analyzer.py # Analysis engine
+│   └── chart_generator.py # Visualization service
+└── utils/                # Utility functions
+```
+
+### Adding Dependencies
+
+**Using uv (recommended):**
+```bash
+# Add production dependency
+uv add package-name
+
+# Add development dependency
+uv add --dev package-name
+
+# Update requirements.txt for compatibility
+uv pip compile pyproject.toml -o requirements.txt
+```
+
+**Using pip (traditional):**
+```bash
+pip install package-name
+pip freeze > requirements.txt
 ```
 
 ### Running Tests
 ```bash
-pytest app/tests/ -v
+pytest app/tests/ -v --cov=app
 ```
 
 ### Code Quality
 ```bash
-# Format code
+# Format and lint
 black app/
 isort app/
-
-# Lint code
 flake8 app/
 mypy app/
 ```
 
 ## Data Sources
 
-- **Alpha Vantage**: Real-time quotes and fundamentals
-- **Financial Modeling Prep**: Financial statements and ratios
-- **Yahoo Finance**: Market data and prices
-- **FRED API**: Economic indicators
+The API integrates multiple financial data sources for comprehensive coverage:
+
+- **Alpha Vantage**: Real-time quotes and fundamental data
+- **Financial Modeling Prep**: Detailed financial statements
+- **Yahoo Finance**: Market data and historical prices
+- **Polygon.io**: Real-time market data (Enterprise)
+- **TwelveData**: Global market coverage (Enterprise)
+
+### Data Quality Features
+
+- **Cross-validation**: Multiple source verification
+- **Confidence scoring**: Data reliability assessment
+- **Automatic fallback**: Seamless source switching
+- **Error handling**: Graceful degradation
+
+## Deployment
+
+### Docker Deployment
+```bash
+# Build image
+docker build -t yieldflow-api .
+
+# Run container
+docker run -p 8000:8000 \
+  -e DATABASE_URL=your_db_url \
+  -e ALPHA_VANTAGE_API_KEY=your_key \
+  yieldflow-api
+```
+
+### Production Considerations
+
+- Use PostgreSQL with connection pooling
+- Configure Redis for production workloads
+- Implement reverse proxy (nginx/traefik)
+- Set up monitoring and logging
+- Configure rate limiting per plan
+- Use SSL/TLS certificates
+
+## Troubleshooting
+
+### Common Issues
+
+#### Authentication Errors
+```bash
+# Error: "Invalid API key"
+# Solution: Generate new API key
+python create_api_key.py
+```
+
+#### Data Source Errors
+```bash
+# Error: "Data source unavailable"
+# Check API keys in .env file
+# Verify external API quotas
+```
+
+#### Rate Limit Exceeded
+```bash
+# Error: "Rate limit exceeded"
+# Wait for reset or upgrade plan
+# Check current limits in API key details
+```
+
+### Health Checks
+```bash
+# API health
+curl "http://localhost:8000/health"
+
+# Financial data health
+curl "http://localhost:8000/api/v1/financials/health"
+
+# Analytics health
+curl "http://localhost:8000/api/v1/analytics/health"
+```
+
+## Performance Optimization
+
+- **Caching**: Redis caching with configurable TTL
+- **Async Operations**: Full async/await implementation
+- **Connection Pooling**: Database connection optimization
+- **Data Compression**: Gzip compression for large responses
+- **Query Optimization**: Efficient database queries
+
+## Security Features
+
+- **API Key Authentication**: Secure token-based access
+- **Rate Limiting**: Prevents abuse and ensures fair usage
+- **Input Validation**: Comprehensive request validation
+- **Error Handling**: Secure error responses
+- **Logging**: Comprehensive audit trails
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Add tests
-5. Submit a pull request
+4. Add tests for new functionality
+5. Ensure all tests pass (`pytest`)
+6. Format code (`black app/ && isort app/`)
+7. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-#### 1. 401 Unauthorized Error
-```bash
-# Error: {"detail": "Invalid API key or expired"}
-# Solution: Generate a new API key
-python create_api_key.py
-```
-
-#### 2. 404 Ticker Not Found
-```bash
-# Error: {"detail": "Ticker 'XYZ' not found"}
-# Solution: Verify ticker symbol or try a different data source
-curl "http://localhost:8000/api/v1/financial/test/company/AAPL"  # Test with known ticker
-```
-
-#### 3. 503 Data Source Unavailable
-```bash
-# Error: {"detail": "Data source temporarily unavailable"}
-# Solution: Check your API keys in .env file
-# Verify Alpha Vantage API key is valid and has remaining quota
-```
-
-#### 4. Rate Limit Exceeded
-```bash
-# Error: {"detail": "Rate limit exceeded"}
-# Solution: Wait for rate limit reset or upgrade plan
-# Check your current plan limits with:
-python create_api_key.py  # Shows rate limits for each plan
-```
-
-### Health Check
-```bash
-# Check if the API is running
-curl "http://localhost:8000/health"
-
-# Test with sample data
-curl "http://localhost:8000/api/v1/financial/test/company/AAPL"
-```
-
-### API Documentation
-- **Interactive Docs**: `http://localhost:8000/docs`
-- **ReDoc Format**: `http://localhost:8000/redoc`
-- **OpenAPI Spec**: `http://localhost:8000/openapi.json`
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Documentation**: [API Docs](http://localhost:8000/docs)
-- **GitHub**: [Yieldflow API Repository](https://github.com/flowistic-ai/Yieldflow_API)
+- **Documentation**: [API Documentation](http://localhost:8000/api/v1/docs)
+- **Repository**: [GitHub](https://github.com/flowistic-ai/Yieldflow_API)
 - **Issues**: [Report Issues](https://github.com/flowistic-ai/Yieldflow_API/issues)
 
 ---
 
-**Yieldflow API** - Transforming financial data into actionable insights. 
+**Yieldflow API** - Professional financial analytics for modern applications. 
