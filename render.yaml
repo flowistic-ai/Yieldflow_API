@@ -63,6 +63,12 @@ services:
         sync: false
     healthCheckPath: /health
     autoDeploy: true
+  - type: redis
+    name: yieldflow-redis
+    region: oregon
+    plan: starter
+    ipAllowList: []
+    # maxmemoryPolicy: allkeys-lru  # Uncomment if supported by Render
 
 databases:
   - name: yieldflow-db
@@ -70,11 +76,4 @@ databases:
     user: yieldflow_user
     region: oregon
     plan: starter
-    ipAllowList: []
-
-  # Redis Cache
-  - name: yieldflow-redis
-    region: oregon
-    plan: starter
-    maxmemoryPolicy: allkeys-lru
     ipAllowList: [] 
