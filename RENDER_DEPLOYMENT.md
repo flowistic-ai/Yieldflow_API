@@ -247,6 +247,6 @@ For deployment issues:
 
 ---
 
-**🎉 Your Yieldflow API is now live on Render!**
+**Your Yieldflow API is now live on Render!**
 
 Visit your API documentation at: `https://yieldflow-api.onrender.com/api/v1/docs` 
