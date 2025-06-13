@@ -7,12 +7,19 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 
-# SQLAlchemy database URL
+# SQLAlchemy database URL - convert to async format if needed
 DATABASE_URL = settings.DATABASE_URL
+
+# Ensure we're using the async driver for async operations
+if DATABASE_URL.startswith("postgresql://"):
+    # Convert postgresql:// to postgresql+asyncpg:// for async operations
+    ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+else:
+    ASYNC_DATABASE_URL = DATABASE_URL
 
 # Create async engine
 engine = create_async_engine(
-    DATABASE_URL,
+    ASYNC_DATABASE_URL,
     echo=False,  # Set to True for SQL debugging
     pool_pre_ping=True,
     pool_recycle=300,
@@ -53,9 +60,15 @@ def create_tables():
         # Import all models to ensure they're registered with Base
         from app.models import User, Company, IncomeStatement, BalanceSheet, CashFlowStatement
         
-        # Create synchronous engine for table creation
+        # Create synchronous engine for table creation  
+        # Ensure we're using the sync driver for sync operations
+        if DATABASE_URL.startswith("postgresql+asyncpg://"):
+            SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
+        else:
+            SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql://")
+        
         sync_engine = create_engine(
-            DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://"),
+            SYNC_DATABASE_URL,
             echo=False
         )
         
