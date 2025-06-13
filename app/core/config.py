@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(default=True, description="Debug mode")
     
     # Database settings
-    DATABASE_URL: str = Field(default="postgresql://syedzeewaqarhussain:password@localhost/yieldflow_db", description="PostgreSQL database URL")
+    DATABASE_URL: str = Field(default="postgresql+asyncpg://syedzeewaqarhussain:password@localhost/yieldflow_db", description="PostgreSQL database URL")
     PORT: int = Field(default=8000, description="Port to run the application on")
     
     # Redis settings
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     
     # External API keys
     ALPHA_VANTAGE_API_KEY: str = Field(default="8U60647QE9JL1KKX", description="Alpha Vantage API key")
-    FMP_API_KEY: str = Field(default="demo", description="Financial Modeling Prep API key")  # Using demo key
+    FMP_API_KEY: str = Field(default="SaSKENT5J7T2P8ix8Un7qfJO80GPmh4M", description="Financial Modeling Prep API key")
     POLYGON_API_KEY: str = Field(default="", description="Polygon.io API key")
     TWELVEDATA_API_KEY: str = Field(default="", description="Twelve Data API key")
     IEX_CLOUD_API_KEY: str = Field(default="", description="IEX Cloud API key")
