@@ -343,53 +343,146 @@ class DividendService:
 
     def _calculate_coverage_analytics(self, dividends: List[Dict], financials: Dict) -> Dict[str, Any]:
         """
-        PROFESSIONAL COVERAGE ANALYSIS WITH MULTIPLE RATIOS
-        - EPS Coverage = EPS / Dividend Per Share
-        - FCF Coverage = Free Cash Flow / Total Dividends Paid  
-        - EBITDA Coverage = EBITDA / Total Dividend Payments
-        Professional grading: A+ (>3.0), A (>2.5), B (>2.0), C (>1.5), D (>1.0), F (<1.0)
+        INDUSTRY-STANDARD DIVIDEND COVERAGE ANALYSIS
+        
+        Primary Coverage Ratio: Net Income ÷ Total Dividends Paid
+        Supporting Ratios: EPS Coverage, FCF Coverage
+        
+        Based on standard financial analysis methodology from:
+        - Corporate Finance Institute
+        - Investopedia Financial Education
+        - Standard investment analysis practices
+        
+        Grading Scale (Industry Standard):
+        A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (<1.0x)
         """
         
         if not dividends or not financials:
-            return {'coverage_grade': 'F', 'analysis': 'Insufficient data'}
+            return {
+                'coverage_ratios': {
+                    'primary_coverage': 0,
+                    'eps_coverage': 0,
+                    'fcf_coverage': 0
+                },
+                'coverage_grades': {
+                    'primary_grade': 'F',
+                    'eps_grade': 'F',
+                    'fcf_grade': 'F',
+                    'composite_grade': 'F'
+                },
+                'coverage_assessment': 'Insufficient data',
+                'methodology': 'Industry Standard: Net Income ÷ Total Dividends'
+            }
         
-        # Core coverage ratios
-        eps_coverage = self._calculate_eps_coverage_ratio(dividends, financials)
+        # Calculate TTM dividend per share
+        ttm_dividend_per_share = sum(div.get('amount', 0) for div in dividends[:4])
+        
+        if ttm_dividend_per_share <= 0:
+            return {
+                'coverage_ratios': {
+                    'primary_coverage': 0,
+                    'eps_coverage': 0,
+                    'fcf_coverage': 0
+                },
+                'coverage_grades': {
+                    'primary_grade': 'N/A',
+                    'eps_grade': 'N/A', 
+                    'fcf_grade': 'N/A',
+                    'composite_grade': 'N/A'
+                },
+                'coverage_assessment': 'No dividends paid',
+                'methodology': 'Industry Standard: Net Income ÷ Total Dividends'
+            }
+        
+        # 1. PRIMARY COVERAGE RATIO (Industry Standard)
+        # Net Income ÷ Total Dividends Paid (preferred)
+        # Falls back to EPS Coverage when net income unavailable
+        net_income = financials.get('net_income', 0)
+        shares_outstanding = financials.get('shares_outstanding', 0)
+        
+        if shares_outstanding <= 0:
+            # Estimate from market cap and price if available
+            market_cap = financials.get('market_cap', 0)
+            price = financials.get('price', 0)
+            if market_cap > 0 and price > 0:
+                shares_outstanding = market_cap / price
+        
+        total_dividends_paid = ttm_dividend_per_share * shares_outstanding if shares_outstanding > 0 else 0
+        
+        primary_coverage = 0
+        primary_method = "Net Income Coverage"
+        
+        # Try primary method: Net Income Coverage
+        if total_dividends_paid > 0 and net_income and net_income > 0:
+            primary_coverage = net_income / total_dividends_paid
+            primary_method = "Net Income Coverage"
+        else:
+            # Fallback to EPS Coverage (industry standard when net income unavailable)
+            eps = financials.get('eps', 0)
+            if ttm_dividend_per_share > 0 and eps and eps > 0:
+                primary_coverage = eps / ttm_dividend_per_share
+                primary_method = "EPS Coverage (fallback)"
+        
+        # 2. EPS COVERAGE RATIO (Supporting or Primary if fallback used)
+        eps = financials.get('eps', 0)
+        eps_coverage = 0
+        if ttm_dividend_per_share > 0 and eps and eps > 0:
+            eps_coverage = eps / ttm_dividend_per_share
+        
+        # 3. FCF COVERAGE RATIO (Supporting)
         fcf_coverage = self._calculate_fcf_coverage_ratio(dividends, financials)
-        ebitda_coverage = self._calculate_ebitda_coverage_ratio(dividends, financials)
         
-        # Professional grading system
+        # GRADE EACH RATIO (Industry Standard Scale)
         def grade_coverage(ratio):
-            if ratio >= 3.0: return 'A+', 100
-            elif ratio >= 2.5: return 'A', 90
-            elif ratio >= 2.0: return 'B', 80
-            elif ratio >= 1.5: return 'C', 70
-            elif ratio >= 1.0: return 'D', 60
-            else: return 'F', 0
+            """Grade coverage ratios using industry standard scale"""
+            if ratio >= 3.0:
+                return 'A+', 'Excellent'
+            elif ratio >= 2.5:
+                return 'A', 'Very Good'
+            elif ratio >= 2.0:
+                return 'B', 'Good'
+            elif ratio >= 1.5:
+                return 'C', 'Fair'
+            elif ratio >= 1.0:
+                return 'D', 'Poor'
+            else:
+                return 'F', 'Very Poor'
         
-        eps_grade, eps_score = grade_coverage(eps_coverage)
-        fcf_grade, fcf_score = grade_coverage(fcf_coverage)
-        ebitda_grade, ebitda_score = grade_coverage(ebitda_coverage)
+        primary_grade, primary_desc = grade_coverage(primary_coverage)
+        eps_grade, eps_desc = grade_coverage(eps_coverage)
+        fcf_grade, fcf_desc = grade_coverage(fcf_coverage)
         
-        # Composite coverage score (weighted average)
-        composite_score = (eps_score * 0.4) + (fcf_score * 0.4) + (ebitda_score * 0.2)
-        composite_grade, _ = grade_coverage(composite_score / 20)  # Convert back to ratio scale
+        # COMPOSITE GRADE: Use primary coverage as the main indicator
+        # This follows industry standard where the main dividend coverage ratio is the primary metric
+        composite_grade = primary_grade
+        
+        # Assessment based on primary coverage ratio
+        if primary_coverage >= 2.5:
+            assessment = "Excellent Coverage - Strong dividend sustainability"
+        elif primary_coverage >= 2.0:
+            assessment = "Good Coverage - Solid dividend capacity"
+        elif primary_coverage >= 1.5:
+            assessment = "Fair Coverage - Adequate but watch closely"
+        elif primary_coverage >= 1.0:
+            assessment = "Weak Coverage - Risk of dividend cuts"
+        else:
+            assessment = "Poor Coverage - High risk of dividend suspension"
         
         return {
             'coverage_ratios': {
+                'primary_coverage': round(primary_coverage, 2),
                 'eps_coverage': round(eps_coverage, 2),
-                'fcf_coverage': round(fcf_coverage, 2),
-                'ebitda_coverage': round(ebitda_coverage, 2)
+                'fcf_coverage': round(fcf_coverage, 2)
             },
             'coverage_grades': {
+                'primary_grade': primary_grade,
                 'eps_grade': eps_grade,
                 'fcf_grade': fcf_grade,
-                'ebitda_grade': ebitda_grade,
                 'composite_grade': composite_grade
             },
-            'coverage_score': round(composite_score, 1),
-            'coverage_assessment': self._assess_coverage_adequacy(eps_coverage, fcf_coverage),
-            'coverage_trend': self._analyze_coverage_trend(dividends, financials)
+            'coverage_assessment': assessment,
+            'methodology': 'Industry Standard: Net Income ÷ Total Dividends (Primary), EPS Coverage & FCF Coverage (Supporting)',
+            'grading_scale': 'A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (<1.0x)'
         }
 
     def _calculate_valuation_analytics(self, dividends: List[Dict], market_data: Dict, economic_context: Dict) -> Dict[str, Any]:
@@ -824,37 +917,152 @@ class DividendService:
                 'is_achiever': consecutive_increases >= 10,
                 'is_challenger': consecutive_increases >= 5
             },
-            'growth_trend': self._determine_growth_trend(growth_rates[-3:] if len(growth_rates) >= 3 else growth_rates)
+            'growth_quality': self._determine_growth_quality(growth_rates),
+            'growth_trend': self._determine_recent_trend(growth_rates[-3:] if len(growth_rates) >= 3 else growth_rates)
         }
 
     def _analyze_dividend_coverage(self, dividends: List[Dict], financials: Dict) -> Dict[str, Any]:
         """
-        Professional dividend coverage analysis using multiple financial metrics
+        INDUSTRY-STANDARD DIVIDEND COVERAGE ANALYSIS
+        
+        Primary Coverage Ratio: Net Income ÷ Total Dividends Paid
+        Supporting Ratios: EPS Coverage, FCF Coverage
+        
+        Based on standard financial analysis methodology from:
+        - Corporate Finance Institute
+        - Investopedia Financial Education
+        - Standard investment analysis practices
+        
+        Grading Scale (Industry Standard):
+        A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (<1.0x)
         """
         
         if not dividends or not financials:
-            return {'coverage_analysis': 'Insufficient data'}
+            return {
+                'coverage_ratios': {
+                    'primary_coverage': 0,
+                    'eps_coverage': 0,
+                    'fcf_coverage': 0
+                },
+                'coverage_grades': {
+                    'primary_grade': 'F',
+                    'eps_grade': 'F',
+                    'fcf_grade': 'F',
+                    'composite_grade': 'F'
+                },
+                'coverage_assessment': 'Insufficient data',
+                'methodology': 'Industry Standard: Net Income ÷ Total Dividends'
+            }
         
-        # Calculate coverage ratios
-        eps_coverage = self._calculate_eps_coverage_ratio(dividends, financials)
-        fcf_coverage = self._calculate_fcf_dividend_coverage(dividends, financials)
-        ebitda_coverage = self._calculate_ebitda_coverage_ratio(dividends, financials)
+        # Calculate TTM dividend per share
+        ttm_dividend_per_share = sum(div.get('amount', 0) for div in dividends[:4])
         
-        # Coverage trend analysis
-        coverage_trend = self._analyze_coverage_trends(dividends, financials)
+        if ttm_dividend_per_share <= 0:
+            return {
+                'coverage_ratios': {
+                    'primary_coverage': 0,
+                    'eps_coverage': 0,
+                    'fcf_coverage': 0
+                },
+                'coverage_grades': {
+                    'primary_grade': 'N/A',
+                    'eps_grade': 'N/A', 
+                    'fcf_grade': 'N/A',
+                    'composite_grade': 'N/A'
+                },
+                'coverage_assessment': 'No dividends paid',
+                'methodology': 'Industry Standard: Net Income ÷ Total Dividends'
+            }
         
-        # Coverage adequacy assessment
-        coverage_grade = self._grade_dividend_coverage(eps_coverage, fcf_coverage)
+        # 1. PRIMARY COVERAGE RATIO (Industry Standard)
+        # Net Income ÷ Total Dividends Paid (preferred)
+        # Falls back to EPS Coverage when net income unavailable
+        net_income = financials.get('net_income', 0)
+        shares_outstanding = financials.get('shares_outstanding', 0)
+        
+        if shares_outstanding <= 0:
+            # Estimate from market cap and price if available
+            market_cap = financials.get('market_cap', 0)
+            price = financials.get('price', 0)
+            if market_cap > 0 and price > 0:
+                shares_outstanding = market_cap / price
+        
+        total_dividends_paid = ttm_dividend_per_share * shares_outstanding if shares_outstanding > 0 else 0
+        
+        primary_coverage = 0
+        primary_method = "Net Income Coverage"
+        
+        # Try primary method: Net Income Coverage
+        if total_dividends_paid > 0 and net_income and net_income > 0:
+            primary_coverage = net_income / total_dividends_paid
+            primary_method = "Net Income Coverage"
+        else:
+            # Fallback to EPS Coverage (industry standard when net income unavailable)
+            eps = financials.get('eps', 0)
+            if ttm_dividend_per_share > 0 and eps and eps > 0:
+                primary_coverage = eps / ttm_dividend_per_share
+                primary_method = "EPS Coverage (fallback)"
+        
+        # 2. EPS COVERAGE RATIO (Supporting or Primary if fallback used)
+        eps = financials.get('eps', 0)
+        eps_coverage = 0
+        if ttm_dividend_per_share > 0 and eps and eps > 0:
+            eps_coverage = eps / ttm_dividend_per_share
+        
+        # 3. FCF COVERAGE RATIO (Supporting)
+        fcf_coverage = self._calculate_fcf_coverage_ratio(dividends, financials)
+        
+        # GRADE EACH RATIO (Industry Standard Scale)
+        def grade_coverage(ratio):
+            """Grade coverage ratios using industry standard scale"""
+            if ratio >= 3.0:
+                return 'A+', 'Excellent'
+            elif ratio >= 2.5:
+                return 'A', 'Very Good'
+            elif ratio >= 2.0:
+                return 'B', 'Good'
+            elif ratio >= 1.5:
+                return 'C', 'Fair'
+            elif ratio >= 1.0:
+                return 'D', 'Poor'
+            else:
+                return 'F', 'Very Poor'
+        
+        primary_grade, primary_desc = grade_coverage(primary_coverage)
+        eps_grade, eps_desc = grade_coverage(eps_coverage)
+        fcf_grade, fcf_desc = grade_coverage(fcf_coverage)
+        
+        # COMPOSITE GRADE: Use primary coverage as the main indicator
+        # This follows industry standard where the main dividend coverage ratio is the primary metric
+        composite_grade = primary_grade
+        
+        # Assessment based on primary coverage ratio
+        if primary_coverage >= 2.5:
+            assessment = "Excellent Coverage - Strong dividend sustainability"
+        elif primary_coverage >= 2.0:
+            assessment = "Good Coverage - Solid dividend capacity"
+        elif primary_coverage >= 1.5:
+            assessment = "Fair Coverage - Adequate but watch closely"
+        elif primary_coverage >= 1.0:
+            assessment = "Weak Coverage - Risk of dividend cuts"
+        else:
+            assessment = "Poor Coverage - High risk of dividend suspension"
         
         return {
             'coverage_ratios': {
-                'eps_coverage': eps_coverage,
-                'fcf_coverage': fcf_coverage,
-                'ebitda_coverage': ebitda_coverage
+                'primary_coverage': round(primary_coverage, 2),
+                'eps_coverage': round(eps_coverage, 2),
+                'fcf_coverage': round(fcf_coverage, 2)
             },
-            'coverage_trend': coverage_trend,
-            'coverage_grade': coverage_grade,
-            'coverage_analysis': self._interpret_coverage_metrics(eps_coverage, fcf_coverage, ebitda_coverage)
+            'coverage_grades': {
+                'primary_grade': primary_grade,
+                'eps_grade': eps_grade,
+                'fcf_grade': fcf_grade,
+                'composite_grade': composite_grade
+            },
+            'coverage_assessment': assessment,
+            'methodology': 'Industry Standard: Net Income ÷ Total Dividends (Primary), EPS Coverage & FCF Coverage (Supporting)',
+            'grading_scale': 'A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (<1.0x)'
         }
 
     def _calculate_dividend_risk_metrics(self, dividends: List[Dict], financials: Dict, economic_context: Dict) -> Dict[str, Any]:
@@ -1282,10 +1490,30 @@ class DividendService:
         if not dividends or not financials:
             return 0
         
-        ttm_dividend = sum(div.get('amount', 0) for div in dividends[:4])
-        fcf_per_share = financials.get('free_cash_flow', 0) / 1_000_000_000  # Simplified
+        ttm_dividend_per_share = sum(div.get('amount', 0) for div in dividends[:4])
+        free_cash_flow = financials.get('free_cash_flow', 0)
         
-        return fcf_per_share / ttm_dividend if ttm_dividend > 0 else 0
+        if ttm_dividend_per_share <= 0 or free_cash_flow <= 0:
+            return 0
+        
+        # Get shares outstanding from financials
+        shares_outstanding = financials.get('shares_outstanding', 0)
+        
+        # If shares_outstanding not available, estimate from market cap and price
+        if shares_outstanding <= 0:
+            market_cap = financials.get('market_cap', 0)
+            current_price = financials.get('current_price', 0)
+            if market_cap > 0 and current_price > 0:
+                shares_outstanding = market_cap / current_price
+            else:
+                # Fallback: assume reasonable share count for calculation
+                shares_outstanding = 1_000_000_000  # 1B shares as fallback
+        
+        # Calculate FCF per share
+        fcf_per_share = free_cash_flow / shares_outstanding if shares_outstanding > 0 else 0
+        
+        # Coverage ratio = FCF per share / Dividend per share
+        return fcf_per_share / ttm_dividend_per_share if ttm_dividend_per_share > 0 and fcf_per_share > 0 else 0
 
     def _calculate_data_reliability_score(self, dividends: List[Dict], financials: Dict) -> float:
         """Calculate overall data reliability score for the analysis"""
@@ -2525,14 +2753,27 @@ class DividendService:
         ttm_dividend_per_share = sum(div.get('amount', 0) for div in dividends[:4])
         free_cash_flow = financials.get('free_cash_flow', 0)
         
-        # Estimate shares outstanding (simplified)
-        market_cap = financials.get('market_cap', 1_000_000_000)
-        current_price = financials.get('current_price', 100)
-        shares_outstanding = market_cap / current_price if current_price > 0 else 1_000_000
+        if ttm_dividend_per_share <= 0 or free_cash_flow <= 0:
+            return 0
         
-        total_dividends_paid = ttm_dividend_per_share * shares_outstanding
+        # Get shares outstanding from financials
+        shares_outstanding = financials.get('shares_outstanding', 0)
         
-        return free_cash_flow / total_dividends_paid if total_dividends_paid > 0 else 0
+        # If shares_outstanding not available, estimate from market cap and price
+        if shares_outstanding <= 0:
+            market_cap = financials.get('market_cap', 0)
+            current_price = financials.get('current_price', 0)
+            if market_cap > 0 and current_price > 0:
+                shares_outstanding = market_cap / current_price
+            else:
+                # Fallback: assume reasonable share count for calculation
+                shares_outstanding = 1_000_000_000  # 1B shares as fallback
+        
+        # Calculate FCF per share
+        fcf_per_share = free_cash_flow / shares_outstanding if shares_outstanding > 0 else 0
+        
+        # Coverage ratio = FCF per share / Dividend per share
+        return fcf_per_share / ttm_dividend_per_share if ttm_dividend_per_share > 0 and fcf_per_share > 0 else 0
 
     def _identify_sustainability_risks(self, payout_ratio: float, fcf_coverage: float) -> List[str]:
         """Identify sustainability risk factors"""
@@ -2598,23 +2839,39 @@ class DividendService:
             return 'Declining'
 
     def _calculate_ebitda_coverage_ratio(self, dividends: List[Dict], financials: Dict) -> float:
-        """Calculate EBITDA coverage ratio (simplified)"""
+        """Calculate EBITDA coverage ratio"""
         if not dividends or not financials:
             return 0
         
-        # Use revenue as proxy for EBITDA (simplified)
-        revenue = financials.get('revenue', 0)
-        estimated_ebitda = revenue * 0.15 if revenue > 0 else 0  # Assume 15% EBITDA margin
-        
         ttm_dividend_per_share = sum(div.get('amount', 0) for div in dividends[:4])
         
-        # Estimate total dividend payments
-        market_cap = financials.get('market_cap', 1_000_000_000)
-        current_price = financials.get('current_price', 100)
-        shares_outstanding = market_cap / current_price if current_price > 0 else 1_000_000
-        total_dividends = ttm_dividend_per_share * shares_outstanding
+        # Use actual EBITDA if available, otherwise estimate
+        ebitda = financials.get('ebitda', 0)
         
-        return estimated_ebitda / total_dividends if total_dividends > 0 else 0
+        if ebitda <= 0:
+            # Estimate EBITDA from revenue with conservative 15% margin
+            revenue = financials.get('revenue', 0)
+            ebitda = revenue * 0.15 if revenue > 0 else 0
+        
+        if ttm_dividend_per_share <= 0 or ebitda <= 0:
+            return 0
+        
+        # Get shares outstanding
+        shares_outstanding = financials.get('shares_outstanding', 0)
+        
+        if shares_outstanding <= 0:
+            market_cap = financials.get('market_cap', 0)
+            current_price = financials.get('current_price', 0)
+            if market_cap > 0 and current_price > 0:
+                shares_outstanding = market_cap / current_price
+            else:
+                shares_outstanding = 1_000_000_000  # Fallback
+        
+        # Calculate EBITDA per share
+        ebitda_per_share = ebitda / shares_outstanding if shares_outstanding > 0 else 0
+        
+        # Coverage ratio = EBITDA per share / Dividend per share
+        return ebitda_per_share / ttm_dividend_per_share if ttm_dividend_per_share > 0 and ebitda_per_share > 0 else 0
 
     def _assess_coverage_adequacy(self, eps_coverage: float, fcf_coverage: float) -> str:
         """Assess overall coverage adequacy"""
