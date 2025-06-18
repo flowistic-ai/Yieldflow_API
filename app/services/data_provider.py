@@ -29,6 +29,7 @@ class DataProvider:
         self.iex_key = getattr(settings, 'IEX_CLOUD_API_KEY', None)
         self.quandl_key = getattr(settings, 'QUANDL_API_KEY', None)
         self.eod_key = getattr(settings, 'EOD_HISTORICAL_API_KEY', None)
+        self.fred_key = getattr(settings, 'FRED_API_KEY', None)
         
         # Initialize Alpha Vantage clients
         if self.alpha_vantage_key:
@@ -41,6 +42,7 @@ class DataProvider:
         self.twelvedata_base_url = "https://api.twelvedata.com"
         self.iex_base_url = "https://cloud.iexapis.com/stable"
         self.eod_base_url = "https://eodhd.com/api"
+        self.fred_base_url = "https://api.stlouisfed.org/fred"
         
         # Data source priority ranking (higher is better)
         self.source_reliability = {
@@ -51,7 +53,8 @@ class DataProvider:
             'iex_cloud': 0.85,        # Previously reliable until shutdown
             'eod_historical': 0.80,   # Good for historical data
             'yahoo_finance': 0.75,    # Free but sometimes inconsistent
-            'quandl': 0.90           # High-quality for specific datasets
+            'quandl': 0.90,          # High-quality for specific datasets
+            'fred': 0.98             # Federal Reserve official data - highest quality
         }
     
     async def get_company_info(self, ticker: str) -> Dict[str, Any]:

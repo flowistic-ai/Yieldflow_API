@@ -8,6 +8,7 @@ from app.api.api_v1.endpoints import (
     insights,
     compliance,
     auth,
+    dividends,
 )
 
 api_router = APIRouter()
@@ -53,4 +54,10 @@ api_router.include_router(
     auth.router,
     prefix="/auth",
     tags=["Authentication"]
+)
+
+api_router.include_router(
+    dividends.router,
+    prefix="/dividends",
+    tags=["Dividend Analysis"]
 )

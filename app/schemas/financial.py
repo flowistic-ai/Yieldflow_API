@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, validator
 from typing import Optional, Dict, Any, List
 from datetime import date, datetime
 from decimal import Decimal
+from enum import Enum
 
 
 class CompanyBase(BaseModel):
@@ -195,6 +196,148 @@ class FinancialStatementsResponse(BaseModel):
     analysis_summary: Optional[Dict[str, Any]] = Field(None, description="Summary analytics")
     key_ratios: Optional[Dict[str, Any]] = Field(None, description="Key financial ratios")
     data_quality: Optional[Dict[str, Any]] = Field(None, description="Data quality information")
+    
+    class Config:
+        from_attributes = True
+
+
+# Dividend-related enums and schemas
+class DividendType(str, Enum):
+    """Dividend type enumeration"""
+    REGULAR = "regular"
+    SPECIAL = "special"
+    STOCK = "stock"
+    SPIN_OFF = "spin_off"
+    RIGHTS = "rights"
+
+
+class DividendFrequency(str, Enum):
+    """Dividend frequency enumeration"""
+    ANNUAL = "annual"
+    SEMI_ANNUAL = "semi_annual"
+    QUARTERLY = "quarterly"
+    MONTHLY = "monthly"
+    IRREGULAR = "irregular"
+
+
+class DividendBase(BaseModel):
+    """Base dividend schema"""
+    ex_date: date = Field(..., description="Ex-dividend date")
+    record_date: Optional[date] = Field(None, description="Record date")
+    payment_date: Optional[date] = Field(None, description="Payment date")
+    declaration_date: Optional[date] = Field(None, description="Declaration date")
+    amount: float = Field(..., description="Dividend amount per share", ge=0)
+    dividend_type: DividendType = Field(DividendType.REGULAR, description="Type of dividend")
+    frequency: Optional[DividendFrequency] = Field(None, description="Dividend frequency")
+    currency: Optional[str] = Field("USD", description="Dividend currency")
+    
+    # Additional metadata
+    adjusted_amount: Optional[float] = Field(None, description="Split-adjusted dividend amount")
+    tax_rate: Optional[float] = Field(None, description="Applicable tax rate")
+    data_source: Optional[str] = Field(None, description="Data source")
+    confidence_score: Optional[float] = Field(None, description="Data confidence score (0-1)")
+
+
+class DividendResponse(DividendBase):
+    """Schema for dividend response"""
+    id: int
+    company_id: int
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class DividendAnalysisBase(BaseModel):
+    """Base dividend analysis schema"""
+    # Yield metrics
+    current_dividend_yield: Optional[float] = Field(None, description="Current dividend yield (%)")
+    trailing_12m_yield: Optional[float] = Field(None, description="Trailing 12-month dividend yield (%)")
+    forward_dividend_yield: Optional[float] = Field(None, description="Forward dividend yield (%)")
+    
+    # Growth metrics
+    dividend_growth_rate_1y: Optional[float] = Field(None, description="1-year dividend growth rate (%)")
+    dividend_growth_rate_3y: Optional[float] = Field(None, description="3-year annualized dividend growth rate (%)")
+    dividend_growth_rate_5y: Optional[float] = Field(None, description="5-year annualized dividend growth rate (%)")
+    dividend_growth_rate_10y: Optional[float] = Field(None, description="10-year annualized dividend growth rate (%)")
+    
+    # Consistency metrics
+    dividend_consistency_score: Optional[float] = Field(None, description="Dividend consistency score (0-10)")
+    years_of_consecutive_increases: Optional[int] = Field(None, description="Years of consecutive dividend increases")
+    years_of_consecutive_payments: Optional[int] = Field(None, description="Years of consecutive dividend payments")
+    
+    # Coverage and sustainability
+    payout_ratio: Optional[float] = Field(None, description="Dividend payout ratio (%)")
+    free_cash_flow_payout_ratio: Optional[float] = Field(None, description="Free cash flow payout ratio (%)")
+    debt_to_equity_ratio: Optional[float] = Field(None, description="Debt-to-equity ratio")
+    interest_coverage_ratio: Optional[float] = Field(None, description="Interest coverage ratio")
+    
+    # Financial strength indicators
+    roe: Optional[float] = Field(None, description="Return on equity (%)")
+    roa: Optional[float] = Field(None, description="Return on assets (%)")
+    current_ratio: Optional[float] = Field(None, description="Current ratio")
+    debt_service_coverage: Optional[float] = Field(None, description="Debt service coverage ratio")
+    
+    # Dividend aristocrat status
+    is_dividend_aristocrat: Optional[bool] = Field(None, description="S&P 500 Dividend Aristocrat status")
+    is_dividend_king: Optional[bool] = Field(None, description="Dividend King status (25+ years)")
+    is_dividend_champion: Optional[bool] = Field(None, description="Dividend Champion status")
+    
+    # Risk assessment
+    dividend_risk_score: Optional[float] = Field(None, description="Dividend risk score (0-10, lower is better)")
+    sustainability_rating: Optional[str] = Field(None, description="Dividend sustainability rating")
+    
+    # Market comparison
+    sector_average_yield: Optional[float] = Field(None, description="Sector average dividend yield (%)")
+    yield_vs_sector: Optional[float] = Field(None, description="Yield premium/discount vs sector (%)")
+    yield_vs_market: Optional[float] = Field(None, description="Yield premium/discount vs market (%)")
+
+
+class DividendAnalysisResponse(DividendAnalysisBase):
+    """Schema for dividend analysis response"""
+    id: int
+    company_id: int
+    analysis_date: date
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class DividendForecast(BaseModel):
+    """Dividend forecast schema"""
+    forecast_date: date = Field(..., description="Forecast date")
+    estimated_amount: float = Field(..., description="Estimated dividend amount")
+    confidence_level: float = Field(..., description="Confidence level (0-1)", ge=0, le=1)
+    methodology: str = Field(..., description="Forecasting methodology used")
+    factors_considered: List[str] = Field(default_factory=list, description="Factors considered in forecast")
+
+
+class DividendRequest(BaseModel):
+    """Schema for dividend data requests"""
+    ticker: str = Field(..., description="Stock ticker symbol")
+    start_date: Optional[date] = Field(None, description="Start date for dividend history")
+    end_date: Optional[date] = Field(None, description="End date for dividend history")
+    include_analysis: bool = Field(True, description="Include dividend analysis")
+    include_forecast: bool = Field(False, description="Include dividend forecast")
+    include_peer_comparison: bool = Field(False, description="Include peer comparison")
+
+
+class ComprehensiveDividendResponse(BaseModel):
+    """Comprehensive dividend response with all dividend information"""
+    company: CompanyResponse
+    current_info: Dict[str, Any] = Field(..., description="Current dividend information")
+    dividend_history: List[DividendResponse] = Field(default_factory=list, description="Historical dividends")
+    analysis: Optional[DividendAnalysisResponse] = Field(None, description="Dividend analysis")
+    forecast: Optional[List[DividendForecast]] = Field(None, description="Dividend forecasts")
+    peer_comparison: Optional[Dict[str, Any]] = Field(None, description="Peer comparison data")
+    market_context: Optional[Dict[str, Any]] = Field(None, description="Market context and benchmarks")
+    risk_assessment: Optional[Dict[str, Any]] = Field(None, description="Dividend risk assessment")
+    
+    # Economic context from FRED
+    economic_indicators: Optional[Dict[str, Any]] = Field(None, description="Relevant economic indicators")
     
     class Config:
         from_attributes = True
