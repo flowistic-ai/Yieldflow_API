@@ -50,8 +50,16 @@ class DividendService {
     return response.data;
   }
 
-  async getDividendAnalysis(ticker: string): Promise<DividendAnalysis> {
-    const response = await axios.get(`${API_BASE_URL}/dividends/${ticker}/analysis`, {
+  async getDividendAnalysis(ticker: string, includeForecast: boolean = false, includePeerComparison: boolean = false): Promise<DividendAnalysis> {
+    const params = new URLSearchParams();
+    if (includeForecast) {
+      params.append('include_forecast', 'true');
+    }
+    if (includePeerComparison) {
+      params.append('include_peer_comparison', 'true');
+    }
+    
+    const response = await axios.get(`${API_BASE_URL}/dividends/${ticker}/analysis?${params.toString()}`, {
       headers: {
         'X-API-KEY': API_KEY
       }
