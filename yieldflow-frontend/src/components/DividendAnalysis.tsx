@@ -336,9 +336,9 @@ const DividendAnalysisComponent: React.FC = () => {
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Sustainability Score:</strong></Typography>
-                <Typography variant="body1" color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success.main' : 'warning.main'}>
-                  {analysis?.sustainability_analysis?.sustainability_score || 'N/A'}/100
-                </Typography>
+                          <Typography variant="body1" color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success.main' : 'info.main'}>
+            {analysis?.sustainability_analysis?.sustainability_score || 'N/A'}/100
+          </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Risk Rating:</strong></Typography>
@@ -431,8 +431,8 @@ const DividendAnalysisComponent: React.FC = () => {
             <Box>
               <Chip 
                 label={analysis?.sustainability_analysis?.sustainability_rating || 'N/A'} 
-                color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success' : 
-                       analysis?.sustainability_analysis?.sustainability_score >= 60 ? 'warning' : 'error'}
+                              color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success' : 
+                     analysis?.sustainability_analysis?.sustainability_score >= 60 ? 'info' : 'error'}
                 size="medium"
               />
               <Typography variant="h6" sx={{ mt: 1 }}>
@@ -481,7 +481,7 @@ const DividendAnalysisComponent: React.FC = () => {
               backgroundColor: 'background.paper',
               border: '2px solid', 
               borderColor: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.light' : 
-                          analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning.light' : 'error.light',
+                          analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.light' : 'error.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -491,7 +491,7 @@ const DividendAnalysisComponent: React.FC = () => {
             }}>
               <Typography variant="h6" sx={{ 
                 color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning.main' : 'error.main',
+                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.main' : 'error.main',
                 fontWeight: 600,
                 mb: 1
               }}>
@@ -500,7 +500,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h3" sx={{ 
                 my: 2,
                 color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning.main' : 'error.main',
+                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.main' : 'error.main',
                 fontWeight: 700
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.payout_ratio 
@@ -515,7 +515,7 @@ const DividendAnalysisComponent: React.FC = () => {
                 value={Math.min((analysis?.sustainability_analysis?.key_ratios?.payout_ratio || 0) * 100, 100)} 
                 sx={{ height: 8, borderRadius: 4 }}
                 color={analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success' : 
-                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning' : 'error'}
+                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info' : 'error'}
               />
             </Box>
 
@@ -525,7 +525,7 @@ const DividendAnalysisComponent: React.FC = () => {
               backgroundColor: 'background.paper',
               border: '2px solid', 
               borderColor: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.light' : 
-                          analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning.light' : 'error.light',
+                          analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.light' : 'error.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -535,7 +535,7 @@ const DividendAnalysisComponent: React.FC = () => {
             }}>
               <Typography variant="h6" sx={{ 
                 color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning.main' : 'error.main',
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.main' : 'error.main',
                 fontWeight: 600,
                 mb: 1
               }}>
@@ -544,7 +544,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h3" sx={{ 
                 my: 2,
                 color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning.main' : 'error.main',
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.main' : 'error.main',
                 fontWeight: 700
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
@@ -559,17 +559,17 @@ const DividendAnalysisComponent: React.FC = () => {
                 value={Math.min((analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0) * 25, 100)} 
                 sx={{ height: 8, borderRadius: 4 }}
                 color={analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success' : 
-                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning' : 'error'}
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info' : 'error'}
               />
             </Box>
 
-            {/* Current Ratio (Working Capital) */}
+            {/* Free Cash Flow to Equity */}
             <Box sx={{ 
               p: 3, 
               backgroundColor: 'background.paper',
               border: '2px solid', 
-              borderColor: analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success.light' : 
-                          analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning.light' : 'error.light',
+              borderColor: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2.0 ? 'success.light' : 
+                          analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1.2 ? 'info.light' : 'error.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -578,32 +578,32 @@ const DividendAnalysisComponent: React.FC = () => {
               }
             }}>
               <Typography variant="h6" sx={{ 
-                color: analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning.main' : 'error.main',
+                color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2.0 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1.2 ? 'info.main' : 'error.main',
                 fontWeight: 600,
                 mb: 1
               }}>
-                Current Ratio
+                Free Cash Flow to Equity
               </Typography>
               <Typography variant="h3" sx={{ 
                 my: 2,
-                color: analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning.main' : 'error.main',
+                color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2.0 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1.2 ? 'info.main' : 'error.main',
                 fontWeight: 700
               }}>
-                {analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio 
-                  ? `${analysis.sustainability_analysis.key_ratios.working_capital_ratio.toFixed(2)}x`
+                {analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
+                  ? `${analysis.sustainability_analysis.key_ratios.fcf_coverage_ratio.toFixed(2)}x`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Current assets vs current liabilities ratio
+                Free cash flow coverage of dividend payments
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0) * 50, 100)} 
+                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0) * 33, 100)} 
                 sx={{ height: 8, borderRadius: 4 }}
-                color={analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success' : 
-                       analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning' : 'error'}
+                color={analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2.0 ? 'success' : 
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1.2 ? 'info' : 'error'}
               />
             </Box>
 
@@ -613,7 +613,7 @@ const DividendAnalysisComponent: React.FC = () => {
               backgroundColor: 'background.paper',
               border: '2px solid', 
               borderColor: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.light' : 
-                          analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning.light' : 'error.light',
+                          analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.light' : 'error.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -623,7 +623,7 @@ const DividendAnalysisComponent: React.FC = () => {
             }}>
               <Typography variant="h6" sx={{ 
                 color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning.main' : 'error.main',
+                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.main' : 'error.main',
                 fontWeight: 600,
                 mb: 1
               }}>
@@ -632,7 +632,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h3" sx={{ 
                 my: 2,
                 color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning.main' : 'error.main',
+                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.main' : 'error.main',
                 fontWeight: 700
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage 
@@ -647,7 +647,7 @@ const DividendAnalysisComponent: React.FC = () => {
                 value={Math.min((analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0) * 10, 100)} 
                 sx={{ height: 8, borderRadius: 4 }}
                 color={analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success' : 
-                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning' : 'error'}
+                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info' : 'error'}
               />
             </Box>
           </Box>
@@ -656,10 +656,7 @@ const DividendAnalysisComponent: React.FC = () => {
 
       {/* Sustainability Assessment Details */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-        <Card elevation={2} sx={{ 
-          background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.02) 100%)',
-          border: '1px solid rgba(76, 175, 80, 0.2)'
-        }}>
+        <Card elevation={2}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Box sx={{ 
@@ -721,10 +718,7 @@ const DividendAnalysisComponent: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card elevation={2} sx={{ 
-          background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.05) 0%, rgba(255, 152, 0, 0.02) 100%)',
-          border: '1px solid rgba(255, 152, 0, 0.2)'
-        }}>
+        <Card elevation={2}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Box sx={{ 
