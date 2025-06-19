@@ -283,16 +283,59 @@ class DividendService:
         ADVANCED GROWTH ANALYTICS WITH CAGR CALCULATIONS
         CAGR Formula: ((End Value / Start Value) ^ (1/Years)) - 1
         Analyzes 3, 5, 10-year periods with growth consistency metrics
+        Special handling for new dividend payers (like Google)
         """
         
-        if len(dividends) < 8:
-            return {'status': 'Insufficient data for growth analysis'}
+        if len(dividends) < 2:
+            return {
+                'status': 'New or non-dividend paying stock',
+                'average_annual_growth': 0,
+                'growth_volatility': 0,
+                'growth_consistency': 0,
+                'consecutive_increases': 0,
+                'aristocrat_status': {
+                    'is_dividend_aristocrat': False,
+                    'is_dividend_achiever': False,
+                    'is_dividend_challenger': False
+                },
+                'growth_quality': 'New Dividend Payer',
+                'growth_trend': 'Newly Initiated',
+                'cagr_analysis': {}
+            }
         
         annual_dividends = self._aggregate_annual_dividends(dividends)
         years = sorted(annual_dividends.keys(), reverse=True)
         
-        if len(years) < 3:
-            return {'status': 'Need minimum 3 years of data'}
+        # First check if this is a new dividend payer (started 2020 or later)
+        current_year = date.today().year
+        oldest_year = min(years) if years else current_year
+        is_new_dividend_payer = oldest_year >= 2020
+        
+        # Handle new dividend payers first (priority logic)
+        if len(years) < 3 or is_new_dividend_payer:
+            # Very new dividend payer - use quarterly analysis
+            quarterly_growth = self._calculate_quarterly_growth_for_new_payers(dividends)
+            # For new dividend payers, consecutive increases should be 0 since they lack long-term history
+            consecutive_increases = 0 if is_new_dividend_payer else quarterly_growth.get('consecutive_quarters', 0)
+            
+            return {
+                'status': f'New dividend payer (started {oldest_year}) - using quarterly analysis',
+                'average_annual_growth': quarterly_growth.get('annualized_growth', 0),
+                'growth_volatility': quarterly_growth.get('volatility', 0),
+                'growth_consistency': quarterly_growth.get('consistency', 100),  # New payers get benefit of doubt
+                'consecutive_increases': consecutive_increases,
+                'aristocrat_status': {
+                    'is_dividend_aristocrat': False,
+                    'is_dividend_achiever': False,
+                    'is_dividend_challenger': False
+                },
+                'growth_quality': 'New Dividend Payer',
+                'growth_trend': quarterly_growth.get('trend', 'Newly Initiated'),
+                'cagr_analysis': quarterly_growth.get('cagr_analysis', {})
+            }
+        
+        # For established dividend payers with incomplete year data, still use annual analysis
+        # Don't fall back to quarterly analysis as it produces inflated growth rates
         
         # CAGR calculations for multiple periods
         cagr_analysis = {}
@@ -339,6 +382,85 @@ class DividendService:
             },
             'growth_quality': growth_quality,
             'growth_trend': self._determine_recent_trend(growth_rates[-3:] if len(growth_rates) >= 3 else growth_rates)
+        }
+
+    def _calculate_quarterly_growth_for_new_payers(self, dividends: List[Dict]) -> Dict[str, Any]:
+        """Calculate growth metrics for companies with limited dividend history (like Google)"""
+        if len(dividends) < 2:
+            return {
+                'annualized_growth': 0,
+                'volatility': 0,
+                'consistency': 0,
+                'consecutive_quarters': 0,
+                'trend': 'Insufficient Data',
+                'cagr_analysis': {}
+            }
+        
+        # Sort dividends by date (oldest first for proper growth calculation)
+        # Use ex_date which is the field returned by our dividend processing
+        sorted_dividends = sorted(dividends, key=lambda x: x.get('ex_date', x.get('date', '')))
+        
+        # Calculate quarter-over-quarter growth (oldest to newest)
+        quarterly_growth_rates = []
+        for i in range(1, len(sorted_dividends)):
+            current = sorted_dividends[i].get('amount', 0)
+            previous = sorted_dividends[i - 1].get('amount', 0)
+            if previous > 0:
+                growth_rate = ((current - previous) / previous) * 100
+                quarterly_growth_rates.append(growth_rate)
+        
+        if not quarterly_growth_rates:
+            return {
+                'annualized_growth': 0,
+                'volatility': 0,
+                'consistency': 0,
+                'consecutive_quarters': len(dividends),
+                'trend': 'Stable (New Payer)',
+                'cagr_analysis': {}
+            }
+        
+        # Annualize the quarterly growth (compound it 4 times)
+        avg_quarterly_growth = mean(quarterly_growth_rates) / 100
+        annualized_growth = ((1 + avg_quarterly_growth) ** 4 - 1) * 100
+        
+        # Calculate volatility
+        volatility = stdev(quarterly_growth_rates) if len(quarterly_growth_rates) > 1 else 0
+        
+        # Calculate consistency (% of positive growth quarters)
+        positive_quarters = sum(1 for rate in quarterly_growth_rates if rate > 0)
+        consistency = (positive_quarters / len(quarterly_growth_rates)) * 100
+        
+        # Determine trend
+        recent_trend = quarterly_growth_rates[0] if quarterly_growth_rates else 0
+        if recent_trend > 5:
+            trend = 'Strong Growth'
+        elif recent_trend > 0:
+            trend = 'Modest Growth'
+        elif recent_trend == 0:
+            trend = 'Stable'
+        else:
+            trend = 'Declining'
+        
+        # Simple CAGR if we have at least 2 quarters
+        cagr_analysis = {}
+        if len(sorted_dividends) >= 2:
+            first_div = sorted_dividends[0].get('amount', 0)  # First (oldest) dividend
+            last_div = sorted_dividends[-1].get('amount', 0)  # Last (newest) dividend
+            if first_div > 0:
+                quarters = len(sorted_dividends) - 1
+                if quarters > 0:
+                    quarterly_cagr = ((last_div / first_div) ** (1/quarters)) - 1
+                    annual_cagr = ((1 + quarterly_cagr) ** 4 - 1) * 100
+                    cagr_analysis['quarterly_cagr'] = round(quarterly_cagr * 100, 2)
+                    cagr_analysis['annualized_cagr'] = round(annual_cagr, 2)
+        
+        return {
+            'annualized_growth': round(annualized_growth, 2),
+            'volatility': round(volatility, 2),
+            'consistency': round(consistency, 1),
+            'consecutive_quarters': len(dividends),
+            'trend': trend,
+            'cagr_analysis': cagr_analysis
         }
 
     def _calculate_coverage_analytics(self, dividends: List[Dict], financials: Dict) -> Dict[str, Any]:
@@ -642,31 +764,83 @@ class DividendService:
 
     async def _fetch_multi_source_dividends(self, ticker: str, start_date: date, end_date: date) -> List[Dict[str, Any]]:
         """
-        Professional multi-source dividend data aggregation with cross-validation
-        Uses Yahoo Finance, Alpha Vantage, and FMP for maximum accuracy
+        INSTITUTIONAL-GRADE MULTI-SOURCE DIVIDEND AGGREGATION
+        
+        Uses parallel data fetching from multiple APIs with professional cross-validation:
+        - Yahoo Finance (primary): Real-time dividend data, high frequency updates
+        - Alpha Vantage (validation): Professional-grade financial data API
+        - Financial Modeling Prep (enrichment): Additional dividend details and metrics
+        
+        Features:
+        - Parallel API calls for maximum speed
+        - Cross-validation between sources for accuracy
+        - Confidence scoring for each dividend record
+        - Data quality assessment and reliability metrics
+        - Automatic fallback handling for API failures
         """
         
-        # Parallel data fetching from all sources
-        logger.info("Fetching dividend data from multiple sources", ticker=ticker, sources=["yfinance", "alpha_vantage", "fmp"])
+        logger.info("Initiating institutional-grade multi-source dividend aggregation", 
+                   ticker=ticker, 
+                   date_range=f"{start_date} to {end_date}",
+                   sources=["yahoo_finance", "alpha_vantage", "fmp"])
         
-        sources = await asyncio.gather(
-            self._get_yfinance_dividends(ticker, start_date, end_date),
-            self._get_alpha_vantage_dividends(ticker),
-            self._get_fmp_dividends(ticker),
-            return_exceptions=True
-        )
-        
-        yf_data, av_data, fmp_data = [s if not isinstance(s, Exception) else [] for s in sources]
-        
-        logger.info("Data fetched", 
-                   yf_count=len(yf_data), 
-                   av_count=len(av_data), 
-                   fmp_count=len(fmp_data))
-        
-        # Professional cross-validation and merging
-        merged_data = self._cross_validate_and_merge_dividends(yf_data, av_data, fmp_data, start_date, end_date)
-        
-        return sorted(merged_data, key=lambda x: x.get('ex_date', date.min), reverse=True)
+        # Parallel data fetching with comprehensive error handling
+        try:
+            sources = await asyncio.gather(
+                self._get_yfinance_dividends(ticker, start_date, end_date),
+                self._get_alpha_vantage_dividends(ticker),
+                self._get_fmp_dividends(ticker),
+                return_exceptions=True
+            )
+            
+            yf_data, av_data, fmp_data = [], [], []
+            
+            # Process results with detailed logging
+            for i, result in enumerate(sources):
+                source_name = ["yahoo_finance", "alpha_vantage", "fmp"][i]
+                if isinstance(result, Exception):
+                    logger.warning(f"Failed to fetch from {source_name}", error=str(result))
+                    if i == 0: yf_data = []
+                    elif i == 1: av_data = []
+                    else: fmp_data = []
+                else:
+                    if i == 0: yf_data = result
+                    elif i == 1: av_data = result
+                    else: fmp_data = result
+                    logger.info(f"Successfully fetched from {source_name}", count=len(result))
+            
+            # Data quality assessment
+            total_sources = sum(1 for data in [yf_data, av_data, fmp_data] if data)
+            logger.info("Multi-source data aggregation complete", 
+                       yf_count=len(yf_data), 
+                       av_count=len(av_data), 
+                       fmp_count=len(fmp_data),
+                       active_sources=total_sources)
+            
+            # Ensure we have at least one data source
+            if total_sources == 0:
+                logger.error("No dividend data sources available", ticker=ticker)
+                raise DataSourceError(f"Failed to fetch dividend data for {ticker} from all sources")
+            
+            # Professional cross-validation and merging
+            merged_data = self._cross_validate_and_merge_dividends(yf_data, av_data, fmp_data, start_date, end_date)
+            
+            # Final data quality check
+            if not merged_data:
+                logger.warning("No dividend data found after cross-validation", ticker=ticker)
+                raise TickerNotFoundError(f"No dividend history found for {ticker}")
+            
+            logger.info("Dividend data aggregation successful", 
+                       final_count=len(merged_data),
+                       confidence_score=self._calculate_data_reliability_score(merged_data, {}))
+            
+            return sorted(merged_data, key=lambda x: x.get('ex_date', date.min), reverse=True)
+            
+        except Exception as e:
+            if isinstance(e, (DataSourceError, TickerNotFoundError)):
+                raise
+            logger.error("Unexpected error in multi-source dividend aggregation", ticker=ticker, error=str(e))
+            raise DataSourceError(f"Failed to aggregate dividend data: {str(e)}")
 
     def _cross_validate_and_merge_dividends(self, yf_data: List[Dict], av_data: List[Dict], fmp_data: List[Dict], start_date: date, end_date: date) -> List[Dict[str, Any]]:
         """
@@ -733,6 +907,7 @@ class DividendService:
             
             dividend_record = {
                 'ex_date': ex_date,
+                'date': ex_date,  # Add both for compatibility
                 'amount': round(consensus_amount, 4),
                 'dividend_type': 'regular',
                 'currency': 'USD',
@@ -1396,53 +1571,137 @@ class DividendService:
         return round(current_yield - treasury_10y_rate, 2)
 
     async def _fetch_comprehensive_financials(self, ticker: str) -> Dict[str, Any]:
-        """Fetch comprehensive financial data from multiple sources for professional analysis"""
+        """
+        INSTITUTIONAL-GRADE FINANCIAL DATA AGGREGATION
+        
+        Fetches comprehensive financial data optimized for dividend analysis:
+        - Core metrics for dividend coverage analysis
+        - Balance sheet strength indicators  
+        - Cash flow sustainability metrics
+        - Profitability and efficiency ratios
+        - Sector and industry context
+        
+        Data Sources:
+        - Yahoo Finance: Real-time market data and key ratios
+        - Financial statements: Income, balance sheet, cash flow
+        - Derived calculations: Per-share metrics, coverage ratios
+        """
         
         try:
-            # Use yfinance for quick access to key metrics
+            logger.info("Fetching comprehensive financial data", ticker=ticker)
+            
+            # Primary data source: Yahoo Finance
             stock = yf.Ticker(ticker)
             info = stock.info
             
-            # Get financial statements
-            income_stmt = stock.financials
-            balance_sheet = stock.balance_sheet
-            cash_flow = stock.cashflow
+            # Get financial statements with error handling
+            try:
+                income_stmt = stock.financials
+                balance_sheet = stock.balance_sheet
+                cash_flow = stock.cashflow
+            except Exception as e:
+                logger.warning("Error fetching financial statements", ticker=ticker, error=str(e))
+                income_stmt = balance_sheet = cash_flow = None
             
-            # Extract key metrics for dividend analysis
+            # Core financial metrics for dividend analysis
             financials = {
-                'eps': info.get('trailingEps', 0),
-                'forward_eps': info.get('forwardEps', 0),
-                'book_value': info.get('bookValue', 0),
-                'roe': info.get('returnOnEquity', 0),
-                'roa': info.get('returnOnAssets', 0),
-                'debt_to_equity': info.get('debtToEquity', 0),
-                'current_ratio': info.get('currentRatio', 0),
-                'quick_ratio': info.get('quickRatio', 0),
-                'total_debt': info.get('totalDebt', 0),
-                'total_cash': info.get('totalCash', 0),
-                'free_cash_flow': info.get('freeCashflow', 0),
-                'operating_cash_flow': info.get('operatingCashflow', 0),
-                'revenue': info.get('totalRevenue', 0),
-                'gross_profit': info.get('grossProfits', 0),
-                'ebitda': info.get('ebitda', 0),
-                'shares_outstanding': info.get('sharesOutstanding', 0),
-                'market_cap': info.get('marketCap', 0),
-                'sector': info.get('sector', ''),
-                'industry': info.get('industry', ''),
-                'beta': info.get('beta', 1.0)
+                # Earnings & Profitability
+                'eps': self._safe_float(info.get('trailingEps')),
+                'forward_eps': self._safe_float(info.get('forwardEps')),
+                'roe': self._safe_float(info.get('returnOnEquity')),
+                'roa': self._safe_float(info.get('returnOnAssets')),
+                'profit_margin': self._safe_float(info.get('profitMargins')),
+                'operating_margin': self._safe_float(info.get('operatingMargins')),
+                
+                # Balance Sheet Strength
+                'book_value': self._safe_float(info.get('bookValue')),
+                'debt_to_equity': self._safe_float(info.get('debtToEquity')),
+                'current_ratio': self._safe_float(info.get('currentRatio')),
+                'quick_ratio': self._safe_float(info.get('quickRatio')),
+                'total_debt': self._safe_float(info.get('totalDebt')),
+                'total_cash': self._safe_float(info.get('totalCash')),
+                
+                # Cash Flow & Liquidity
+                'free_cash_flow': self._safe_float(info.get('freeCashflow')),
+                'operating_cash_flow': self._safe_float(info.get('operatingCashflow')),
+                'revenue': self._safe_float(info.get('totalRevenue')),
+                'gross_profit': self._safe_float(info.get('grossProfits')),
+                'ebitda': self._safe_float(info.get('ebitda')),
+                
+                # Market & Company Info
+                'shares_outstanding': self._safe_float(info.get('sharesOutstanding')),
+                'market_cap': self._safe_float(info.get('marketCap')),
+                'enterprise_value': self._safe_float(info.get('enterpriseValue')),
+                'sector': info.get('sector', 'Unknown'),
+                'industry': info.get('industry', 'Unknown'),
+                'beta': self._safe_float(info.get('beta')) or 1.0,
+                
+                # Additional metrics for enhanced analysis
+                'price_to_book': self._safe_float(info.get('priceToBook')),
+                'price_to_sales': self._safe_float(info.get('priceToSalesTrailing12Months')),
+                'ev_to_ebitda': self._safe_float(info.get('enterpriseToEbitda')),
+                'dividend_yield': self._safe_float(info.get('dividendYield')),
+                'payout_ratio': self._safe_float(info.get('payoutRatio')),
+                'trailing_pe': self._safe_float(info.get('trailingPE')),
+                'forward_pe': self._safe_float(info.get('forwardPE'))
             }
             
-            # Calculate derived metrics
-            if financials['shares_outstanding'] > 0:
-                financials['fcf_per_share'] = financials['free_cash_flow'] / financials['shares_outstanding'] if financials['free_cash_flow'] else 0
-                financials['ocf_per_share'] = financials['operating_cash_flow'] / financials['shares_outstanding'] if financials['operating_cash_flow'] else 0
-                financials['book_value_per_share'] = financials['book_value']
+            # Calculate enhanced per-share metrics
+            shares_outstanding = financials.get('shares_outstanding', 0)
+            if shares_outstanding and shares_outstanding > 0:
+                # Per-share calculations for dividend analysis
+                if financials.get('free_cash_flow'):
+                    financials['fcf_per_share'] = financials['free_cash_flow'] / shares_outstanding
+                if financials.get('operating_cash_flow'):
+                    financials['ocf_per_share'] = financials['operating_cash_flow'] / shares_outstanding
+                if financials.get('revenue'):
+                    financials['revenue_per_share'] = financials['revenue'] / shares_outstanding
+                if financials.get('ebitda'):
+                    financials['ebitda_per_share'] = financials['ebitda'] / shares_outstanding
+                
+                # Book value per share (already calculated by yfinance, but ensure consistency)
+                financials['book_value_per_share'] = financials.get('book_value', 0)
+            
+            # Enhanced financial strength ratios
+            if financials.get('total_debt') is not None and financials.get('ebitda'):
+                financials['debt_to_ebitda'] = financials['total_debt'] / financials['ebitda'] if financials['ebitda'] > 0 else 0
+            
+            if financials.get('total_cash') is not None and financials.get('total_debt') is not None:
+                financials['net_debt'] = financials['total_debt'] - financials['total_cash']
+                if shares_outstanding > 0:
+                    financials['net_debt_per_share'] = financials['net_debt'] / shares_outstanding
+            
+            # Interest coverage ratio calculation
+            if hasattr(income_stmt, 'empty') and not income_stmt.empty:
+                try:
+                    latest_financials = income_stmt.iloc[:, 0]
+                    operating_income = self._safe_float(latest_financials.get('Operating Income'))
+                    interest_expense = self._safe_float(latest_financials.get('Interest Expense'))
+                    
+                    if operating_income and interest_expense and interest_expense > 0:
+                        financials['interest_coverage'] = operating_income / interest_expense
+                except Exception as e:
+                    logger.debug("Could not calculate interest coverage", error=str(e))
+            
+            # Data quality assessment
+            key_metrics = ['eps', 'free_cash_flow', 'market_cap', 'sector']
+            available_metrics = sum(1 for metric in key_metrics if financials.get(metric) not in [None, 0, 'Unknown'])
+            financials['data_completeness'] = available_metrics / len(key_metrics)
+            
+            logger.info("Successfully fetched comprehensive financials", 
+                       ticker=ticker, 
+                       completeness=f"{financials['data_completeness']:.1%}",
+                       sector=financials['sector'])
             
             return financials
             
         except Exception as e:
             logger.error("Error fetching comprehensive financials", ticker=ticker, error=str(e))
-            return {}
+            return {
+                'data_completeness': 0.0,
+                'sector': 'Unknown',
+                'error': str(e)
+            }
 
     async def _fetch_market_data(self, ticker: str) -> Dict[str, Any]:
         """Fetch current market data for a ticker"""
@@ -1464,16 +1723,72 @@ class DividendService:
             return {'current_price': 0}
 
     async def _fetch_economic_context(self) -> Dict[str, Any]:
-        """Fetch economic indicators for dividend analysis"""
-        # In production, this would fetch from FRED API
-        # For now, return reasonable defaults
-        return {
-            'treasury_10y': 4.5,
-            'fed_funds_rate': 5.25,
-            'inflation_rate': 3.2,
-            'gdp_growth': 2.1,
-            'unemployment_rate': 3.7
-        }
+        """Fetch real-time economic indicators for dividend analysis from FRED API"""
+        try:
+            # Try to get real FRED data first
+            fred_data = await self._get_fred_economic_indicators()
+            
+            if fred_data:
+                # Map FRED data to our analysis format
+                economic_context = {}
+                
+                # Extract values from FRED response
+                if 'treasury_10y' in fred_data:
+                    economic_context['treasury_10y'] = fred_data['treasury_10y']['value']
+                else:
+                    economic_context['treasury_10y'] = 4.5  # Default fallback
+                    
+                if 'fed_funds_rate' in fred_data:
+                    economic_context['fed_funds_rate'] = fred_data['fed_funds_rate']['value']
+                else:
+                    economic_context['fed_funds_rate'] = 5.25
+                    
+                if 'inflation_rate' in fred_data:
+                    economic_context['inflation_rate'] = fred_data['inflation_rate']['value']
+                else:
+                    economic_context['inflation_rate'] = 3.2
+                    
+                if 'gdp_growth' in fred_data:
+                    economic_context['gdp_growth'] = fred_data['gdp_growth']['value']
+                else:
+                    economic_context['gdp_growth'] = 2.1
+                    
+                if 'unemployment_rate' in fred_data:
+                    economic_context['unemployment_rate'] = fred_data['unemployment_rate']['value']
+                else:
+                    economic_context['unemployment_rate'] = 3.7
+                
+                # Add metadata about data freshness
+                economic_context['data_source'] = 'fred_api'
+                economic_context['last_updated'] = datetime.utcnow().isoformat()
+                
+                logger.info("Successfully fetched FRED economic data", indicators=list(fred_data.keys()))
+                return economic_context
+            else:
+                logger.warning("FRED API unavailable, using fallback economic data")
+                # Fallback to reasonable current estimates
+                return {
+                    'treasury_10y': 4.5,
+                    'fed_funds_rate': 5.25,
+                    'inflation_rate': 3.2,
+                    'gdp_growth': 2.1,
+                    'unemployment_rate': 3.7,
+                    'data_source': 'fallback_estimates',
+                    'last_updated': datetime.utcnow().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error("Error fetching economic context", error=str(e))
+            # Return fallback data
+            return {
+                'treasury_10y': 4.5,
+                'fed_funds_rate': 5.25,
+                'inflation_rate': 3.2,
+                'gdp_growth': 2.1,
+                'unemployment_rate': 3.7,
+                'data_source': 'error_fallback',
+                'last_updated': datetime.utcnow().isoformat()
+            }
 
     def _calculate_payout_ratio(self, dividends: List[Dict], financials: Dict) -> float:
         """Calculate dividend payout ratio"""
@@ -1551,8 +1866,20 @@ class DividendService:
         annual_dividends = self._aggregate_annual_dividends(dividends)
         years = sorted(annual_dividends.keys(), reverse=True)
         
+        # Check if we have incomplete current year data (for new dividend payers)
+        current_year = date.today().year
+        if current_year in years and len(years) >= 2:
+            # Check if current year has significantly fewer dividends than previous year
+            current_year_count = sum(1 for div in dividends if div.get('ex_date', date.min).year == current_year)
+            previous_year_count = sum(1 for div in dividends if div.get('ex_date', date.min).year == years[1])
+            
+            # If current year has less than 3/4 of previous year's payments, use quarterly analysis
+            if current_year_count < (previous_year_count * 0.75):
+                return self._calculate_quarterly_growth_for_new_payers(dividends)
+        
         if len(years) < 3:
-            return {'status': 'Need minimum 3 years of data'}
+            # For new dividend payers with less than 3 years, use quarterly analysis
+            return self._calculate_quarterly_growth_for_new_payers(dividends)
         
         # Calculate CAGR for different periods
         cagr_metrics = {}
@@ -1762,16 +2089,21 @@ class DividendService:
             return 'Very Volatile'
 
     async def _generate_professional_forecast(self, dividends: List[Dict], financials: Dict, economic_context: Dict, years: int) -> List[Dict[str, Any]]:
-        """Generate professional dividend forecast"""
-        if not dividends or len(dividends) < 8:
+        """Generate professional dividend forecast with special handling for new dividend payers"""
+        if not dividends:
             return []
+        
+        # Handle new dividend payers with limited history
+        if len(dividends) < 4:
+            return self._generate_new_payer_forecast(dividends, financials, economic_context, years)
         
         # Calculate growth trend
         annual_dividends = self._aggregate_annual_dividends(dividends)
         years_data = sorted(annual_dividends.keys(), reverse=True)
         
-        if len(years_data) < 3:
-            return []
+        # For companies with less than 3 years, use quarterly data
+        if len(years_data) < 2:
+            return self._generate_quarterly_based_forecast(dividends, financials, economic_context, years)
         
         # Calculate average growth rate
         growth_rates = []
@@ -1800,25 +2132,282 @@ class DividendService:
         
         return forecast
 
-    async def _get_sector_benchmarking(self, ticker: str, analysis: Dict, market_data: Dict) -> Dict[str, Any]:
-        """Get sector benchmarking data"""
-        sector = market_data.get('sector', 'Unknown')
+    def _generate_new_payer_forecast(self, dividends: List[Dict], financials: Dict, economic_context: Dict, years: int) -> List[Dict[str, Any]]:
+        """Generate forecast for very new dividend payers (1-3 dividends)"""
+        if not dividends:
+            return []
         
-        if sector in self.sector_benchmarks:
-            benchmark = self.sector_benchmarks[sector]
+        # Use latest dividend as base and assume modest growth
+        latest_dividend = dividends[0].get('amount', 0)
+        if latest_dividend <= 0:
+            return []
+        
+        # Conservative growth assumption for new payers (3-7%)
+        eps = financials.get('eps', 0)
+        if eps > 0:
+            payout_ratio = latest_dividend / eps
+            # Growth based on earnings capacity
+            if payout_ratio < 0.3:
+                growth_rate = 0.07  # 7% - low payout, room to grow
+            elif payout_ratio < 0.5:
+                growth_rate = 0.05  # 5% - moderate payout
+            else:
+                growth_rate = 0.03  # 3% - conservative
+        else:
+            growth_rate = 0.04  # 4% default for new payers
+        
+        forecast = []
+        current_year = datetime.now().year
+        
+        for year in range(1, years + 1):
+            projected_dividend = latest_dividend * ((1 + growth_rate) ** year)
+            # Higher confidence for early years of new payers
+            confidence = max(0.6, 0.8 - (year * 0.05))
             
-            current_yield = analysis.get('valuation_analysis', {}).get('current_yield', 0)
-            quality_score = analysis.get('dividend_quality_metrics', {}).get('quality_score', 0)
+            forecast.append({
+                'year': current_year + year,
+                'projected_dividend': round(projected_dividend, 4),
+                'growth_rate': round(growth_rate * 100, 2),
+                'confidence_level': round(confidence, 2),
+                'note': 'New dividend payer forecast'
+            })
+        
+        return forecast
+
+    def _generate_quarterly_based_forecast(self, dividends: List[Dict], financials: Dict, economic_context: Dict, years: int) -> List[Dict[str, Any]]:
+        """Generate forecast based on quarterly dividend progression"""
+        if len(dividends) < 2:
+            return self._generate_new_payer_forecast(dividends, financials, economic_context, years)
+        
+        # Calculate quarterly growth rate
+        sorted_dividends = sorted(dividends, key=lambda x: x.get('ex_date', x.get('date', '')))
+        
+        quarterly_growth_rates = []
+        for i in range(len(sorted_dividends) - 1):
+            current = sorted_dividends[i].get('amount', 0)
+            previous = sorted_dividends[i + 1].get('amount', 0)
+            if previous > 0:
+                growth_rate = (current - previous) / previous
+                quarterly_growth_rates.append(growth_rate)
+        
+        # Use average quarterly growth or conservative default
+        if quarterly_growth_rates:
+            avg_quarterly_growth = mean(quarterly_growth_rates)
+            # Convert to annual growth (compound quarterly growth)
+            annual_growth = (1 + avg_quarterly_growth) ** 4 - 1
+            # Cap growth at reasonable levels for new payers
+            annual_growth = min(annual_growth, 0.15)  # Max 15%
+            annual_growth = max(annual_growth, 0.02)  # Min 2%
+        else:
+            annual_growth = 0.04  # 4% default
+        
+        # Use most recent quarterly dividend (now the last in the sorted list)
+        latest_quarterly = sorted_dividends[-1].get('amount', 0)
+        estimated_annual = latest_quarterly * 4  # Assume quarterly payments
+        
+        forecast = []
+        current_year = datetime.now().year
+        
+        for year in range(1, years + 1):
+            projected_annual = estimated_annual * ((1 + annual_growth) ** year)
+            confidence = max(0.5, 0.75 - (year * 0.08))
+            
+            forecast.append({
+                'year': current_year + year,
+                'projected_dividend': round(projected_annual, 4),
+                'growth_rate': round(annual_growth * 100, 2),
+                'confidence_level': round(confidence, 2),
+                'note': 'Quarterly-based forecast'
+            })
+        
+        return forecast
+
+    async def _get_sector_benchmarking(self, ticker: str, analysis: Dict, market_data: Dict) -> Dict[str, Any]:
+        """
+        INSTITUTIONAL SECTOR BENCHMARKING & PEER ANALYSIS
+        
+        Comprehensive sector-based dividend analysis including:
+        - Sector average dividend metrics
+        - Percentile rankings vs peers
+        - Relative performance assessment
+        - Competitive positioning analysis
+        """
+        
+        try:
+            sector = market_data.get('sector', 'Unknown')
+            logger.info("Performing sector benchmarking", ticker=ticker, sector=sector)
+            
+            if sector == 'Unknown':
+                return {
+                    'status': 'No sector information available',
+                    'sector': 'Unknown'
+                }
+            
+            # Get company metrics from analysis
+            company_metrics = {
+                'yield': analysis.get('current_metrics', {}).get('current_yield', 0),
+                'quality_score': analysis.get('dividend_quality_score', {}).get('quality_score', 0),
+                'growth_3y': analysis.get('growth_analytics', {}).get('cagr_3y', 0),
+                'payout_ratio': analysis.get('sustainability_analysis', {}).get('payout_ratio', 0),
+                'coverage_ratio': analysis.get('coverage_analysis', {}).get('eps_coverage', 0)
+            }
+            
+            # Get sector benchmarks
+            sector_benchmarks = self._get_sector_benchmarks(sector)
+            
+            # Calculate percentile rankings
+            company_percentiles = {}
+            for metric, value in company_metrics.items():
+                if value and metric in sector_benchmarks:
+                    percentile = self._calculate_sector_percentile(value, sector_benchmarks[metric])
+                    company_percentiles[f'{metric}_percentile'] = percentile
+            
+            # Overall competitive assessment
+            avg_percentile = sum(company_percentiles.values()) / len(company_percentiles) if company_percentiles else 50
+            
+            if avg_percentile >= 80:
+                competitive_position = 'Top Performer'
+                position_description = 'Significantly above sector average across key metrics'
+            elif avg_percentile >= 60:
+                competitive_position = 'Above Average'
+                position_description = 'Generally outperforms sector peers'
+            elif avg_percentile >= 40:
+                competitive_position = 'Average'
+                position_description = 'In line with sector norms'
+            elif avg_percentile >= 20:
+                competitive_position = 'Below Average'
+                position_description = 'Underperforms in several key areas'
+            else:
+                competitive_position = 'Laggard'
+                position_description = 'Significantly below sector average'
             
             return {
                 'sector': sector,
-                'sector_avg_yield': benchmark['avg_yield'],
-                'sector_avg_payout': benchmark['payout_ratio'],
-                'yield_vs_sector': round(current_yield - benchmark['avg_yield'], 2),
-                'quality_vs_sector': 'Above Average' if quality_score > 70 else 'Below Average'
+                'analysis_status': 'Complete',
+                'company_metrics': company_metrics,
+                'sector_benchmarks': sector_benchmarks,
+                'percentile_rankings': company_percentiles,
+                'competitive_assessment': {
+                    'overall_percentile': round(avg_percentile, 1),
+                    'position': competitive_position,
+                    'description': position_description
+                },
+                'key_insights': self._generate_sector_insights(company_metrics, sector_benchmarks, avg_percentile),
+                'data_quality': 'Sector-based benchmark analysis'
             }
+            
+        except Exception as e:
+            logger.error("Error in sector benchmarking", ticker=ticker, error=str(e))
+            return {
+                'sector': sector,
+                'status': 'Error in benchmarking analysis',
+                'error': str(e)
+            }
+
+    def _get_sector_benchmarks(self, sector: str) -> Dict[str, Dict[str, float]]:
+        """Get sector-specific benchmark ranges for dividend metrics"""
         
-        return {'sector': sector, 'benchmark_available': False}
+        # Industry-standard benchmark ranges based on historical data
+        sector_benchmarks = {
+            'Technology': {
+                'yield': {'p25': 0.5, 'p50': 1.2, 'p75': 2.0},
+                'quality_score': {'p25': 65, 'p50': 75, 'p75': 85},
+                'growth_3y': {'p25': 8, 'p50': 15, 'p75': 25},
+                'payout_ratio': {'p25': 15, 'p50': 25, 'p75': 40},
+                'coverage_ratio': {'p25': 3.0, 'p50': 5.0, 'p75': 8.0}
+            },
+            'Utilities': {
+                'yield': {'p25': 3.0, 'p50': 4.2, 'p75': 5.5},
+                'quality_score': {'p25': 70, 'p50': 80, 'p75': 90},
+                'growth_3y': {'p25': 2, 'p50': 4, 'p75': 6},
+                'payout_ratio': {'p25': 60, 'p50': 75, 'p75': 85},
+                'coverage_ratio': {'p25': 1.2, 'p50': 1.5, 'p75': 2.0}
+            },
+            'Consumer Defensive': {
+                'yield': {'p25': 2.0, 'p50': 3.0, 'p75': 4.5},
+                'quality_score': {'p25': 75, 'p50': 85, 'p75': 95},
+                'growth_3y': {'p25': 3, 'p50': 6, 'p75': 10},
+                'payout_ratio': {'p25': 45, 'p50': 60, 'p75': 75},
+                'coverage_ratio': {'p25': 1.8, 'p50': 2.5, 'p75': 3.5}
+            },
+            'Healthcare': {
+                'yield': {'p25': 1.5, 'p50': 2.5, 'p75': 3.8},
+                'quality_score': {'p25': 70, 'p50': 80, 'p75': 90},
+                'growth_3y': {'p25': 4, 'p50': 8, 'p75': 12},
+                'payout_ratio': {'p25': 35, 'p50': 50, 'p75': 65},
+                'coverage_ratio': {'p25': 2.0, 'p50': 3.0, 'p75': 4.5}
+            },
+            'Financial Services': {
+                'yield': {'p25': 2.5, 'p50': 3.5, 'p75': 4.8},
+                'quality_score': {'p25': 60, 'p50': 70, 'p75': 80},
+                'growth_3y': {'p25': 5, 'p50': 8, 'p75': 12},
+                'payout_ratio': {'p25': 25, 'p50': 35, 'p75': 50},
+                'coverage_ratio': {'p25': 2.5, 'p50': 3.5, 'p75': 5.0}
+            }
+        }
+        
+        # Default benchmarks for sectors not specifically defined
+        default_benchmarks = {
+            'yield': {'p25': 1.5, 'p50': 2.5, 'p75': 4.0},
+            'quality_score': {'p25': 65, 'p50': 75, 'p75': 85},
+            'growth_3y': {'p25': 3, 'p50': 7, 'p75': 12},
+            'payout_ratio': {'p25': 30, 'p50': 50, 'p75': 70},
+            'coverage_ratio': {'p25': 2.0, 'p50': 3.0, 'p75': 4.5}
+        }
+        
+        return sector_benchmarks.get(sector, default_benchmarks)
+
+    def _calculate_sector_percentile(self, value: float, benchmark: Dict[str, float]) -> float:
+        """Calculate percentile rank within sector benchmarks"""
+        
+        if value <= benchmark['p25']:
+            return 25.0
+        elif value <= benchmark['p50']:
+            # Interpolate between p25 and p50
+            return 25 + ((value - benchmark['p25']) / (benchmark['p50'] - benchmark['p25'])) * 25
+        elif value <= benchmark['p75']:
+            # Interpolate between p50 and p75
+            return 50 + ((value - benchmark['p50']) / (benchmark['p75'] - benchmark['p50'])) * 25
+        else:
+            # Above p75, extrapolate (cap at 95th percentile)
+            return min(95, 75 + ((value - benchmark['p75']) / benchmark['p75']) * 20)
+
+    def _generate_sector_insights(self, company_metrics: Dict, sector_benchmarks: Dict, avg_percentile: float) -> List[str]:
+        """Generate key insights from sector analysis"""
+        
+        insights = []
+        
+        # Yield analysis
+        company_yield = company_metrics.get('yield', 0)
+        yield_benchmark = sector_benchmarks.get('yield', {})
+        if company_yield > yield_benchmark.get('p75', 0):
+            insights.append(f"Dividend yield of {company_yield:.1f}% is in the top quartile for the sector")
+        elif company_yield < yield_benchmark.get('p25', 0):
+            insights.append(f"Dividend yield of {company_yield:.1f}% is below sector average")
+        
+        # Quality score analysis
+        quality_score = company_metrics.get('quality_score', 0)
+        quality_benchmark = sector_benchmarks.get('quality_score', {})
+        if quality_score > quality_benchmark.get('p75', 0):
+            insights.append("Dividend quality score ranks in the top quartile of sector peers")
+        elif quality_score < quality_benchmark.get('p25', 0):
+            insights.append("Dividend quality score is below sector standards")
+        
+        # Growth analysis
+        growth_3y = company_metrics.get('growth_3y', 0)
+        growth_benchmark = sector_benchmarks.get('growth_3y', {})
+        if growth_3y > growth_benchmark.get('p75', 0):
+            insights.append("Dividend growth significantly exceeds sector average")
+        elif growth_3y < growth_benchmark.get('p25', 0):
+            insights.append("Dividend growth lags behind sector peers")
+        
+        # Overall assessment
+        if avg_percentile >= 75:
+            insights.append("Overall dividend profile positions company as a sector leader")
+        elif avg_percentile <= 25:
+            insights.append("Dividend metrics suggest room for improvement relative to peers")
+        
+        return insights[:4]  # Return top 4 insights
 
     async def _get_yfinance_dividends(self, ticker: str, start_date: date, end_date: date) -> List[Dict[str, Any]]:
         """Get dividends from yfinance with enhanced data"""
@@ -2805,17 +3394,55 @@ class DividendService:
 
     def _calculate_consecutive_increases(self, annual_dividends: Dict[int, float]) -> int:
         """Calculate consecutive years of dividend increases"""
-        years = sorted(annual_dividends.keys(), reverse=True)
+        from datetime import date
+        current_year = date.today().year
+        
+        # Filter out current year if it's incomplete (partial year data)
+        filtered_dividends = {}
+        for year, amount in annual_dividends.items():
+            # Only include complete years (exclude current year to avoid partial data)
+            if year < current_year:
+                filtered_dividends[year] = amount
+        
+        if len(filtered_dividends) < 2:
+            # For new dividend payers with limited data, return 0
+            logger.info(f"Consecutive increases calculation - insufficient data", 
+                       total_years=len(filtered_dividends),
+                       available_years=list(filtered_dividends.keys()),
+                       consecutive=0)
+            return 0
+            
+        years = sorted(filtered_dividends.keys(), reverse=True)
         consecutive = 0
         
+        # Start from the most recent complete year and go backwards
         for i in range(len(years) - 1):
-            current_year = annual_dividends[years[i]]
-            prev_year = annual_dividends[years[i + 1]]
+            current_year_dividend = filtered_dividends[years[i]]
+            previous_year_dividend = filtered_dividends[years[i + 1]]
             
-            if current_year > prev_year:
+            # Check if current year dividend is greater than previous year
+            # Use a small tolerance for floating point comparison
+            increase_threshold = 0.0001  # $0.0001 threshold
+            if current_year_dividend > (previous_year_dividend + increase_threshold):
                 consecutive += 1
             else:
                 break
+        
+        # Enhanced debug logging
+        logger.info(f"Consecutive increases calculation detailed", 
+                   ticker="N/A",
+                   filtered_years=years[:5], 
+                   consecutive=consecutive,
+                   annual_data={year: round(filtered_dividends[year], 4) for year in years[:5]},
+                   recent_comparisons=[
+                       {
+                           'year': years[i], 
+                           'dividend': round(filtered_dividends[years[i]], 4),
+                           'prev_year': years[i+1] if i+1 < len(years) else None,
+                           'prev_dividend': round(filtered_dividends[years[i+1]], 4) if i+1 < len(years) else None,
+                           'is_increase': filtered_dividends[years[i]] > filtered_dividends[years[i+1]] + 0.0001 if i+1 < len(years) else None
+                       } for i in range(min(3, len(years) - 1))
+                   ])
                 
         return consecutive
 

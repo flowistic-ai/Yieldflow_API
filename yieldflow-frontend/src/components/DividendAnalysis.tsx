@@ -61,7 +61,7 @@ const DividendAnalysisComponent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentDividend, setCurrentDividend] = useState<any>(null);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [growthChart, setGrowthChart] = useState<any[]>([]);
+  const [growthChart, setGrowthChart] = useState<any>([]);
   const [lastAnalyzedTicker, setLastAnalyzedTicker] = useState<string>('');
   const [tabValue, setTabValue] = useState(0);
   const [qualityInfoExpanded, setQualityInfoExpanded] = useState(false);
@@ -88,16 +88,21 @@ const DividendAnalysisComponent: React.FC = () => {
 
       setCurrentDividend(currentData);
       setAnalysis(analysisData);
+      console.log('Analysis data received:', analysisData);
+      console.log('Peer comparison data received:', peerData);
       setPeerComparison(peerData);
       setLastAnalyzedTicker(ticker);
       
-      // Prepare chart data for recharts
+      // Prepare chart data for recharts while preserving metadata
       if (chartData?.chart_data && Array.isArray(chartData.chart_data)) {
         const chartFormatted = chartData.chart_data.map((item: any) => ({
           year: item.year,
-          dividend: item.dividend_amount,
-          growthRate: item.growth_rate || 0
+          dividend_amount: item.dividend_amount,
+          growth_rate: item.growth_rate || 0,
+          note: item.note
         }));
+        // Preserve the metadata by attaching it to the array
+        (chartFormatted as any).metadata = chartData.metadata;
         setGrowthChart(chartFormatted);
       } else {
         setGrowthChart([]);
@@ -268,6 +273,34 @@ const DividendAnalysisComponent: React.FC = () => {
                     currentDividend?.current_dividend_info?.last_payment?.amount ||
                     currentDividend?.current_metrics?.last_payment?.amount ||
                     currentDividend?.last_payment?.amount || 'N/A')}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Tooltip title="Ex-dividend date of the most recent payment">
+                  <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
+                    <strong>Last Payment Date:</strong>
+                  </Typography>
+                </Tooltip>
+                <Typography variant="body1" color="primary">
+                  {(() => {
+                    const lastPaymentDate = analysis?.current_metrics?.last_payment?.ex_date ||
+                      currentDividend?.current_dividend_info?.last_payment?.ex_date ||
+                      currentDividend?.current_metrics?.last_payment?.ex_date ||
+                      currentDividend?.last_payment?.ex_date;
+                    
+                    if (lastPaymentDate) {
+                      try {
+                        return new Date(lastPaymentDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        });
+                      } catch {
+                        return lastPaymentDate;
+                      }
+                    }
+                    return 'N/A';
+                  })()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -966,371 +999,447 @@ const DividendAnalysisComponent: React.FC = () => {
   );
 
   // Performance/Growth Tab Content with Enhanced Features
-  const PerformanceTab = () => (
-    <Box sx={{ display: 'grid', gap: 3 }}>
-      {/* CAGR Explanation Box */}
-      <Card elevation={2} sx={{ bgcolor: 'info.50', borderLeft: '4px solid', borderLeftColor: 'info.main' }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom color="info.main">
-            📊 Understanding CAGR vs Average Growth for {ticker}
-          </Typography>
-          <Typography variant="body2" paragraph>
-            <strong>Why 3-10 Year CAGRs are negative while Average Annual Growth is positive:</strong>
-          </Typography>
-          <Box sx={{ pl: 2 }}>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              • <strong>3-10 Year CAGRs</strong>: Calculate from start to end points, affected by 2025 partial year data
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              • <strong>Average Annual Growth (5.31%)</strong>: Mean of year-over-year growth rates, more representative
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              • <strong>Data Issue</strong>: 2025 shows partial year (0.51 vs 0.99 in 2024), creating false negative spike
-            </Typography>
-          </Box>
-          <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic', color: 'text.secondary' }}>
-            For analysis accuracy, focus on Average Annual Growth which excludes the partial-year distortion.
-          </Typography>
-        </CardContent>
-      </Card>
-
-      {/* Growth Chart with Date Range Controls */}
-      <Card elevation={3}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" color="primary">
-              Dividend Growth History
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button 
-                variant={dateRange.years === 5 ? 'contained' : 'outlined'} 
-                size="small"
-                onClick={() => setDateRange({ years: 5 })}
-              >
-                5Y
-              </Button>
-              <Button 
-                variant={dateRange.years === 10 ? 'contained' : 'outlined'} 
-                size="small"
-                onClick={() => setDateRange({ years: 10 })}
-              >
-                10Y
-              </Button>
-              <Button 
-                variant={dateRange.years === 15 ? 'contained' : 'outlined'} 
-                size="small"
-                onClick={() => setDateRange({ years: 15 })}
-              >
-                15Y
-              </Button>
-              <Button 
-                variant={dateRange.years === 0 ? 'contained' : 'outlined'} 
-                size="small"
-                onClick={() => setDateRange({ years: 0 })}
-              >
-                All
-              </Button>
-            </Box>
-          </Box>
-          {growthChart.length > 0 ? (
-            <Box sx={{ height: 400 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={growthChart.filter((item, index) => 
-                  dateRange.years === 0 || index >= growthChart.length - dateRange.years
-                )}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="year" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <RechartsTooltip 
-                    formatter={(value: any, name: any) => [
-                      name === 'dividend' ? `$${value}` : `${value}%`,
-                      name === 'dividend' ? 'Dividend Amount' : 'Growth Rate'
-                    ]}
-                  />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="dividend"
-                    stroke="#1976d2"
-                    name="Dividend Amount ($)"
-                    strokeWidth={3}
-                    dot={{ fill: '#1976d2', strokeWidth: 2, r: 4 }}
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="growthRate"
-                    stroke="#ff9800"
-                    name="Growth Rate (%)"
-                    strokeWidth={3}
-                    dot={{ fill: '#ff9800', strokeWidth: 2, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Box>
-          ) : (
-            <Typography>No chart data available</Typography>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Growth Analytics and Forecast */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
+  const PerformanceTab = () => {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* Performance Summary */}
         <Card elevation={2}>
           <CardContent>
-            <Typography variant="h6" gutterBottom color="primary">
-              Growth Analytics
+            <Typography variant="h6" gutterBottom>
+              Overall Performance Summary
             </Typography>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">3-Year CAGR</Typography>
-                <Typography variant="h6" color={analysis?.growth_analytics?.cagr_analysis?.['3y_cagr'] >= 0 ? 'success.main' : 'error.main'}>
-                  {analysis?.growth_analytics?.cagr_analysis?.['3y_cagr']?.toFixed(2) || 'N/A'}%
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">5-Year CAGR</Typography>
-                <Typography variant="h6" color={analysis?.growth_analytics?.cagr_analysis?.['5y_cagr'] >= 0 ? 'success.main' : 'error.main'}>
-                  {analysis?.growth_analytics?.cagr_analysis?.['5y_cagr']?.toFixed(2) || 'N/A'}%
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">10-Year CAGR</Typography>
-                <Typography variant="h6" color={analysis?.growth_analytics?.cagr_analysis?.['10y_cagr'] >= 0 ? 'success.main' : 'error.main'}>
-                  {analysis?.growth_analytics?.cagr_analysis?.['10y_cagr']?.toFixed(2) || 'N/A'}%
-                </Typography>
-              </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
               <Box>
                 <Typography variant="body2" color="text.secondary">Average Annual Growth</Typography>
                 <Typography variant="h6" color="primary">
                   {analysis?.growth_analytics?.average_annual_growth?.toFixed(2) || 'N/A'}%
                 </Typography>
               </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card elevation={2}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom color="primary">
-              Growth Quality & Consistency
-            </Typography>
-            <Box sx={{ display: 'grid', gap: 2 }}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">Growth Volatility</Typography>
+                <Typography variant="h6">
+                  {analysis?.growth_analytics?.growth_volatility?.toFixed(2) || 'N/A'}%
+                </Typography>
+              </Box>
               <Box>
                 <Typography variant="body2" color="text.secondary">Growth Quality</Typography>
-                <Chip 
-                  label={analysis?.growth_analytics?.growth_quality || 'N/A'}
-                  color={analysis?.growth_analytics?.growth_quality === 'Optimal' ? 'success' : 'warning'}
-                />
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Growth Consistency</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={analysis?.growth_analytics?.growth_consistency || 0} 
-                    sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
-                  />
-                  <Typography variant="body2">
-                    {analysis?.growth_analytics?.growth_consistency || 0}%
-                  </Typography>
-                </Box>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Consecutive Increases</Typography>
-                <Typography variant="h6">
-                  {analysis?.growth_analytics?.consecutive_increases !== undefined 
-                    ? analysis.growth_analytics.consecutive_increases
-                    : 'N/A'} years
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Dividend Aristocrat Status</Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <Chip 
-                    label="Aristocrat" 
-                    color={analysis?.growth_analytics?.aristocrat_status?.is_dividend_aristocrat ? 'success' : 'default'}
-                    size="small"
-                  />
-                  <Chip 
-                    label="Achiever" 
-                    color={analysis?.growth_analytics?.aristocrat_status?.is_dividend_achiever ? 'success' : 'default'}
-                    size="small"
-                  />
-                </Box>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Card elevation={2}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom color="primary">
-              📈 Forecasted Growth
-            </Typography>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Next Year Projection</Typography>
-                <Typography variant="h6" color="success.main">
-                  {analysis?.forecast && analysis.forecast.length > 0 
-                    ? `${analysis.forecast[0].growth_rate?.toFixed(2)}%`
-                    : `${analysis?.growth_analytics?.average_annual_growth?.toFixed(2) || 'N/A'}%`}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">3-Year Outlook</Typography>
-                <Typography variant="h6" color="primary">
-                  {analysis?.forecast && analysis.forecast.length >= 3
-                    ? `${analysis.forecast[2].growth_rate?.toFixed(2)}%`
-                    : `${analysis?.growth_analytics?.average_annual_growth?.toFixed(2) || 'N/A'}%`}
+                <Typography variant="h6" color={
+                  analysis?.growth_analytics?.growth_quality === 'Optimal' ? 'success.main' :
+                  analysis?.growth_analytics?.growth_quality === 'Aggressive' ? 'warning.main' :
+                  analysis?.growth_analytics?.growth_quality === 'Conservative' ? 'info.main' : 'error.main'
+                }>
+                  {analysis?.growth_analytics?.growth_quality || 'N/A'}
                 </Typography>
               </Box>
               <Box>
                 <Typography variant="body2" color="text.secondary">Growth Trend</Typography>
-                <Chip 
-                  label={analysis?.growth_analytics?.growth_trend || 'Stable'}
-                  color={analysis?.growth_analytics?.growth_trend === 'Accelerating' ? 'success' : 
-                         analysis?.growth_analytics?.growth_trend === 'Declining' ? 'error' : 'primary'}
-                  size="small"
-                />
+                <Typography variant="h6">
+                  {analysis?.growth_analytics?.growth_trend || 'N/A'}
+                </Typography>
               </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Confidence Level</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={analysis?.forecast && analysis.forecast.length > 0 
-                      ? (analysis.forecast[0].confidence_level || 0.7) * 100 
-                      : 70} 
-                    sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
-                    color="success"
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Performance Analysis Controls */}
+        <Card elevation={2}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">Performance Analysis Controls</Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {['5Y', '10Y', '15Y', 'All'].map((period) => (
+                  <Button
+                    key={period}
+                    variant={dateRange.years === (period === 'All' ? 0 : parseInt(period.slice(0, -1))) ? 'contained' : 'outlined'}
+                    size="small"
+                    onClick={() => setDateRange({ years: period === 'All' ? 0 : parseInt(period.slice(0, -1)) })}
+                  >
+                    {period}
+                  </Button>
+                ))}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Dividend Growth History Chart */}
+        <Card elevation={2}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Dividend Growth History
+            </Typography>
+            {growthChart && growthChart.length > 0 ? (
+              <>
+                {/* Show metadata for new dividend payers */}
+                {growthChart.metadata?.is_new_dividend_payer && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    <Typography variant="body2">
+                      <strong>New Dividend Payer:</strong> {ticker} began paying dividends in {growthChart.metadata.dividend_start_year}. 
+                      Limited historical data is available for analysis.
+                    </Typography>
+                  </Alert>
+                )}
+                
+                <Box sx={{ width: '100%', height: 400 }}>
+                  <ResponsiveContainer>
+                    <LineChart data={Array.isArray(growthChart) ? growthChart.filter((item: any, index: number) => 
+                      dateRange.years === 0 || index >= growthChart.length - dateRange.years
+                    ) : []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="year" />
+                      <YAxis yAxisId="left" orientation="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <RechartsTooltip 
+                        formatter={(value: any, name: any) => [
+                          name === 'dividend_amount' ? `$${value?.toFixed(4)}` : `${value?.toFixed(2)}%`,
+                          name === 'dividend_amount' ? 'Dividend Amount' : 'Growth Rate'
+                        ]}
+                        labelFormatter={(year) => {
+                          const dataPoint = Array.isArray(growthChart) ? growthChart.find((item: any) => item.year === year) : null;
+                          return `${year}${dataPoint?.note ? ` (${dataPoint.note})` : ''}`;
+                        }}
+                      />
+                      <Legend 
+                        formatter={(value: string) => 
+                          value === 'dividend_amount' ? 'Dividend Amount' : 'growth_rate'
+                        }
+                      />
+                      <Line 
+                        yAxisId="left"
+                        type="monotone" 
+                        dataKey="dividend_amount" 
+                        stroke="#2196f3" 
+                        strokeWidth={2}
+                        name="dividend_amount"
+                      />
+                      <Line 
+                        yAxisId="right"
+                        type="monotone" 
+                        dataKey="growth_rate" 
+                        stroke="#ff9800" 
+                        strokeWidth={2}
+                        name="growth_rate"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+                
+                {/* Chart metadata */}
+                <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <Chip 
+                    label={`${growthChart.metadata?.total_years || growthChart.length} Years of Data`} 
+                    size="small" 
+                    variant="outlined" 
                   />
-                  <Typography variant="body2">
-                    {analysis?.forecast && analysis.forecast.length > 0 
-                      ? `${((analysis.forecast[0].confidence_level || 0.7) * 100).toFixed(0)}%`
-                      : '70%'}
+                  {growthChart.metadata?.cagr && (
+                    <Chip 
+                      label={`CAGR: ${growthChart.metadata.cagr.toFixed(1)}%`} 
+                      size="small" 
+                      color={growthChart.metadata.cagr > 5 ? 'success' : growthChart.metadata.cagr > 0 ? 'warning' : 'error'}
+                    />
+                  )}
+                  {growthChart.metadata?.data_note && (
+                    <Chip 
+                      label={growthChart.metadata.data_note} 
+                      size="small" 
+                      color="info"
+                    />
+                  )}
+                </Box>
+              </>
+            ) : (
+              <Typography color="text.secondary">No dividend history available for charting</Typography>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Growth Quality & Consistency */}
+        <Card elevation={2}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Typography variant="h6">Growth Quality & Consistency</Typography>
+              <Tooltip title={
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>What This Measures:</Typography>
+                  <Typography variant="body2">• <strong>Consecutive Increases:</strong> Years of uninterrupted dividend growth</Typography>
+                  <Typography variant="body2">• <strong>Growth Consistency:</strong> Percentage of years with positive growth</Typography>
+                  <Typography variant="body2">• <strong>Aristocrat Status:</strong> Recognition based on dividend growth streaks</Typography>
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    <strong>Aristocrat Requirements:</strong><br/>
+                    • Dividend Aristocrat: 25+ consecutive years<br/>
+                    • Dividend Achiever: 10+ consecutive years<br/>
+                    • Dividend Challenger: 5+ consecutive years
                   </Typography>
                 </Box>
+              } arrow placement="right">
+                <InfoIcon fontSize="small" color="action" />
+              </Tooltip>
+            </Box>
+            
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">Consecutive Increases</Typography>
+                <Typography variant="h4" color="primary">
+                  {analysis?.growth_analytics?.consecutive_increases || 0} years
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="body2" color="text.secondary">Growth Consistency</Typography>
+                <Typography variant="h4">
+                  {analysis?.growth_analytics?.growth_consistency?.toFixed(1) || 'N/A'}%
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="body2" color="text.secondary">Dividend Aristocrat Status</Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                  <Chip 
+                    label="Aristocrat (25y+)" 
+                    color={(analysis?.growth_analytics?.consecutive_increases || 0) >= 25 ? 'success' : 'default'} 
+                    size="small"
+                  />
+                  <Chip 
+                    label="Achiever (10y+)" 
+                    color={(analysis?.growth_analytics?.consecutive_increases || 0) >= 10 ? 'success' : 'default'} 
+                    size="small"
+                  />
+                  <Chip 
+                    label="Challenger (5y+)" 
+                    color={(analysis?.growth_analytics?.consecutive_increases || 0) >= 5 ? 'success' : 'default'} 
+                    size="small"
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Industry Comparison */}
+        <Card elevation={2}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              📊 Industry Comparison & Competitive Analysis
+            </Typography>
+            
+            {peerComparison && peerComparison.chart_data ? (
+              <Box>
+
+
+                {/* Key Metrics Comparison */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 3 }}>
+                  {/* Dividend Yield Comparison */}
+                  <Box>
+                    <Typography variant="subtitle1" gutterBottom color="primary">
+                      Dividend Yield Comparison
+                    </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="body2">{ticker}: {peerComparison.chart_data.peer_comparison.dividend_yield.target?.toFixed(2)}%</Typography>
+                        <Chip 
+                          label={(() => {
+                            const percentile = peerComparison.chart_data.peer_comparison.dividend_yield.percentile_rank;
+                            if (percentile >= 90) return "Top 10%";
+                            else if (percentile >= 75) return "Top 25%";
+                            else if (percentile >= 50) return "Top 50%";
+                            else if (percentile >= 25) return "Bottom 50%";
+                            else if (percentile > 0) return "Bottom 25%";
+                            else return "Bottom 10%";
+                          })()}
+                          color={peerComparison.chart_data.peer_comparison.dividend_yield.percentile_rank >= 75 ? 'success' : 
+                                 peerComparison.chart_data.peer_comparison.dividend_yield.percentile_rank >= 50 ? 'warning' : 'error'}
+                          size="small"
+                        />
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        vs Industry Avg: {peerComparison.chart_data.sector_benchmarks?.avg_yield?.toFixed(2)}%
+                      </Typography>
+                    </Box>
+                    <Box sx={{ width: '100%', height: 200 }}>
+                      <ResponsiveContainer>
+                        <BarChart data={[
+                          { symbol: ticker, value: peerComparison.chart_data.peer_comparison.dividend_yield.target, isTarget: true },
+                          { symbol: 'MSFT', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.MSFT },
+                          { symbol: 'GOOGL', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.GOOGL },
+                          { symbol: 'META', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.META },
+                          { symbol: 'NVDA', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.NVDA },
+                          { symbol: 'Industry', value: peerComparison.chart_data.sector_benchmarks?.avg_yield, isIndustry: true }
+                        ]} margin={{ bottom: 40 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="symbol" angle={-45} textAnchor="end" height={60} />
+                          <YAxis />
+                          <RechartsTooltip formatter={(value: number) => [`${value?.toFixed(2)}%`, 'Dividend Yield']} />
+                          <Bar dataKey="value" fill="#2196f3" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  </Box>
+
+                  {/* Payout Ratio Comparison */}
+                  <Box>
+                    <Typography variant="subtitle1" gutterBottom color="primary">
+                      Payout Ratio Comparison
+                    </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="body2">{ticker}: {peerComparison.chart_data.peer_comparison.payout_ratio.target?.toFixed(1)}%</Typography>
+                        <Chip 
+                          label={(() => {
+                            const percentile = peerComparison.chart_data.peer_comparison.payout_ratio.percentile_rank;
+                            if (percentile >= 90) return "Top 10%";
+                            else if (percentile >= 75) return "Top 25%";
+                            else if (percentile >= 50) return "Top 50%";
+                            else if (percentile >= 25) return "Bottom 50%";
+                            else if (percentile > 0) return "Bottom 25%";
+                            else return "Bottom 10%";
+                          })()}
+                          color={peerComparison.chart_data.peer_comparison.payout_ratio.percentile_rank <= 25 ? 'success' : 
+                                 peerComparison.chart_data.peer_comparison.payout_ratio.percentile_rank <= 50 ? 'warning' : 'error'}
+                          size="small"
+                        />
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        vs Industry Avg: {peerComparison.chart_data.sector_benchmarks?.avg_payout?.toFixed(1)}%
+                      </Typography>
+                    </Box>
+                    <Box sx={{ width: '100%', height: 200 }}>
+                      <ResponsiveContainer>
+                        <BarChart data={[
+                          { symbol: ticker, value: peerComparison.chart_data.peer_comparison.payout_ratio.target, isTarget: true },
+                          { symbol: 'MSFT', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.MSFT },
+                          { symbol: 'GOOGL', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.GOOGL },
+                          { symbol: 'META', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.META },
+                          { symbol: 'NVDA', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.NVDA },
+                          { symbol: 'Industry', value: peerComparison.chart_data.sector_benchmarks?.avg_payout, isIndustry: true }
+                        ]} margin={{ bottom: 40 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="symbol" angle={-45} textAnchor="end" height={60} />
+                          <YAxis />
+                          <RechartsTooltip formatter={(value: number) => [`${value?.toFixed(1)}%`, 'Payout Ratio']} />
+                          <Bar dataKey="value" fill="#ff9800" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* 5-Year Growth Comparison */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom color="primary">
+                    5-Year Dividend Growth Comparison
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="body2">{ticker}: {peerComparison.chart_data.peer_comparison.dividend_growth_5y.target?.toFixed(1)}%</Typography>
+                      <Chip 
+                        label={(() => {
+                          const percentile = peerComparison.chart_data.peer_comparison.dividend_growth_5y.percentile_rank;
+                          if (percentile >= 90) return "Top 10%";
+                          else if (percentile >= 75) return "Top 25%";
+                          else if (percentile >= 50) return "Top 50%";
+                          else if (percentile >= 25) return "Bottom 50%";
+                          else if (percentile > 0) return "Bottom 25%";
+                          else return "Bottom 10%";
+                        })()}
+                        color={peerComparison.chart_data.peer_comparison.dividend_growth_5y.percentile_rank >= 75 ? 'success' : 
+                               peerComparison.chart_data.peer_comparison.dividend_growth_5y.percentile_rank >= 50 ? 'warning' : 'error'}
+                        size="small"
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      vs Industry Avg: {peerComparison.chart_data.sector_benchmarks?.avg_growth?.toFixed(1)}%
+                    </Typography>
+                  </Box>
+                  <Box sx={{ width: '100%', height: 250 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={[
+                        { symbol: ticker, value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.target, isTarget: true },
+                        { symbol: 'MSFT', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.MSFT },
+                        { symbol: 'GOOGL', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.GOOGL },
+                        { symbol: 'META', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.META },
+                        { symbol: 'NVDA', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.NVDA },
+                        { symbol: 'Industry', value: peerComparison.chart_data.sector_benchmarks?.avg_growth, isIndustry: true }
+                      ]} margin={{ bottom: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="symbol" angle={-45} textAnchor="end" height={80} />
+                        <YAxis />
+                        <RechartsTooltip formatter={(value: number) => [`${value?.toFixed(1)}%`, '5Y Growth']} />
+                        <Bar dataKey="value" fill="#4caf50" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </Box>
+
+
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Industry comparison data not available
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Forecasted Growth */}
+        <Card elevation={2}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Typography variant="h6">Forecasted Growth</Typography>
+              <Tooltip title={
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>Confidence Level Explained:</Typography>
+                  <Typography variant="body2">
+                    Based on historical consistency, financial stability, and economic conditions:
+                  </Typography>
+                  <Typography variant="body2">• <strong>High (80%+):</strong> Strong track record and stable financials</Typography>
+                  <Typography variant="body2">• <strong>Medium (60-80%):</strong> Good history with some variability</Typography>
+                  <Typography variant="body2">• <strong>Low (&lt;60%):</strong> Limited data or high uncertainty</Typography>
+                </Box>
+              } arrow placement="right">
+                <InfoIcon fontSize="small" color="action" />
+              </Tooltip>
+            </Box>
+            
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+              <Box>
+                <Typography variant="body2" color="text.secondary">Next Year Projection</Typography>
+                <Typography variant="h6" color="primary">
+                  {analysis?.forecast && analysis.forecast.length > 0 ? 
+                    `${analysis.forecast[0]?.growth_rate?.toFixed(2)}%` : 'N/A'}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" color="text.secondary">3-Year Outlook</Typography>
+                <Typography variant="h6">
+                  {analysis?.forecast && analysis.forecast.length >= 3 ? 
+                    `${(analysis.forecast.slice(0, 3).reduce((sum: number, f: any) => sum + (f.growth_rate || 0), 0) / 3).toFixed(2)}%` : 'N/A'}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" color="text.secondary">Growth Trend</Typography>
+                <Typography variant="h6">
+                  {analysis?.growth_analytics?.growth_trend || 'N/A'}
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" color="text.secondary">Confidence Level</Typography>
+                <Typography variant="h6" color={
+                  (analysis?.forecast?.[0]?.confidence_level * 100) >= 80 ? 'success.main' :
+                  (analysis?.forecast?.[0]?.confidence_level * 100) >= 60 ? 'warning.main' : 'error.main'
+                }>
+                  {analysis?.forecast?.[0]?.confidence_level ? 
+                    `${(analysis.forecast[0].confidence_level * 100).toFixed(0)}%` : 'N/A'}
+                </Typography>
               </Box>
             </Box>
           </CardContent>
         </Card>
       </Box>
-
-      {/* Industry Comparison */}
-      <Card elevation={3}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom color="primary">
-            🏭 Industry Comparison
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Comparing {ticker} against major technology sector companies
-          </Typography>
-          
-          {peerComparison ? (
-            <Box sx={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { company: ticker, yield: 0.52 },
-                  { company: 'MSFT', yield: 0.68 },
-                  { company: 'GOOGL', yield: 0.46 },
-                  { company: 'META', yield: 0.29 },
-                  { company: 'NVDA', yield: 0.03 },
-                  { company: 'TSLA', yield: 0.00 }
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="company" />
-                  <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`${value}%`, 'Dividend Yield']} />
-                  <Legend />
-                  <Bar 
-                    dataKey="yield" 
-                    fill="#1976d2" 
-                    name="Dividend Yield (%)"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr 1fr' }, gap: 2, mt: 2 }}>
-              {/* Static comparison for major tech companies */}
-              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'primary.50' }}>
-                <Typography variant="h6" color="primary">{ticker}</Typography>
-                <Typography variant="h4" sx={{ color: 'primary.main' }}>
-                  {analysis?.current_metrics?.current_yield_pct?.toFixed(2) || '0.52'}%
-                </Typography>
-                <Typography variant="body2" color="text.secondary">Current</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="h6">MSFT</Typography>
-                <Typography variant="h4">0.68%</Typography>
-                <Typography variant="body2" color="text.secondary">Microsoft</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="h6">GOOGL</Typography>
-                <Typography variant="h4">0.00%</Typography>
-                <Typography variant="body2" color="text.secondary">Alphabet</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="h6">META</Typography>
-                <Typography variant="h4">0.37%</Typography>
-                <Typography variant="body2" color="text.secondary">Meta</Typography>
-              </Box>
-              <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <Typography variant="h6">NVDA</Typography>
-                <Typography variant="h4">0.03%</Typography>
-                <Typography variant="body2" color="text.secondary">NVIDIA</Typography>
-              </Box>
-            </Box>
-          )}
-          
-          <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant="h6" gutterBottom>Sector Analysis</Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Sector Average Yield</Typography>
-                <Typography variant="h6" color="primary">
-                  {analysis?.peer_benchmarking?.sector_avg_yield || 1.2}%
-                </Typography>
-                <Typography variant="body2" color={
-                  (analysis?.current_metrics?.current_yield_pct || 0) > (analysis?.peer_benchmarking?.sector_avg_yield || 1.2) 
-                    ? 'success.main' : 'warning.main'
-                }>
-                  {(analysis?.current_metrics?.current_yield_pct || 0) > (analysis?.peer_benchmarking?.sector_avg_yield || 1.2) 
-                    ? '↗ Above Average' : '↘ Below Average'}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Sector Growth Expectation</Typography>
-                <Typography variant="h6" color="primary">8.0%</Typography>
-                <Typography variant="body2" color={
-                  (analysis?.growth_analytics?.average_annual_growth || 0) > 8 ? 'success.main' : 'warning.main'
-                }>
-                  {(analysis?.growth_analytics?.average_annual_growth || 0) > 8 ? '↗ Above Expected' : '↘ Below Expected'}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Yield Percentile Rank</Typography>
-                <Typography variant="h6" color={
-                  (peerComparison?.chart_data?.peer_comparison?.dividend_yield?.percentile_rank || 0) > 50 
-                    ? 'success.main' : 'warning.main'
-                }>
-                  {peerComparison?.chart_data?.peer_comparison?.dividend_yield?.percentile_rank || 'N/A'}
-                  {typeof peerComparison?.chart_data?.peer_comparison?.dividend_yield?.percentile_rank === 'number' ? 'th' : ''}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Among {analysis?.peer_benchmarking?.sector || 'tech'} peers
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  );
+    );
+  };
 
   return (
     <Box sx={{ p: 3 }}>

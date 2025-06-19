@@ -326,34 +326,60 @@ async def get_dividend_growth_chart(
         dividends = await dividend_service._get_yfinance_dividends(ticker.upper(), start_date, end_date)
         annual_dividends = dividend_service._aggregate_annual_dividends(dividends)
         
+        # Filter out current year to match consecutive increases logic (avoid partial year data)
+        from datetime import date as dt
+        current_year = dt.today().year
+        filtered_annual_dividends = {year: amount for year, amount in annual_dividends.items() if year < current_year}
+        
+        # If no historical data or very limited data, include current year with a note
+        if len(filtered_annual_dividends) < 2 and current_year in annual_dividends:
+            filtered_annual_dividends[current_year] = annual_dividends[current_year]
+        
         # Prepare chart data
         chart_data = []
-        years_sorted = sorted(annual_dividends.keys())
+        years_sorted = sorted(filtered_annual_dividends.keys())
         
-        for year in years_sorted:
-            dividend_amount = annual_dividends[year]
+        for i, year in enumerate(years_sorted):
+            dividend_amount = filtered_annual_dividends[year]
             
             # Calculate year-over-year growth
             growth_rate = None
-            if len(chart_data) > 0:
-                prev_amount = chart_data[-1]['dividend_amount']
+            if i > 0:
+                prev_amount = filtered_annual_dividends[years_sorted[i-1]]
                 if prev_amount > 0:
                     growth_rate = ((dividend_amount - prev_amount) / prev_amount) * 100
+            
+            # Add note for current year (partial data)
+            note = None
+            if year == current_year:
+                note = "Current year (partial data)"
             
             chart_data.append({
                 'year': year,
                 'dividend_amount': round(dividend_amount, 4),
-                'growth_rate': round(growth_rate, 2) if growth_rate is not None else None
+                'growth_rate': round(growth_rate, 2) if growth_rate is not None else None,
+                'note': note
             })
+        
+        # Calculate metadata
+        total_years = len(chart_data)
+        dividend_start_year = years_sorted[0] if years_sorted else None
+        
+        # Determine if this is a new dividend payer
+        is_new_dividend_payer = dividend_start_year and dividend_start_year >= 2020
         
         return {
             'ticker': ticker.upper(),
             'chart_type': 'dividend_growth',
             'chart_data': chart_data,
             'metadata': {
-                'total_years': len(chart_data),
+                'total_years': total_years,
+                'dividend_start_year': dividend_start_year,
+                'is_new_dividend_payer': is_new_dividend_payer,
+                'data_note': f"{'New dividend payer - limited history' if is_new_dividend_payer else 'Historical dividend data'}",
                 'avg_dividend': round(sum(d['dividend_amount'] for d in chart_data) / len(chart_data), 4) if chart_data else 0,
-                'cagr': dividend_service._calculate_cagr(chart_data) if len(chart_data) >= 2 else 0
+                'cagr': dividend_service._calculate_cagr(chart_data) if len(chart_data) >= 2 else 0,
+                'years_excluded_current': current_year not in filtered_annual_dividends or len(filtered_annual_dividends) > 1
             }
         }
         
