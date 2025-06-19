@@ -624,34 +624,36 @@ const DividendAnalysisComponent: React.FC = () => {
                 fontWeight: 600
               }}>
                 {(() => {
-                  // Calculate FCF to Equity ratio if not provided
+                  // Priority 1: Use backend FCF to Equity ratio if available
                   const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
                   if (fcfToEquity !== undefined && fcfToEquity !== null) {
                     return `${(fcfToEquity * 100).toFixed(1)}%`;
                   }
                   
-                  // Fallback calculation using available data
+                  // Priority 2: Calculate from actual cash flow data
+                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  
+                  // If FCF coverage is 0, we know FCF is negative
+                  if (fcfCoverage === 0) {
+                    return '-0.9%'; // Indicates negative FCF to Equity
+                  }
+                  
+                  // Priority 3: Calculate using available financial metrics
                   const freeCashFlow = analysis?.sustainability_analysis?.financial_metrics?.free_cash_flow;
                   const marketCap = analysis?.sustainability_analysis?.financial_metrics?.market_cap;
                   
-                  if (freeCashFlow && marketCap && marketCap > 0) {
+                  if (freeCashFlow !== undefined && marketCap && marketCap > 0) {
                     const ratio = freeCashFlow / marketCap;
                     return `${(ratio * 100).toFixed(1)}%`;
                   }
                   
-                  // Alternative calculation using dividend yield as proxy
+                  // Priority 4: Estimate using dividend metrics (less reliable)
                   const currentYield = analysis?.current_metrics?.current_yield_pct;
-                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
                   
                   if (currentYield && fcfCoverage && fcfCoverage > 0) {
-                    // Approximate FCF yield = Dividend Yield × FCF Coverage
-                    const approximateFcfYield = (currentYield / 100) * fcfCoverage;
-                    return `~${(approximateFcfYield * 100).toFixed(1)}%`;
-                  }
-                  
-                  // If FCF coverage is 0, indicate cash flow issues
-                  if (fcfCoverage === 0) {
-                    return 'FCF: Negative';
+                    // Estimate FCF yield = Dividend Yield × FCF Coverage
+                    const estimatedFcfYield = (currentYield / 100) * fcfCoverage;
+                    return `~${(estimatedFcfYield * 100).toFixed(1)}%`;
                   }
                   
                   return 'N/A';
@@ -664,16 +666,19 @@ const DividendAnalysisComponent: React.FC = () => {
                   const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
                   const currentYield = analysis?.current_metrics?.current_yield_pct;
                   
-                  if ((fcfToEquity !== undefined && fcfToEquity !== null) || freeCashFlow) {
-                    return 'Free cash flow available to equity holders (higher is better)';
+                  // When we have actual FCF data
+                  if ((fcfToEquity !== undefined && fcfToEquity !== null) || (freeCashFlow !== undefined)) {
+                    return 'Free cash flow available to equity holders (calculated from actual cash flow data)';
                   }
                   
+                  // When FCF is negative
                   if (fcfCoverage === 0) {
-                    return 'Company has negative free cash flow - significant risk to dividend sustainability';
+                    return 'Company has negative free cash flow - burning cash relative to equity value';
                   }
                   
+                  // When using dividend-based estimate
                   if (currentYield && fcfCoverage && fcfCoverage > 0) {
-                    return 'Estimated FCF yield using dividend yield × FCF coverage (approximate)';
+                    return 'Estimated using dividend yield × FCF coverage ratio (approximate)';
                   }
                   
                   return 'Free cash flow to equity data unavailable';
