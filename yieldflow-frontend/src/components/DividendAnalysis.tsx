@@ -113,9 +113,9 @@ const DividendAnalysisComponent: React.FC = () => {
       if (chartData?.chart_data && Array.isArray(chartData.chart_data)) {
         const chartFormatted = chartData.chart_data.map((item: any) => ({
           year: item.year,
-          dividend_amount: item.dividend_amount,
-          growth_rate: item.growth_rate || 0,
-          note: item.note
+          dividend_amount: Number(item.dividend_amount) || 0,
+          growth_rate: item.growth_rate !== null && item.growth_rate !== undefined ? Number(item.growth_rate) : 0,
+          note: item.note || 'No additional information'
         }));
         // Preserve the metadata by attaching it to the array
         (chartFormatted as any).metadata = chartData.metadata;
@@ -127,8 +127,13 @@ const DividendAnalysisComponent: React.FC = () => {
       console.error('API Error:', err);
       if (err.response?.status === 401) {
         setError('Authentication failed. Please check API key configuration.');
-      } else if (err.response?.status === 404) {
-        setError(`Stock ticker "${ticker}" not found. Please check the ticker symbol.`);
+                  } else if (err.response?.status === 404) {
+        const errorDetail = err.response?.data?.detail || '';
+        if (errorDetail.includes('No dividend data found')) {
+          setError(`"${ticker}" does not currently pay dividends or has no dividend history. Please try a dividend-paying stock like AAPL, MSFT, or JNJ.`);
+        } else {
+          setError(`Stock ticker "${ticker}" not found. Please check the ticker symbol.`);
+        }
       } else if (err.response?.status === 429) {
         setError('Rate limit exceeded. Please try again later.');
       } else if (err.response?.data?.detail) {
@@ -254,15 +259,17 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Dividend Yield:</strong></Typography>
                 <Typography variant="body1" color="primary">
-                  {analysis?.current_metrics?.current_yield_pct || 
-                   currentDividend?.current_dividend_info?.current_yield_pct || 
-                   currentDividend?.current_metrics?.current_yield_pct ||
-                   currentDividend?.yield 
-                    ? `${(analysis?.current_metrics?.current_yield_pct || 
-                            currentDividend?.current_dividend_info?.current_yield_pct || 
-                            currentDividend?.current_metrics?.current_yield_pct ||
-                            currentDividend?.yield).toFixed(2)}%`
-                    : 'N/A'}
+                  {(() => {
+                    const yield_pct = analysis?.current_metrics?.current_yield_pct || 
+                                     currentDividend?.current_dividend_info?.current_yield_pct || 
+                                     currentDividend?.current_metrics?.current_yield_pct ||
+                                     currentDividend?.yield;
+                    
+                    if (yield_pct !== undefined && yield_pct !== null && yield_pct !== 'N/A') {
+                      return `${Number(yield_pct).toFixed(2)}%`;
+                    }
+                    return '0.00%';
+                  })()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -272,10 +279,17 @@ const DividendAnalysisComponent: React.FC = () => {
                   </Typography>
                 </Tooltip>
                 <Typography variant="body1" color="primary">
-                  ${analysis?.current_metrics?.estimated_annual_dividend ||
-                    currentDividend?.current_dividend_info?.estimated_annual_dividend ||
-                    currentDividend?.current_metrics?.estimated_annual_dividend ||
-                    currentDividend?.estimated_annual || 'N/A'}
+                  {(() => {
+                    const annual_div = analysis?.current_metrics?.estimated_annual_dividend ||
+                                      currentDividend?.current_dividend_info?.estimated_annual_dividend ||
+                                      currentDividend?.current_metrics?.estimated_annual_dividend ||
+                                      currentDividend?.estimated_annual;
+                    
+                    if (annual_div !== undefined && annual_div !== null && annual_div !== 'N/A') {
+                      return `$${Number(annual_div).toFixed(2)}`;
+                    }
+                    return '$0.00';
+                  })()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -285,10 +299,17 @@ const DividendAnalysisComponent: React.FC = () => {
                   </Typography>
                 </Tooltip>
                 <Typography variant="body1" color="primary">
-                  ${(analysis?.current_metrics?.last_payment?.amount ||
-                    currentDividend?.current_dividend_info?.last_payment?.amount ||
-                    currentDividend?.current_metrics?.last_payment?.amount ||
-                    currentDividend?.last_payment?.amount || 'N/A')}
+                  {(() => {
+                    const last_amount = analysis?.current_metrics?.last_payment?.amount ||
+                                       currentDividend?.current_dividend_info?.last_payment?.amount ||
+                                       currentDividend?.current_metrics?.last_payment?.amount ||
+                                       currentDividend?.last_payment?.amount;
+                    
+                    if (last_amount !== undefined && last_amount !== null && last_amount !== 'N/A') {
+                      return `$${Number(last_amount).toFixed(2)}`;
+                    }
+                    return '$0.00';
+                  })()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -322,10 +343,17 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Payment Frequency:</strong></Typography>
                 <Typography variant="body1" color="primary">
-                  {analysis?.current_metrics?.payment_frequency ||
-                   currentDividend?.current_dividend_info?.payment_frequency ||
-                   currentDividend?.current_metrics?.payment_frequency ||
-                   currentDividend?.payment_frequency || 'N/A'}
+                  {(() => {
+                    const frequency = analysis?.current_metrics?.payment_frequency ||
+                                     currentDividend?.current_dividend_info?.payment_frequency ||
+                                     currentDividend?.current_metrics?.payment_frequency ||
+                                     currentDividend?.payment_frequency;
+                    
+                    if (frequency && frequency !== 'N/A') {
+                      return frequency;
+                    }
+                    return 'No Dividends';
+                  })()}
                 </Typography>
               </Box>
             </Box>
@@ -341,21 +369,37 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Analysis Period:</strong></Typography>
                 <Typography variant="body1">
-                  {analysis?.analysis_period?.years_analyzed 
-                    ? `${analysis.analysis_period.years_analyzed} years`
-                    : 'N/A'}
+                  {(() => {
+                    const years = analysis?.analysis_period?.years_analyzed;
+                    if (years && years > 0) {
+                      return `${Number(years).toFixed(1)} years`;
+                    }
+                    return 'Limited Data';
+                  })()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Sustainability Score:</strong></Typography>
                           <Typography variant="body1" color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success.main' : 'info.main'}>
-            {analysis?.sustainability_analysis?.sustainability_score || 'N/A'}/100
+            {(() => {
+              const score = analysis?.sustainability_analysis?.sustainability_score;
+              if (score !== undefined && score !== null && score !== 'N/A') {
+                return `${Number(score)}/100`;
+              }
+              return '0/100';
+            })()}
           </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Risk Rating:</strong></Typography>
                 <Chip 
-                  label={analysis?.risk_assessment?.risk_rating || 'N/A'}
+                  label={(() => {
+                    const rating = analysis?.risk_assessment?.risk_rating;
+                    if (rating && rating !== 'N/A') {
+                      return rating;
+                    }
+                    return 'Unknown';
+                  })()}
                   color={analysis?.risk_assessment?.risk_rating === 'Low' ? 'success' : 
                          analysis?.risk_assessment?.risk_rating === 'Medium' ? 'warning' : 'error'}
                   size="small"
@@ -2035,7 +2079,13 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box>
                 <Typography variant="body2" color="text.secondary">Consecutive Increases</Typography>
                 <Typography variant="h4" color="primary">
-                  {analysis?.growth_analytics?.consecutive_increases || 0} years
+                  {(() => {
+                    const increases = analysis?.growth_analytics?.consecutive_increases;
+                    if (increases !== undefined && increases !== null && increases !== 'N/A') {
+                      return `${Number(increases)} years`;
+                    }
+                    return '0 years';
+                  })()}
                 </Typography>
               </Box>
 

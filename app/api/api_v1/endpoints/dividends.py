@@ -357,8 +357,8 @@ async def get_dividend_growth_chart(
             chart_data.append({
                 'year': year,
                 'dividend_amount': round(dividend_amount, 4),
-                'growth_rate': round(growth_rate, 2) if growth_rate is not None else None,
-                'note': note
+                'growth_rate': round(growth_rate, 2) if growth_rate is not None else 0.0,
+                'note': note if note is not None else f"Dividend payment of ${dividend_amount:.2f}"
             })
         
         # Calculate metadata

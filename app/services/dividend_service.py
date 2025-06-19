@@ -144,8 +144,14 @@ class DividendService:
                 'current_metrics': current_metrics,
                 
                 # OPTIONAL ADVANCED FEATURES
-                'forecast': await self._generate_professional_forecast(dividends, financials, economic_context, 3) if include_forecast else None,
-                'peer_benchmarking': await self._get_sector_benchmarking(ticker, quality_analysis, market_data) if include_peer_comparison else None,
+                'forecast': await self._generate_professional_forecast(dividends, financials, economic_context, 3) if include_forecast else {
+                    'status': 'not_requested',
+                    'message': 'Forecast not included in this analysis'
+                },
+                'peer_benchmarking': await self._get_sector_benchmarking(ticker, quality_analysis, market_data) if include_peer_comparison else {
+                    'status': 'not_requested', 
+                    'message': 'Peer comparison not included in this analysis'
+                },
                 
                 # METADATA
                 'data_sources': ['yahoo_finance', 'alpha_vantage', 'fmp', 'fred'],
@@ -171,7 +177,19 @@ class DividendService:
         """
         
         if not dividends:
-            return {'quality_score': 0, 'grade': 'F', 'components': {}}
+            return {
+                'quality_score': 0, 
+                'grade': 'F', 
+                'rating': 'No Dividend Data',
+                'components': {
+                    'consistency_score': 0,
+                    'growth_score': 0,
+                    'coverage_score': 0,
+                    'yield_quality_score': 0,
+                    'financial_strength_score': 0
+                },
+                'investment_recommendation': 'No Dividend'
+            }
         
         # Component calculations with institutional weighting
         consistency_score = self._score_dividend_consistency(dividends) * 0.25    # 25%
@@ -192,6 +210,18 @@ class DividendService:
         elif total_score >= 30: grade, rating = 'D', 'Poor'
         else: grade, rating = 'F', 'Very Poor'
         
+        # Determine investment recommendation
+        if total_score >= 80:
+            recommendation = 'Strong Buy'
+        elif total_score >= 70:
+            recommendation = 'Buy'
+        elif total_score >= 60:
+            recommendation = 'Hold'
+        elif total_score >= 40:
+            recommendation = 'Weak Hold'
+        else:
+            recommendation = 'Avoid'
+        
         return {
             'quality_score': round(total_score, 1),
             'grade': grade,
@@ -203,7 +233,7 @@ class DividendService:
                 'yield_quality_score': round(yield_quality_score / 0.15, 1),
                 'financial_strength_score': round(financial_strength / 0.10, 1)
             },
-            'investment_recommendation': self._get_investment_recommendation(total_score)
+            'investment_recommendation': recommendation
         }
 
     def _calculate_sustainability_metrics(self, dividends: List[Dict], financials: Dict) -> Dict[str, Any]:
