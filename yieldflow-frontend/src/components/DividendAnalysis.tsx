@@ -449,10 +449,7 @@ const DividendAnalysisComponent: React.FC = () => {
       </Card>
 
       {/* The 4 Key Dividend Ratios */}
-      <Card elevation={2} sx={{ 
-        background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.05) 0%, rgba(33, 150, 243, 0.02) 100%)',
-        border: '1px solid rgba(33, 150, 243, 0.2)'
-      }}>
+      <Card elevation={2}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
             <Box sx={{ 
@@ -466,7 +463,7 @@ const DividendAnalysisComponent: React.FC = () => {
             }}>
               <InfoIcon sx={{ color: 'white', fontSize: 18 }} />
             </Box>
-            <Typography variant="h6" color="info.main" fontWeight="600">
+            <Typography variant="h6" color="info.main" fontWeight="500">
               Four Key Dividend Ratios
             </Typography>
           </Box>
@@ -492,7 +489,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h6" sx={{ 
                 color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.main' : 'error.main',
-                fontWeight: 600,
+                fontWeight: 500,
                 mb: 1
               }}>
                 Dividend Payout Ratio
@@ -501,14 +498,14 @@ const DividendAnalysisComponent: React.FC = () => {
                 my: 2,
                 color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.main' : 'error.main',
-                fontWeight: 700
+                fontWeight: 600
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.payout_ratio 
                   ? `${(analysis.sustainability_analysis.key_ratios.payout_ratio * 100).toFixed(1)}%`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Lower is generally better (indicates room for growth)
+                Percentage of earnings paid as dividends (lower is better)
               </Typography>
               <LinearProgress 
                 variant="determinate" 
@@ -536,7 +533,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h6" sx={{ 
                 color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.main' : 'error.main',
-                fontWeight: 600,
+                fontWeight: 500,
                 mb: 1
               }}>
                 Dividend Coverage Ratio
@@ -545,14 +542,14 @@ const DividendAnalysisComponent: React.FC = () => {
                 my: 2,
                 color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.main' : 'error.main',
-                fontWeight: 700
+                fontWeight: 600
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
                   ? `${analysis.sustainability_analysis.key_ratios.fcf_coverage_ratio.toFixed(2)}x`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Free Cash Flow Coverage (Higher is better)
+                Times FCF exceeds dividend payments (higher is better)
               </Typography>
               <LinearProgress 
                 variant="determinate" 
@@ -563,7 +560,7 @@ const DividendAnalysisComponent: React.FC = () => {
               />
             </Box>
 
-            {/* Free Cash Flow to Equity */}
+            {/* FCF Dividend Coverage */}
             <Box sx={{ 
               p: 3, 
               backgroundColor: 'background.paper',
@@ -580,23 +577,23 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h6" sx={{ 
                 color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2.0 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1.2 ? 'info.main' : 'error.main',
-                fontWeight: 600,
+                fontWeight: 500,
                 mb: 1
               }}>
-                Free Cash Flow to Equity
+                FCF Dividend Coverage
               </Typography>
               <Typography variant="h3" sx={{ 
                 my: 2,
                 color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2.0 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1.2 ? 'info.main' : 'error.main',
-                fontWeight: 700
+                fontWeight: 600
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
                   ? `${analysis.sustainability_analysis.key_ratios.fcf_coverage_ratio.toFixed(2)}x`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Free cash flow coverage of dividend payments
+                How many times free cash flow can cover dividend payments
               </Typography>
               <LinearProgress 
                 variant="determinate" 
@@ -624,7 +621,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h6" sx={{ 
                 color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.main' : 'error.main',
-                fontWeight: 600,
+                fontWeight: 500,
                 mb: 1
               }}>
                 Debt Service Coverage
@@ -633,14 +630,14 @@ const DividendAnalysisComponent: React.FC = () => {
                 my: 2,
                 color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
                        analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.main' : 'error.main',
-                fontWeight: 700
+                fontWeight: 600
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage 
                   ? `${analysis.sustainability_analysis.key_ratios.debt_service_coverage.toFixed(2)}x`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Ability to service debt obligations
+                Times earnings can cover debt payments (higher is better)
               </Typography>
               <LinearProgress 
                 variant="determinate" 
