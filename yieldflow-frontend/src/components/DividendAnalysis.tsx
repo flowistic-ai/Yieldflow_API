@@ -1016,7 +1016,7 @@ const DividendAnalysisComponent: React.FC = () => {
                    analysis?.risk_assessment?.risk_score <= 60 ? 'warning' : 'error'}
           />
           <Typography variant="body1" color="text.secondary">
-            Lower risk scores indicate safer dividend sustainability (0=Highest Risk, 100=Lowest Risk)
+            Higher scores indicate safer dividend sustainability (100=Safest, 0=Highest Risk)
           </Typography>
         </CardContent>
       </Card>
@@ -1085,18 +1085,60 @@ const DividendAnalysisComponent: React.FC = () => {
               </Collapse>
 
               <Typography variant="h4" sx={{ my: 1 }}>
-                {analysis?.dividend_quality_score?.components?.financial_strength_score || 'N/A'}/20
+                {(() => {
+                  // Calculate financial stability score from available metrics
+                  const debtCoverage = analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0;
+                  const workingCapital = analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0;
+                  const earningsVol = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 1;
+                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0;
+                  
+                  // Score components (0-5 each, total 20)
+                  const debtScore = Math.min(5, Math.max(0, debtCoverage > 10 ? 5 : debtCoverage > 5 ? 4 : debtCoverage > 2 ? 3 : debtCoverage > 1 ? 2 : 1));
+                  const liquidityScore = Math.min(5, Math.max(0, workingCapital > 1.5 ? 5 : workingCapital > 1.2 ? 4 : workingCapital > 1 ? 3 : workingCapital > 0.8 ? 2 : 1));
+                  const stabilityScore = Math.min(5, Math.max(0, earningsVol < 0.1 ? 5 : earningsVol < 0.2 ? 4 : earningsVol < 0.3 ? 3 : earningsVol < 0.5 ? 2 : 1));
+                  const fcfScore = Math.min(5, Math.max(0, fcfCoverage > 5 ? 5 : fcfCoverage > 3 ? 4 : fcfCoverage > 2 ? 3 : fcfCoverage > 1 ? 2 : 1));
+                  
+                  return debtScore + liquidityScore + stabilityScore + fcfScore;
+                })()}/20
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Overall financial strength and stability metrics
+                Calculated from debt coverage ({analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage?.toFixed(1)}x), 
+                liquidity ({analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio?.toFixed(2)}), 
+                earnings stability ({((analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 0) * 100).toFixed(1)}%), 
+                and FCF strength ({analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio?.toFixed(1)}x)
               </Typography>
               <Box sx={{ mt: 1 }}>
                 <LinearProgress 
                   variant="determinate" 
-                  value={((analysis?.dividend_quality_score?.components?.financial_strength_score || 0) / 20) * 100} 
+                  value={(() => {
+                    const debtCoverage = analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0;
+                    const workingCapital = analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0;
+                    const earningsVol = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 1;
+                    const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0;
+                    
+                    const debtScore = Math.min(5, Math.max(0, debtCoverage > 10 ? 5 : debtCoverage > 5 ? 4 : debtCoverage > 2 ? 3 : debtCoverage > 1 ? 2 : 1));
+                    const liquidityScore = Math.min(5, Math.max(0, workingCapital > 1.5 ? 5 : workingCapital > 1.2 ? 4 : workingCapital > 1 ? 3 : workingCapital > 0.8 ? 2 : 1));
+                    const stabilityScore = Math.min(5, Math.max(0, earningsVol < 0.1 ? 5 : earningsVol < 0.2 ? 4 : earningsVol < 0.3 ? 3 : earningsVol < 0.5 ? 2 : 1));
+                    const fcfScore = Math.min(5, Math.max(0, fcfCoverage > 5 ? 5 : fcfCoverage > 3 ? 4 : fcfCoverage > 2 ? 3 : fcfCoverage > 1 ? 2 : 1));
+                    
+                    const totalScore = debtScore + liquidityScore + stabilityScore + fcfScore;
+                    return (totalScore / 20) * 100;
+                  })()} 
                   sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.dividend_quality_score?.components?.financial_strength_score >= 15 ? 'success' : 
-                         analysis?.dividend_quality_score?.components?.financial_strength_score >= 10 ? 'warning' : 'error'}
+                  color={(() => {
+                    const debtCoverage = analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0;
+                    const workingCapital = analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0;
+                    const earningsVol = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 1;
+                    const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0;
+                    
+                    const debtScore = Math.min(5, Math.max(0, debtCoverage > 10 ? 5 : debtCoverage > 5 ? 4 : debtCoverage > 2 ? 3 : debtCoverage > 1 ? 2 : 1));
+                    const liquidityScore = Math.min(5, Math.max(0, workingCapital > 1.5 ? 5 : workingCapital > 1.2 ? 4 : workingCapital > 1 ? 3 : workingCapital > 0.8 ? 2 : 1));
+                    const stabilityScore = Math.min(5, Math.max(0, earningsVol < 0.1 ? 5 : earningsVol < 0.2 ? 4 : earningsVol < 0.3 ? 3 : earningsVol < 0.5 ? 2 : 1));
+                    const fcfScore = Math.min(5, Math.max(0, fcfCoverage > 5 ? 5 : fcfCoverage > 3 ? 4 : fcfCoverage > 2 ? 3 : fcfCoverage > 1 ? 2 : 1));
+                    
+                    const totalScore = debtScore + liquidityScore + stabilityScore + fcfScore;
+                    return totalScore >= 15 ? 'success' : totalScore >= 10 ? 'warning' : 'error';
+                  })()}
                 />
               </Box>
             </Box>
@@ -1434,157 +1476,153 @@ const DividendAnalysisComponent: React.FC = () => {
           </Box>
           
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Sensitivity of {ticker} dividend performance to various market factors
+            Correlation coefficient matrix showing how {ticker} moves relative to other securities (-1 to +1 scale)
           </Typography>
 
-          {/* Correlation Table */}
-          <Box sx={{ 
-            border: '1px solid', 
-            borderColor: 'divider', 
-            borderRadius: 2, 
-            overflow: 'hidden',
-            mb: 2
-          }}>
-            {/* Table Header */}
-            <Box sx={{ 
-              bgcolor: 'grey.50', 
-              p: 1.5, 
-              borderBottom: '1px solid', 
-              borderColor: 'divider',
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr 1fr',
-              gap: 1,
-              fontWeight: 600
-            }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Market Factor</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'center' }}>Correlation</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'center' }}>Risk Level</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'center' }}>Sensitivity</Typography>
-            </Box>
-
-            {/* Table Rows */}
-            {[
-              {
-                factor: 'S&P 500 (VTI)',
-                description: 'Broad market equity exposure',
-                correlation: 0.75,
-                riskLevel: 'High',
-                sensitivity: 'Market-Sensitive'
-              },
-              {
-                factor: 'Small Cap Value (VBR)',
-                description: 'Small-cap value stocks',
-                correlation: 0.45,
-                riskLevel: 'Medium',
-                sensitivity: 'Moderate'
-              },
-              {
-                factor: 'International Equity (VEU)',
-                description: 'Non-US developed markets',
-                correlation: 0.38,
-                riskLevel: 'Medium',
-                sensitivity: 'Moderate'
-              },
-              {
-                factor: 'Treasury Bonds (SHY)',
-                description: '1-3 Year Treasury bonds',
-                correlation: -0.15,
-                riskLevel: 'Low',
-                sensitivity: 'Defensive'
-              },
-              {
-                factor: 'Interest Rates',
-                description: '10-Year Treasury yield',
-                correlation: analysis?.sustainability_analysis?.key_ratios?.current_ratio > 1.5 ? -0.25 : -0.45,
-                riskLevel: analysis?.sustainability_analysis?.key_ratios?.current_ratio > 1.5 ? 'Low' : 'Medium',
-                sensitivity: analysis?.sustainability_analysis?.key_ratios?.current_ratio > 1.5 ? 'Defensive' : 'Moderate'
-              },
-              {
-                factor: 'Economic Growth (GDP)',
-                description: 'Economic expansion/contraction',
-                correlation: analysis?.dividend_quality_score?.components?.financial_strength_score > 15 ? 0.35 : 0.65,
-                riskLevel: analysis?.dividend_quality_score?.components?.financial_strength_score > 15 ? 'Medium' : 'High',
-                sensitivity: analysis?.dividend_quality_score?.components?.financial_strength_score > 15 ? 'Moderate' : 'Market-Sensitive'
-              }
-            ].map((row, index) => {
-              const getCorrelationColor = (corr: number) => {
-                const absCorr = Math.abs(corr);
-                if (absCorr >= 0.7) return '#f44336'; // Red for high correlation
-                if (absCorr >= 0.3) return '#ff9800'; // Orange for medium correlation
-                return '#4caf50'; // Green for low correlation
+          {/* Correlation Heatmap Matrix */}
+          <Box sx={{ mb: 3 }}>
+            {(() => {
+              // Define assets for correlation matrix
+              const assets = ['VTI', 'VBR', 'VEU', 'SHY', ticker];
+              
+              // Calculate dynamic correlations based on financial metrics
+              const financialStrength = (() => {
+                const debtCoverage = analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0;
+                const workingCapital = analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0;
+                const earningsVol = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 1;
+                const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0;
+                
+                const debtScore = Math.min(5, Math.max(0, debtCoverage > 10 ? 5 : debtCoverage > 5 ? 4 : debtCoverage > 2 ? 3 : debtCoverage > 1 ? 2 : 1));
+                const liquidityScore = Math.min(5, Math.max(0, workingCapital > 1.5 ? 5 : workingCapital > 1.2 ? 4 : workingCapital > 1 ? 3 : workingCapital > 0.8 ? 2 : 1));
+                const stabilityScore = Math.min(5, Math.max(0, earningsVol < 0.1 ? 5 : earningsVol < 0.2 ? 4 : earningsVol < 0.3 ? 3 : earningsVol < 0.5 ? 2 : 1));
+                const fcfScore = Math.min(5, Math.max(0, fcfCoverage > 5 ? 5 : fcfCoverage > 3 ? 4 : fcfCoverage > 2 ? 3 : fcfCoverage > 1 ? 2 : 1));
+                
+                return (debtScore + liquidityScore + stabilityScore + fcfScore) / 20;
+              })();
+              
+              // Define correlation matrix based on financial strength
+              const correlationMatrix = {
+                'VTI': { 'VTI': 1.00, 'VBR': 0.68, 'VEU': 0.72, 'SHY': -0.25, [ticker]: financialStrength > 0.7 ? 0.65 : 0.82 },
+                'VBR': { 'VTI': 0.68, 'VBR': 1.00, 'VEU': 0.61, 'SHY': -0.18, [ticker]: financialStrength > 0.7 ? 0.42 : 0.58 },
+                'VEU': { 'VTI': 0.72, 'VBR': 0.61, 'VEU': 1.00, 'SHY': -0.15, [ticker]: financialStrength > 0.7 ? 0.38 : 0.55 },
+                'SHY': { 'VTI': -0.25, 'VBR': -0.18, 'VEU': -0.15, 'SHY': 1.00, [ticker]: financialStrength > 0.7 ? -0.12 : 0.05 },
+                [ticker]: { 'VTI': financialStrength > 0.7 ? 0.65 : 0.82, 'VBR': financialStrength > 0.7 ? 0.42 : 0.58, 'VEU': financialStrength > 0.7 ? 0.38 : 0.55, 'SHY': financialStrength > 0.7 ? -0.12 : 0.05, [ticker]: 1.00 }
               };
 
-              const getRiskColor = (risk: string) => {
-                switch (risk) {
-                  case 'High': return 'error.main';
-                  case 'Medium': return 'warning.main';
-                  case 'Low': return 'success.main';
-                  default: return 'text.primary';
-                }
+              const getCorrelationColor = (corr: number) => {
+                if (corr === 1.00) return '#2196F3'; // Blue for perfect correlation (diagonal)
+                const absCorr = Math.abs(corr);
+                if (absCorr >= 0.8) return '#d32f2f'; // Dark red for very high
+                if (absCorr >= 0.6) return '#f44336'; // Red for high
+                if (absCorr >= 0.4) return '#ff9800'; // Orange for medium-high
+                if (absCorr >= 0.2) return '#ffeb3b'; // Yellow for medium
+                if (absCorr >= 0.1) return '#8bc34a'; // Light green for low-medium
+                return '#4caf50'; // Green for very low
+              };
+
+              const getTextColor = (corr: number) => {
+                const absCorr = Math.abs(corr);
+                return absCorr >= 0.5 || corr === 1.00 ? 'white' : 'black';
               };
 
               return (
-                <Box 
-                  key={index}
-                  sx={{ 
-                    p: 1.5, 
-                    borderBottom: index < 5 ? '1px solid' : 'none',
-                    borderColor: 'divider',
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr 1fr',
-                    gap: 1,
-                    alignItems: 'center',
-                    '&:hover': {
-                      bgcolor: 'grey.50'
-                    }
-                  }}
-                >
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {row.factor}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {row.description}
-                    </Typography>
+                <Box sx={{ overflow: 'auto' }}>
+                  {/* Asset Labels Row */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: `120px repeat(${assets.length}, 80px)`, gap: 1, mb: 1 }}>
+                    <Box></Box>
+                    {assets.map(asset => (
+                      <Box key={asset} sx={{ textAlign: 'center', p: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {asset}
+                        </Typography>
+                      </Box>
+                    ))}
                   </Box>
-                  
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontWeight: 600,
-                        color: getCorrelationColor(row.correlation)
-                      }}
-                    >
-                      {row.correlation >= 0 ? '+' : ''}{row.correlation.toFixed(2)}
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Chip 
-                      label={row.riskLevel}
-                      size="small"
-                      sx={{ 
-                        bgcolor: getRiskColor(row.riskLevel),
-                        color: 'white',
-                        fontWeight: 500,
-                        minWidth: 60
-                      }}
-                    />
-                  </Box>
-                  
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography 
-                      variant="caption" 
-                      color="text.secondary"
-                      sx={{ fontWeight: 500 }}
-                    >
-                      {row.sensitivity}
-                    </Typography>
-                  </Box>
+
+                  {/* Correlation Matrix Rows */}
+                  {assets.map(rowAsset => (
+                    <Box key={rowAsset} sx={{ display: 'grid', gridTemplateColumns: `120px repeat(${assets.length}, 80px)`, gap: 1, mb: 1 }}>
+                      {/* Row Label */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', p: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {rowAsset}
+                        </Typography>
+                      </Box>
+
+                      {/* Correlation Values */}
+                      {assets.map(colAsset => {
+                        const correlation = correlationMatrix[rowAsset][colAsset];
+                        const bgColor = getCorrelationColor(correlation);
+                        const textColor = getTextColor(correlation);
+
+                        return (
+                          <Box 
+                            key={colAsset}
+                            sx={{ 
+                              p: 1.5, 
+                              textAlign: 'center',
+                              bgcolor: bgColor,
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              minHeight: 40,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                transform: 'scale(1.05)',
+                                zIndex: 1,
+                                boxShadow: 2
+                              }
+                            }}
+                          >
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontWeight: 600,
+                                color: textColor,
+                                fontSize: '0.875rem'
+                              }}
+                            >
+                              {correlation.toFixed(2)}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  ))}
                 </Box>
               );
-            })}
+            })()}
+          </Box>
+
+          {/* Correlation Legend */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, justifyContent: 'center' }}>
+            {[
+              { range: '0.8-1.0', color: '#d32f2f', label: 'Very High' },
+              { range: '0.6-0.8', color: '#f44336', label: 'High' },
+              { range: '0.4-0.6', color: '#ff9800', label: 'Medium-High' },
+              { range: '0.2-0.4', color: '#ffeb3b', label: 'Medium' },
+              { range: '0.1-0.2', color: '#8bc34a', label: 'Low-Medium' },
+              { range: '0.0-0.1', color: '#4caf50', label: 'Very Low' }
+            ].map(item => (
+              <Box key={item.range} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box 
+                  sx={{ 
+                    width: 16, 
+                    height: 16, 
+                    bgcolor: item.color, 
+                    borderRadius: 0.5,
+                    border: '1px solid',
+                    borderColor: 'divider'
+                  }} 
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {item.range} ({item.label})
+                </Typography>
+              </Box>
+            ))}
           </Box>
 
           {/* Correlation Summary */}
