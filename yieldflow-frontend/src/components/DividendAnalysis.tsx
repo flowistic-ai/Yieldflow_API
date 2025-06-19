@@ -22,6 +22,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Container,
+  Grid,
+  Divider,
+  Stack,
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -34,6 +38,10 @@ import SecurityIcon from '@mui/icons-material/Security';
 import ShieldIcon from '@mui/icons-material/Shield';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import SearchIcon from '@mui/icons-material/Search';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import {
   LineChart,
   Line,
@@ -47,6 +55,7 @@ import {
   Bar,
 } from 'recharts';
 import { dividendService } from '../services/dividendService';
+import Header from './Header';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -64,7 +73,15 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`dividend-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && (
+        <Box sx={{ 
+          p: { xs: 3, md: 4 },
+          minHeight: '400px',
+          backgroundColor: 'background.paper',
+        }}>
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
@@ -173,37 +190,81 @@ const DividendAnalysisComponent: React.FC = () => {
 
   // Current Tab Content
   const CurrentTab = () => (
-    <Box sx={{ display: 'grid', gap: 3 }}>
-      {/* Overall Quality Score */}
-      <Card elevation={3}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h5" color="primary">
-              Overall Dividend Quality
-            </Typography>
+    <Stack spacing={4}>
+      {/* Overall Quality Score - Hero Card */}
+      <Card 
+        elevation={0}
+        sx={{ 
+          background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)',
+          border: '2px solid #CBD5E1',
+          borderRadius: 3,
+        }}
+      >
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+                }}
+              >
+                <AssessmentIcon sx={{ color: 'white', fontSize: 24 }} />
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                Overall Dividend Quality
+              </Typography>
+            </Box>
             <Tooltip title="Click for detailed scoring methodology">
               <IconButton 
                 onClick={() => setQualityInfoExpanded(!qualityInfoExpanded)}
-                sx={{ color: 'primary.main' }}
+                sx={{ 
+                  color: 'primary.main',
+                  backgroundColor: 'rgba(15, 23, 42, 0.1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(15, 23, 42, 0.15)',
+                  },
+                }}
               >
                 <InfoIcon />
               </IconButton>
             </Tooltip>
           </Box>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(analysis?.dividend_quality_score?.quality_score || 0) }}>
-              {analysis?.dividend_quality_score?.quality_score || 0}
-            </Typography>
-            <Box>
-              <Chip 
-                label={analysis?.dividend_quality_score?.grade || 'N/A'} 
-                color={getGradeColor(analysis?.dividend_quality_score?.grade || '')}
-                size="medium"
-              />
-              <Typography variant="h6" sx={{ mt: 1 }}>
-                {analysis?.dividend_quality_score?.rating || 'N/A'}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <Typography 
+                variant="h2" 
+                sx={{ 
+                  fontWeight: 800,
+                  color: getScoreColor(analysis?.dividend_quality_score?.quality_score || 0),
+                  lineHeight: 1,
+                }}
+              >
+                {analysis?.dividend_quality_score?.quality_score || 0}
               </Typography>
+              <Box>
+                <Chip 
+                  label={analysis?.dividend_quality_score?.grade || 'F'} 
+                  color={getGradeColor(analysis?.dividend_quality_score?.grade || '')}
+                  size="medium"
+                  sx={{ 
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    height: 36,
+                    mb: 1,
+                  }}
+                />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                  {analysis?.dividend_quality_score?.rating || 'No Rating'}
+                </Typography>
+              </Box>
             </Box>
           </Box>
           
@@ -250,11 +311,23 @@ const DividendAnalysisComponent: React.FC = () => {
 
       {/* Current Dividend Information and Key Metrics */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-        <Card elevation={2}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom color="primary">
-              Current Dividend Information
-            </Typography>
+        <Card 
+          elevation={0}
+          sx={{ 
+            border: '1px solid #E2E8F0',
+            borderRadius: 2,
+            '&:hover': {
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            },
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <AccountBalanceIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                Current Dividend Information
+              </Typography>
+            </Box>
             <Box sx={{ display: 'grid', gap: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Dividend Yield:</strong></Typography>
@@ -360,11 +433,23 @@ const DividendAnalysisComponent: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card elevation={2}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom color="primary">
-              Key Metrics Summary
-            </Typography>
+        <Card 
+          elevation={0}
+          sx={{ 
+            border: '1px solid #E2E8F0',
+            borderRadius: 2,
+            '&:hover': {
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            },
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <ShowChartIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                Key Metrics Summary
+              </Typography>
+            </Box>
             <Box sx={{ display: 'grid', gap: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="body1"><strong>Analysis Period:</strong></Typography>
@@ -457,17 +542,38 @@ const DividendAnalysisComponent: React.FC = () => {
           </CardContent>
         </Card>
       </Box>
-    </Box>
+    </Stack>
   );
 
   // Sustainability Tab Content
   const SustainabilityTab = () => (
-    <Box sx={{ display: 'grid', gap: 3 }}>
+    <Stack spacing={4}>
       {/* Overall Sustainability Score */}
-      <Card elevation={3}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Typography variant="h5" color="primary">
+      <Card 
+        elevation={0}
+        sx={{ 
+          background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+          border: '2px solid #BBF7D0',
+          borderRadius: 3,
+        }}
+      >
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 48,
+                height: 48,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+              }}
+            >
+              <SecurityIcon sx={{ color: 'white', fontSize: 24 }} />
+            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
               Dividend Sustainability Analysis
             </Typography>
             <Tooltip 
@@ -1084,19 +1190,42 @@ const DividendAnalysisComponent: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
-    </Box>
+    </Stack>
   );
 
   // Risk Tab Content
   const RiskTab = () => (
-    <Box sx={{ display: 'grid', gap: 3 }}>
+    <Stack spacing={4}>
       {/* Overall Risk Assessment */}
-      <Card elevation={3}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h5" color="primary">
-              Risk Assessment Overview
-            </Typography>
+      <Card 
+        elevation={0}
+        sx={{ 
+          background: 'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)',
+          border: '2px solid #F59E0B',
+          borderRadius: 3,
+        }}
+      >
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
+                  boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)',
+                }}
+              >
+                <ShieldIcon sx={{ color: 'white', fontSize: 24 }} />
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                Risk Assessment Overview
+              </Typography>
+            </Box>
             <Tooltip title="Click for dividend safety rating methodology">
               <IconButton 
                 onClick={() => setRiskInfoExpanded(!riskInfoExpanded)}
@@ -1894,7 +2023,7 @@ const DividendAnalysisComponent: React.FC = () => {
 
         </CardContent>
       </Card>
-    </Box>
+    </Stack>
   );
 
   // Performance/Growth Tab Content with Enhanced Features
@@ -2347,62 +2476,209 @@ const DividendAnalysisComponent: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Dividend Analysis Dashboard
-      </Typography>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      <Header />
       
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* Search Section */}
-        <Paper sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <TextField
-            label="Enter Stock Ticker"
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            onKeyPress={handleKeyPress}
-            fullWidth
-            variant="outlined"
-            placeholder="e.g., AAPL, MSFT, KO"
-            disabled={loading}
-          />
-          <Button
-            variant="contained"
-            onClick={handleAnalyze}
-            disabled={loading || !ticker}
-            sx={{ minWidth: 120 }}
+      <Container maxWidth="xl" sx={{ py: 4 }}>
+        {/* Hero Section */}
+        <Box sx={{ mb: 6, textAlign: 'center' }}>
+          <Typography 
+            variant="h3" 
+            component="h1" 
+            gutterBottom
+            sx={{ 
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #0F172A 0%, #059669 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 2
+            }}
           >
-            {loading ? <CircularProgress size={24} /> : 'Analyze'}
-          </Button>
-        </Paper>
+            Institutional-Grade Dividend Analysis
+          </Typography>
+          <Typography 
+            variant="h6" 
+            color="text.secondary"
+            sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}
+          >
+            Get comprehensive dividend insights with professional-grade metrics used by institutional investors
+          </Typography>
+        </Box>
+
+        {/* Enhanced Search Section */}
+        <Card 
+          elevation={0}
+          sx={{ 
+            mb: 4,
+            background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+            border: '2px solid #E2E8F0',
+            borderRadius: 3,
+          }}
+        >
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', md: 'row' }, 
+              alignItems: { xs: 'stretch', md: 'center' }, 
+              gap: 3 
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+                <SearchIcon sx={{ color: 'text.secondary', fontSize: 28 }} />
+                <TextField
+                  label="Enter Stock Ticker Symbol"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                  onKeyPress={handleKeyPress}
+                  fullWidth
+                  variant="outlined"
+                  placeholder="e.g., AAPL, MSFT, JNJ, KO"
+                  disabled={loading}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'white',
+                      '&:hover': {
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'secondary.main',
+                          borderWidth: 2,
+                        },
+                      },
+                      '&.Mui-focused': {
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'secondary.main',
+                          borderWidth: 2,
+                        },
+                      },
+                    },
+                  }}
+                />
+              </Box>
+              <Button
+                variant="contained"
+                onClick={handleAnalyze}
+                disabled={loading || !ticker}
+                size="large"
+                sx={{ 
+                  minWidth: 140,
+                  height: 56,
+                  fontSize: '1rem',
+                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
+                  },
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} sx={{ color: 'white' }} />
+                ) : (
+                  <>
+                    <AssessmentIcon sx={{ mr: 1 }} />
+                    Analyze
+                  </>
+                )}
+              </Button>
+            </Box>
+
+            {/* Popular Tickers */}
+            <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #E2E8F0' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Popular dividend stocks:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {['AAPL', 'MSFT', 'JNJ', 'KO', 'PG', 'T', 'VZ', 'O'].map((symbol) => (
+                  <Chip
+                    key={symbol}
+                    label={symbol}
+                    onClick={() => setTicker(symbol)}
+                    variant="outlined"
+                    size="small"
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': {
+                        backgroundColor: 'secondary.light',
+                        color: 'white',
+                        borderColor: 'secondary.main',
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Status Section */}
         {lastAnalyzedTicker && !loading && !error && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Chip 
-              label={`✅ Analysis complete for ${lastAnalyzedTicker}`} 
-              color="success" 
-              variant="outlined"
-            />
-          </Box>
+          <Alert 
+            severity="success" 
+            sx={{ 
+              mb: 4,
+              borderRadius: 2,
+              '& .MuiAlert-icon': {
+                color: 'success.main',
+              },
+            }}
+            icon={<CheckIcon />}
+          >
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+              Analysis completed successfully for {lastAnalyzedTicker}
+            </Typography>
+          </Alert>
         )}
 
         {/* Error Message */}
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 4,
+              borderRadius: 2,
+            }}
+          >
+            {error}
+          </Alert>
+        )}
 
-        {/* Tabs Section */}
+        {/* Enhanced Tabs Section */}
         {currentDividend && analysis && (
-          <Box sx={{ width: '100%' }}>
-            <Tabs 
-              value={tabValue} 
-              onChange={handleTabChange}
-              aria-label="dividend analysis tabs"
-              sx={{ borderBottom: 1, borderColor: 'divider' }}
-            >
-              <Tab label="Current" />
-              <Tab label="Performance/Growth" />
-              <Tab label="Sustainability" />
-              <Tab label="Risk" />
-            </Tabs>
+          <Card elevation={0} sx={{ border: '1px solid #E2E8F0' }}>
+            <Box sx={{ borderBottom: '1px solid #E2E8F0' }}>
+              <Tabs 
+                value={tabValue} 
+                onChange={handleTabChange}
+                aria-label="dividend analysis tabs"
+                variant="fullWidth"
+                sx={{
+                  '& .MuiTab-root': {
+                    py: 3,
+                    minHeight: 'auto',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                  },
+                }}
+              >
+                <Tab 
+                  icon={<AccountBalanceIcon />} 
+                  iconPosition="start"
+                  label="Current Overview" 
+                />
+                <Tab 
+                  icon={<ShowChartIcon />} 
+                  iconPosition="start"
+                  label="Performance & Growth" 
+                />
+                <Tab 
+                  icon={<SecurityIcon />} 
+                  iconPosition="start"
+                  label="Sustainability" 
+                />
+                <Tab 
+                  icon={<ShieldIcon />} 
+                  iconPosition="start"
+                  label="Risk Analysis" 
+                />
+              </Tabs>
+            </Box>
 
             <TabPanel value={tabValue} index={0}>
               <CurrentTab />
@@ -2419,9 +2695,9 @@ const DividendAnalysisComponent: React.FC = () => {
             <TabPanel value={tabValue} index={3}>
               <RiskTab />
             </TabPanel>
-          </Box>
+          </Card>
         )}
-      </Box>
+      </Container>
     </Box>
   );
 };
