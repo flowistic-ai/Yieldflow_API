@@ -581,7 +581,12 @@ const DividendAnalysisComponent: React.FC = () => {
               border: '2px solid', 
               borderColor: (() => {
                 const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                return fcfToEquity >= 0.15 ? 'success.light' : fcfToEquity >= 0.08 ? 'info.light' : 'warning.light';
+                const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                
+                if (fcfCoverage === 0) return 'error.light';
+                if (fcfToEquity >= 0.15) return 'success.light';
+                if (fcfToEquity >= 0.08) return 'info.light';
+                return 'warning.light';
               })(),
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
@@ -593,7 +598,12 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h6" sx={{ 
                 color: (() => {
                   const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                  return fcfToEquity >= 0.15 ? 'success.main' : fcfToEquity >= 0.08 ? 'info.main' : 'warning.main';
+                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  
+                  if (fcfCoverage === 0) return 'error.main';
+                  if (fcfToEquity >= 0.15) return 'success.main';
+                  if (fcfToEquity >= 0.08) return 'info.main';
+                  return 'warning.main';
                 })(),
                 fontWeight: 500,
                 mb: 1
@@ -604,7 +614,12 @@ const DividendAnalysisComponent: React.FC = () => {
                 my: 2,
                 color: (() => {
                   const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                  return fcfToEquity >= 0.15 ? 'success.main' : fcfToEquity >= 0.08 ? 'info.main' : 'warning.main';
+                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  
+                  if (fcfCoverage === 0) return 'error.main';
+                  if (fcfToEquity >= 0.15) return 'success.main';
+                  if (fcfToEquity >= 0.08) return 'info.main';
+                  return 'warning.main';
                 })(),
                 fontWeight: 600
               }}>
@@ -624,6 +639,21 @@ const DividendAnalysisComponent: React.FC = () => {
                     return `${(ratio * 100).toFixed(1)}%`;
                   }
                   
+                  // Alternative calculation using dividend yield as proxy
+                  const currentYield = analysis?.current_metrics?.current_yield_pct;
+                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  
+                  if (currentYield && fcfCoverage && fcfCoverage > 0) {
+                    // Approximate FCF yield = Dividend Yield × FCF Coverage
+                    const approximateFcfYield = (currentYield / 100) * fcfCoverage;
+                    return `~${(approximateFcfYield * 100).toFixed(1)}%`;
+                  }
+                  
+                  // If FCF coverage is 0, indicate cash flow issues
+                  if (fcfCoverage === 0) {
+                    return 'FCF: Negative';
+                  }
+                  
                   return 'N/A';
                 })()}
               </Typography>
@@ -631,10 +661,21 @@ const DividendAnalysisComponent: React.FC = () => {
                 {(() => {
                   const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
                   const freeCashFlow = analysis?.sustainability_analysis?.financial_metrics?.free_cash_flow;
+                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  const currentYield = analysis?.current_metrics?.current_yield_pct;
                   
                   if ((fcfToEquity !== undefined && fcfToEquity !== null) || freeCashFlow) {
                     return 'Free cash flow available to equity holders (higher is better)';
                   }
+                  
+                  if (fcfCoverage === 0) {
+                    return 'Company has negative free cash flow - significant risk to dividend sustainability';
+                  }
+                  
+                  if (currentYield && fcfCoverage && fcfCoverage > 0) {
+                    return 'Estimated FCF yield using dividend yield × FCF coverage (approximate)';
+                  }
+                  
                   return 'Free cash flow to equity data unavailable';
                 })()}
               </Typography>
@@ -659,7 +700,12 @@ const DividendAnalysisComponent: React.FC = () => {
                 sx={{ height: 8, borderRadius: 4 }}
                 color={(() => {
                   const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                  return fcfToEquity >= 0.15 ? 'success' : fcfToEquity >= 0.08 ? 'info' : 'warning';
+                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  
+                  if (fcfCoverage === 0) return 'error';
+                  if (fcfToEquity >= 0.15) return 'success';
+                  if (fcfToEquity >= 0.08) return 'info';
+                  return 'warning';
                 })()}
               />
             </Box>
