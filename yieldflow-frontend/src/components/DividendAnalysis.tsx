@@ -667,7 +667,7 @@ const DividendAnalysisComponent: React.FC = () => {
               }}>
                 <TrendingUpIcon sx={{ color: 'white', fontSize: 18 }} />
               </Box>
-              <Typography variant="h6" color="success.main" fontWeight="600">
+              <Typography variant="h6" color="success.main" fontWeight="500">
                 Key Strengths
               </Typography>
             </Box>
@@ -729,7 +729,7 @@ const DividendAnalysisComponent: React.FC = () => {
               }}>
                 <WarningIcon sx={{ color: 'white', fontSize: 18 }} />
               </Box>
-              <Typography variant="h6" color="warning.main" fontWeight="600">
+              <Typography variant="h6" color="warning.main" fontWeight="500">
                 Risk Factors
               </Typography>
             </Box>
@@ -796,7 +796,7 @@ const DividendAnalysisComponent: React.FC = () => {
             }}>
               <InfoIcon sx={{ color: 'white', fontSize: 18 }} />
             </Box>
-            <Typography variant="h6" color="primary" fontWeight="600">
+            <Typography variant="h6" color="primary" fontWeight="500">
               Early Warning Indicators
             </Typography>
           </Box>
@@ -824,7 +824,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h5" sx={{ 
                 mb: 1,
                 color: analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.3 ? 'success.main' : 'warning.main',
-                fontWeight: 600
+                fontWeight: 500
               }}>
                 {analysis?.sustainability_analysis?.key_ratios?.earnings_volatility 
                   ? `${(analysis.sustainability_analysis.key_ratios.earnings_volatility * 100).toFixed(1)}%`
@@ -854,7 +854,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h5" sx={{ 
                 mb: 1,
                 color: 'primary.main',
-                fontWeight: 600
+                fontWeight: 500
               }}>
                 {currentDividend?.current_dividend_info?.current_yield_pct || 
                  currentDividend?.current_metrics?.current_yield_pct ||
@@ -888,7 +888,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h5" sx={{ 
                 mb: 1,
                 color: analysis?.growth_analytics?.growth_consistency >= 70 ? 'success.main' : 'warning.main',
-                fontWeight: 600
+                fontWeight: 500
               }}>
                 {analysis?.growth_analytics?.growth_consistency || 0}%
               </Typography>
@@ -916,7 +916,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h5" sx={{ 
                 mb: 1,
                 color: analysis?.growth_analytics?.consecutive_increases >= 5 ? 'success.main' : 'warning.main',
-                fontWeight: 600
+                fontWeight: 500
               }}>
                 {analysis?.growth_analytics?.consecutive_increases !== undefined 
                   ? analysis.growth_analytics.consecutive_increases
