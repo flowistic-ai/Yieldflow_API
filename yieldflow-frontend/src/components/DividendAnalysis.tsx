@@ -20,6 +20,10 @@ import {
 import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CheckIcon from '@mui/icons-material/Check';
+import WarningIcon from '@mui/icons-material/Warning';
+import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import {
   LineChart,
   Line,
@@ -406,9 +410,20 @@ const DividendAnalysisComponent: React.FC = () => {
       {/* Overall Sustainability Score */}
       <Card elevation={3}>
         <CardContent>
-          <Typography variant="h5" gutterBottom color="primary">
-            Dividend Sustainability Analysis
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Typography variant="h5" color="primary">
+              Dividend Sustainability Analysis
+            </Typography>
+            <Tooltip 
+              title="Comprehensive analysis of a company's ability to maintain and grow dividend payments based on financial health, cash flow coverage, and risk factors."
+              placement="top"
+              arrow
+            >
+              <IconButton size="small" sx={{ color: 'text.secondary' }}>
+                <InfoIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(analysis?.sustainability_analysis?.sustainability_score || 0) }}>
               {analysis?.sustainability_analysis?.sustainability_score || 0}
@@ -434,176 +449,392 @@ const DividendAnalysisComponent: React.FC = () => {
       </Card>
 
       {/* The 4 Key Dividend Ratios */}
-      <Card elevation={2}>
+      <Card elevation={2} sx={{ 
+        background: 'linear-gradient(135deg, rgba(33, 150, 243, 0.05) 0%, rgba(33, 150, 243, 0.02) 100%)',
+        border: '1px solid rgba(33, 150, 243, 0.2)'
+      }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom color="primary">
-            Four Key Dividend Ratios
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Box sx={{ 
+              backgroundColor: 'info.main', 
+              borderRadius: '50%', 
+              width: 32, 
+              height: 32, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
+              <InfoIcon sx={{ color: 'white', fontSize: 18 }} />
+            </Box>
+            <Typography variant="h6" color="info.main" fontWeight="600">
+              Four Key Dividend Ratios
+            </Typography>
+          </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            These ratios are indicators of a company's ability to pay dividends to shareholders in the future
+            Critical indicators of a company's ability to maintain and grow dividend payments
           </Typography>
           
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
             {/* Dividend Payout Ratio */}
-            <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="h6" color="primary">
+            <Box sx={{ 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid', 
+              borderColor: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.light' : 
+                          analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning.light' : 'error.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="h6" sx={{ 
+                color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning.main' : 'error.main',
+                fontWeight: 600,
+                mb: 1
+              }}>
                 Dividend Payout Ratio
               </Typography>
-              <Typography variant="h4" sx={{ my: 1 }}>
+              <Typography variant="h3" sx={{ 
+                my: 2,
+                color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning.main' : 'error.main',
+                fontWeight: 700
+              }}>
                 {analysis?.sustainability_analysis?.key_ratios?.payout_ratio 
                   ? `${(analysis.sustainability_analysis.key_ratios.payout_ratio * 100).toFixed(1)}%`
                   : 'N/A'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Lower is generally better (indicates room for growth)
               </Typography>
-              <Box sx={{ mt: 1 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={Math.min((analysis?.sustainability_analysis?.key_ratios?.payout_ratio || 0) * 100, 100)} 
-                  sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success' : 
-                         analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning' : 'error'}
-                />
-              </Box>
+              <LinearProgress 
+                variant="determinate" 
+                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.payout_ratio || 0) * 100, 100)} 
+                sx={{ height: 8, borderRadius: 4 }}
+                color={analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success' : 
+                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'warning' : 'error'}
+              />
             </Box>
 
             {/* Dividend Coverage Ratio (FCF) */}
-            <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="h6" color="primary">
+            <Box sx={{ 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid', 
+              borderColor: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.light' : 
+                          analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning.light' : 'error.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="h6" sx={{ 
+                color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning.main' : 'error.main',
+                fontWeight: 600,
+                mb: 1
+              }}>
                 Dividend Coverage Ratio
               </Typography>
-              <Typography variant="h4" sx={{ my: 1 }}>
+              <Typography variant="h3" sx={{ 
+                my: 2,
+                color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning.main' : 'error.main',
+                fontWeight: 700
+              }}>
                 {analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
                   ? `${analysis.sustainability_analysis.key_ratios.fcf_coverage_ratio.toFixed(2)}x`
                   : 'N/A'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Free Cash Flow Coverage (Higher is better)
               </Typography>
-              <Box sx={{ mt: 1 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={Math.min((analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0) * 25, 100)} 
-                  sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success' : 
-                         analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning' : 'error'}
-                />
-              </Box>
+              <LinearProgress 
+                variant="determinate" 
+                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0) * 25, 100)} 
+                sx={{ height: 8, borderRadius: 4 }}
+                color={analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success' : 
+                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'warning' : 'error'}
+              />
             </Box>
 
-            {/* Free Cash Flow to Equity Ratio */}
-            <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="h6" color="primary">
-                Free Cash Flow to Equity
+            {/* Current Ratio (Working Capital) */}
+            <Box sx={{ 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid', 
+              borderColor: analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success.light' : 
+                          analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning.light' : 'error.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="h6" sx={{ 
+                color: analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning.main' : 'error.main',
+                fontWeight: 600,
+                mb: 1
+              }}>
+                Current Ratio
               </Typography>
-              <Typography variant="h4" sx={{ my: 1 }}>
+              <Typography variant="h3" sx={{ 
+                my: 2,
+                color: analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning.main' : 'error.main',
+                fontWeight: 700
+              }}>
                 {analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio 
-                  ? `${analysis.sustainability_analysis.key_ratios.working_capital_ratio.toFixed(2)}`
+                  ? `${analysis.sustainability_analysis.key_ratios.working_capital_ratio.toFixed(2)}x`
                   : 'N/A'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Measures available cash for equity holders
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Current assets vs current liabilities ratio
               </Typography>
-              <Box sx={{ mt: 1 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={Math.min((analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0) * 50, 100)} 
-                  sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success' : 
-                         analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1 ? 'warning' : 'error'}
-                />
-              </Box>
+              <LinearProgress 
+                variant="determinate" 
+                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0) * 50, 100)} 
+                sx={{ height: 8, borderRadius: 4 }}
+                color={analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.5 ? 'success' : 
+                       analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio >= 1.0 ? 'warning' : 'error'}
+              />
             </Box>
 
-            {/* Net Debt to EBITDA Ratio */}
-            <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="h6" color="primary">
+            {/* Debt Service Coverage */}
+            <Box sx={{ 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid', 
+              borderColor: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.light' : 
+                          analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning.light' : 'error.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="h6" sx={{ 
+                color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning.main' : 'error.main',
+                fontWeight: 600,
+                mb: 1
+              }}>
                 Debt Service Coverage
               </Typography>
-              <Typography variant="h4" sx={{ my: 1 }}>
+              <Typography variant="h3" sx={{ 
+                my: 2,
+                color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
+                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning.main' : 'error.main',
+                fontWeight: 700
+              }}>
                 {analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage 
                   ? `${analysis.sustainability_analysis.key_ratios.debt_service_coverage.toFixed(2)}x`
                   : 'N/A'}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 Ability to service debt obligations
               </Typography>
-              <Box sx={{ mt: 1 }}>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={Math.min((analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0) * 10, 100)} 
-                  sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success' : 
-                         analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning' : 'error'}
-                />
-              </Box>
+              <LinearProgress 
+                variant="determinate" 
+                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0) * 10, 100)} 
+                sx={{ height: 8, borderRadius: 4 }}
+                color={analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success' : 
+                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'warning' : 'error'}
+              />
             </Box>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Sustainability Strengths & Risk Factors */}
+      {/* Sustainability Assessment Details */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-        <Card elevation={2}>
+        <Card elevation={2} sx={{ 
+          background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.02) 100%)',
+          border: '1px solid rgba(76, 175, 80, 0.2)'
+        }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom color="success.main">
-              💪 Key Strengths
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box sx={{ 
+                backgroundColor: 'success.main', 
+                borderRadius: '50%', 
+                width: 32, 
+                height: 32, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <TrendingUpIcon sx={{ color: 'white', fontSize: 18 }} />
+              </Box>
+              <Typography variant="h6" color="success.main" fontWeight="600">
+                Key Strengths
+              </Typography>
+            </Box>
+            
             {analysis?.sustainability_analysis?.strengths?.length > 0 ? (
-              <Box sx={{ display: 'grid', gap: 1 }}>
+              <Box sx={{ display: 'grid', gap: 2 }}>
                 {analysis.sustainability_analysis.strengths.map((strength: string, index: number) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <Typography variant="body2" color="success.main">✓</Typography>
-                    <Typography variant="body2">{strength}</Typography>
+                  <Box key={index} sx={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    gap: 2,
+                    padding: 1.5,
+                    backgroundColor: 'rgba(76, 175, 80, 0.05)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(76, 175, 80, 0.1)'
+                  }}>
+                    <Box sx={{ 
+                      backgroundColor: 'success.main', 
+                      borderRadius: '50%', 
+                      width: 20, 
+                      height: 20, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      mt: 0.2
+                    }}>
+                      <CheckIcon sx={{ color: 'white', fontSize: 12 }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ lineHeight: 1.6 }}>{strength}</Typography>
                   </Box>
                 ))}
               </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary">
-                No specific strengths identified
-              </Typography>
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 3,
+                color: 'text.secondary'
+              }}>
+                <Typography variant="body2">
+                  No specific strengths identified in current analysis
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
 
-        <Card elevation={2}>
+        <Card elevation={2} sx={{ 
+          background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.05) 0%, rgba(255, 152, 0, 0.02) 100%)',
+          border: '1px solid rgba(255, 152, 0, 0.2)'
+        }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom color="warning.main">
-              ⚠️ Risk Factors
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box sx={{ 
+                backgroundColor: 'warning.main', 
+                borderRadius: '50%', 
+                width: 32, 
+                height: 32, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <WarningIcon sx={{ color: 'white', fontSize: 18 }} />
+              </Box>
+              <Typography variant="h6" color="warning.main" fontWeight="600">
+                Risk Factors
+              </Typography>
+            </Box>
+            
             {analysis?.sustainability_analysis?.risk_factors?.length > 0 ? (
-              <Box sx={{ display: 'grid', gap: 1 }}>
+              <Box sx={{ display: 'grid', gap: 2 }}>
                 {analysis.sustainability_analysis.risk_factors.map((risk: string, index: number) => (
-                  <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <Typography variant="body2" color="warning.main">⚠</Typography>
-                    <Typography variant="body2">{risk}</Typography>
+                  <Box key={index} sx={{ 
+                    display: 'flex', 
+                    alignItems: 'flex-start', 
+                    gap: 2,
+                    padding: 1.5,
+                    backgroundColor: 'rgba(255, 152, 0, 0.05)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(255, 152, 0, 0.1)'
+                  }}>
+                    <Box sx={{ 
+                      backgroundColor: 'warning.main', 
+                      borderRadius: '50%', 
+                      width: 20, 
+                      height: 20, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      mt: 0.2
+                    }}>
+                      <PriorityHighIcon sx={{ color: 'white', fontSize: 12 }} />
+                    </Box>
+                    <Typography variant="body2" sx={{ lineHeight: 1.6 }}>{risk}</Typography>
                   </Box>
                 ))}
               </Box>
             ) : (
-              <Typography variant="body2" color="text.secondary">
-                No major risk factors identified
-              </Typography>
+              <Box sx={{ 
+                textAlign: 'center', 
+                py: 3,
+                color: 'text.secondary'
+              }}>
+                <Typography variant="body2">
+                  No major risk factors identified - positive indicator for dividend sustainability
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
       </Box>
 
       {/* Early Warning Indicators */}
-      <Card elevation={2}>
+      <Card elevation={2} sx={{ 
+        background: 'linear-gradient(135deg, rgba(63, 81, 181, 0.05) 0%, rgba(63, 81, 181, 0.02) 100%)',
+        border: '1px solid rgba(63, 81, 181, 0.2)'
+      }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom color="primary">
-            🚨 Early Warning Indicators
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Box sx={{ 
+              backgroundColor: 'primary.main', 
+              borderRadius: '50%', 
+              width: 32, 
+              height: 32, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
+              <InfoIcon sx={{ color: 'white', fontSize: 18 }} />
+            </Box>
+            <Typography variant="h6" color="primary" fontWeight="600">
+              Early Warning Indicators
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Key metrics to monitor for dividend sustainability concerns
           </Typography>
           
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Earnings Volatility</Typography>
-              <Typography variant="h6" color={analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.3 ? 'success.main' : 'warning.main'}>
+            <Box sx={{ 
+              textAlign: 'center', 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid',
+              borderColor: analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.3 ? 'success.light' : 'warning.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                Earnings Volatility
+              </Typography>
+              <Typography variant="h5" sx={{ 
+                mb: 1,
+                color: analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.3 ? 'success.main' : 'warning.main',
+                fontWeight: 600
+              }}>
                 {analysis?.sustainability_analysis?.key_ratios?.earnings_volatility 
                   ? `${(analysis.sustainability_analysis.key_ratios.earnings_volatility * 100).toFixed(1)}%`
                   : 'N/A'}
@@ -613,9 +844,27 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
             </Box>
 
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Dividend Yield</Typography>
-              <Typography variant="h6" color="primary">
+            <Box sx={{ 
+              textAlign: 'center', 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid',
+              borderColor: 'primary.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                Current Dividend Yield
+              </Typography>
+              <Typography variant="h5" sx={{ 
+                mb: 1,
+                color: 'primary.main',
+                fontWeight: 600
+              }}>
                 {currentDividend?.current_dividend_info?.current_yield_pct || 
                  currentDividend?.current_metrics?.current_yield_pct ||
                  currentDividend?.yield 
@@ -625,13 +874,31 @@ const DividendAnalysisComponent: React.FC = () => {
                   : 'N/A'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Too high may signal trouble
+                Monitor for unusual spikes
               </Typography>
             </Box>
 
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Growth Consistency</Typography>
-              <Typography variant="h6" color={analysis?.growth_analytics?.growth_consistency >= 70 ? 'success.main' : 'warning.main'}>
+            <Box sx={{ 
+              textAlign: 'center', 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid',
+              borderColor: analysis?.growth_analytics?.growth_consistency >= 70 ? 'success.light' : 'warning.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                Growth Consistency
+              </Typography>
+              <Typography variant="h5" sx={{ 
+                mb: 1,
+                color: analysis?.growth_analytics?.growth_consistency >= 70 ? 'success.main' : 'warning.main',
+                fontWeight: 600
+              }}>
                 {analysis?.growth_analytics?.growth_consistency || 0}%
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -639,9 +906,27 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
             </Box>
 
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Recent Increases</Typography>
-              <Typography variant="h6" color={analysis?.growth_analytics?.consecutive_increases >= 5 ? 'success.main' : 'warning.main'}>
+            <Box sx={{ 
+              textAlign: 'center', 
+              p: 3, 
+              backgroundColor: 'background.paper',
+              border: '2px solid',
+              borderColor: analysis?.growth_analytics?.consecutive_increases >= 5 ? 'success.light' : 'warning.light',
+              borderRadius: 3,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: 2,
+                transform: 'translateY(-2px)'
+              }
+            }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                Recent Increases
+              </Typography>
+              <Typography variant="h5" sx={{ 
+                mb: 1,
+                color: analysis?.growth_analytics?.consecutive_increases >= 5 ? 'success.main' : 'warning.main',
+                fontWeight: 600
+              }}>
                 {analysis?.growth_analytics?.consecutive_increases !== undefined 
                   ? analysis.growth_analytics.consecutive_increases
                   : 'N/A'}
