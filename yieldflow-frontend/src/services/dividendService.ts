@@ -85,8 +85,14 @@ class DividendService {
     return response.data;
   }
 
-  async getDividendGrowthChart(ticker: string): Promise<DividendChart> {
-    const response = await axios.get(`${API_BASE_URL}/dividends/${ticker}/charts/growth`, {
+  async getDividendGrowthChart(ticker: string, years?: number): Promise<DividendChart> {
+    const params = new URLSearchParams();
+    if (years && years > 0) {
+      params.append('years', years.toString());
+    }
+    
+    const url = `${API_BASE_URL}/dividends/${ticker}/charts/growth${params.toString() ? '?' + params.toString() : ''}`;
+    const response = await axios.get(url, {
       headers: {
         'X-API-KEY': API_KEY
       }
@@ -122,4 +128,29 @@ class DividendService {
   }
 }
 
-export const dividendService = new DividendService(); 
+export const dividendService = new DividendService();
+
+export const getCompanyInfo = async (ticker: string): Promise<{
+  ticker: string;
+  name: string;
+  logo_url: string;
+  exchange: string;
+  sector: string;
+  industry: string;
+  market_cap: number;
+  description: string;
+  website: string;
+  last_updated: string;
+}> => {
+  const response = await fetch(`${API_BASE_URL}/dividends/${ticker}/company-info`, {
+    headers: {
+      'X-API-KEY': API_KEY,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch company info: ${response.statusText}`);
+  }
+  
+  return response.json();
+}; 

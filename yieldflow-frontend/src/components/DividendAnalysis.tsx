@@ -20,12 +20,14 @@ import {
   TableBody,
   TableCell,
   TableContainer,
-  TableHead,
-  TableRow,
-  Container,
-  Grid,
-  Divider,
-  Stack,
+      TableHead,
+    TableRow,
+    Container,
+    Switch,
+    FormControlLabel,
+    Slider,
+    Stack,
+    Avatar,
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -39,9 +41,10 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SearchIcon from '@mui/icons-material/Search';
-import ShowChartIcon from '@mui/icons-material/ShowChart';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+  import ShowChartIcon from '@mui/icons-material/ShowChart';
+  import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+  import TuneIcon from '@mui/icons-material/Tune';
+
 import {
   LineChart,
   Line,
@@ -54,7 +57,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { dividendService } from '../services/dividendService';
+import { dividendService, getCompanyInfo } from '../services/dividendService';
 import Header from './Header';
 
 interface TabPanelProps {
@@ -101,6 +104,37 @@ const DividendAnalysisComponent: React.FC = () => {
   const [financialStabilityInfoExpanded, setFinancialStabilityInfoExpanded] = useState(false);
   const [dateRange, setDateRange] = useState({ years: 10 });
   const [peerComparison, setPeerComparison] = useState<any>(null);
+  const [customRiskMode, setCustomRiskMode] = useState(false);
+  const [customRiskScores, setCustomRiskScores] = useState({
+    coverage: 75,
+    stability: 70,
+    volatility: 65,
+    growth: 80
+  });
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+
+  const refreshChartData = async (ticker: string, years: number) => {
+    try {
+      const chartData = await dividendService.getDividendGrowthChart(ticker, years === 0 ? undefined : years);
+      
+      // Prepare chart data for recharts while preserving metadata
+      if (chartData?.chart_data && Array.isArray(chartData.chart_data)) {
+        const chartFormatted = chartData.chart_data.map((item: any) => ({
+          year: item.year,
+          dividend_amount: Number(item.dividend_amount) || 0,
+          growth_rate: item.growth_rate !== null && item.growth_rate !== undefined ? Number(item.growth_rate) : 0,
+          note: item.note || 'No additional information'
+        }));
+        // Preserve the metadata by attaching it to the array
+        (chartFormatted as any).metadata = chartData.metadata;
+        setGrowthChart(chartFormatted);
+      } else {
+        setGrowthChart([]);
+      }
+    } catch (err) {
+      console.error('Error refreshing chart data:', err);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (!ticker) {
@@ -112,18 +146,21 @@ const DividendAnalysisComponent: React.FC = () => {
     setError(null);
 
     try {
-      const [currentData, analysisData, chartData, peerData] = await Promise.all([
+      const [currentData, analysisData, chartData, peerData, companyData] = await Promise.all([
         dividendService.getCurrentDividendInfo(ticker),
         dividendService.getDividendAnalysis(ticker, true, true), // Enable forecast and peer comparison
-        dividendService.getDividendGrowthChart(ticker).catch(() => null),
-        dividendService.getPeerComparisonChart(ticker).catch(() => null) // Don't fail if peer comparison unavailable
+        dividendService.getDividendGrowthChart(ticker, dateRange.years === 0 ? undefined : dateRange.years).catch(() => null),
+        dividendService.getPeerComparisonChart(ticker).catch(() => null), // Don't fail if peer comparison unavailable
+        getCompanyInfo(ticker).catch(() => null) // Don't fail if company info unavailable
       ]);
 
       setCurrentDividend(currentData);
       setAnalysis(analysisData);
       console.log('Analysis data received:', analysisData);
       console.log('Peer comparison data received:', peerData);
+      console.log('Company info received:', companyData);
       setPeerComparison(peerData);
+      setCompanyInfo(companyData);
       setLastAnalyzedTicker(ticker);
       
       // Prepare chart data for recharts while preserving metadata
@@ -186,6 +223,44 @@ const DividendAnalysisComponent: React.FC = () => {
     if (percentage >= 80) return '#4caf50';
     if (percentage >= 60) return '#ff9800';
     return '#f44336';
+  };
+
+  const calculateCustomRiskScore = () => {
+    // Weighted average of custom components
+    const weightedScore = (
+      customRiskScores.coverage * 0.35 +
+      customRiskScores.stability * 0.25 +
+      customRiskScores.volatility * 0.20 +
+      customRiskScores.growth * 0.20
+    );
+    return Math.round(weightedScore);
+  };
+
+  const getCustomRiskRating = (score: number) => {
+    if (score >= 81) return 'Very Safe';
+    if (score >= 61) return 'Safe';
+    if (score >= 41) return 'Borderline';
+    if (score >= 21) return 'Unsafe';
+    return 'Very Unsafe';
+  };
+
+  const resetToDefaultScores = () => {
+    // Reset to calculated scores from analysis data
+    const coverage = analysis?.coverage_analysis?.coverage_ratios?.primary_coverage >= 3 ? 85 : 
+                    analysis?.coverage_analysis?.coverage_ratios?.primary_coverage >= 2 ? 70 : 50;
+    const stability = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.2 ? 85 : 
+                     analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.4 ? 65 : 45;
+    const volatility = analysis?.growth_analytics?.growth_volatility <= 20 ? 85 : 
+                      analysis?.growth_analytics?.growth_volatility <= 40 ? 65 : 45;
+    const growth = analysis?.growth_analytics?.growth_consistency >= 70 ? 85 : 
+                  analysis?.growth_analytics?.growth_consistency >= 50 ? 65 : 45;
+    
+    setCustomRiskScores({
+      coverage: coverage,
+      stability: stability,
+      volatility: volatility,
+      growth: growth
+    });
   };
 
   // Current Tab Content
@@ -1269,34 +1344,290 @@ const DividendAnalysisComponent: React.FC = () => {
             </Box>
           </Collapse>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(100 - (analysis?.risk_assessment?.risk_score || 0)) }}>
-              {analysis?.risk_assessment?.risk_score || 'N/A'}
-            </Typography>
-            <Box>
-              <Chip 
-                label={analysis?.risk_assessment?.risk_rating || 'N/A'} 
-                color={analysis?.risk_assessment?.risk_rating === 'Low' ? 'success' : 
-                       analysis?.risk_assessment?.risk_rating === 'Medium' ? 'warning' : 'error'}
-                size="medium"
-              />
-              <Typography variant="h6" sx={{ mt: 1 }}>
-                Risk Rating
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(customRiskMode ? calculateCustomRiskScore() : (100 - (analysis?.risk_assessment?.risk_score || 0))) }}>
+                {customRiskMode ? calculateCustomRiskScore() : (analysis?.risk_assessment?.risk_score || 'N/A')}
               </Typography>
+              <Box>
+                <Chip 
+                  label={customRiskMode ? getCustomRiskRating(calculateCustomRiskScore()) : (analysis?.risk_assessment?.risk_rating || 'N/A')} 
+                  color={customRiskMode ? 
+                    (calculateCustomRiskScore() >= 61 ? 'success' : calculateCustomRiskScore() >= 41 ? 'warning' : 'error') :
+                    (analysis?.risk_assessment?.risk_rating === 'Low' ? 'success' : 
+                     analysis?.risk_assessment?.risk_rating === 'Medium' ? 'warning' : 'error')}
+                  size="medium"
+                />
+                <Typography variant="h6" sx={{ mt: 1 }}>
+                  {customRiskMode ? 'Custom Risk Rating' : 'Risk Rating'}
+                </Typography>
+              </Box>
             </Box>
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={customRiskMode}
+                  onChange={(e) => {
+                    setCustomRiskMode(e.target.checked);
+                    if (e.target.checked) {
+                      resetToDefaultScores();
+                    }
+                  }}
+                  color="primary"
+                />
+              }
+              label={
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Custom Scoring
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Adjust components
+                  </Typography>
+                </Box>
+              }
+              labelPlacement="start"
+              sx={{ margin: 0 }}
+            />
           </Box>
           <LinearProgress 
             variant="determinate" 
-            value={analysis?.risk_assessment?.risk_score || 0} 
+            value={customRiskMode ? calculateCustomRiskScore() : (analysis?.risk_assessment?.risk_score || 0)} 
             sx={{ height: 10, borderRadius: 5, mb: 2 }}
-            color={analysis?.risk_assessment?.risk_score <= 30 ? 'success' : 
-                   analysis?.risk_assessment?.risk_score <= 60 ? 'warning' : 'error'}
+            color={customRiskMode ? 
+              (calculateCustomRiskScore() >= 61 ? 'success' : calculateCustomRiskScore() >= 41 ? 'warning' : 'error') :
+              (analysis?.risk_assessment?.risk_score <= 30 ? 'success' : 
+               analysis?.risk_assessment?.risk_score <= 60 ? 'warning' : 'error')}
           />
-          <Typography variant="body1" color="text.secondary">
-            Higher scores indicate safer dividend sustainability (100=Safest, 0=Highest Risk)
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="body1" color="text.secondary">
+              {customRiskMode ? 
+                'Custom risk assessment based on your component weightings' :
+                'Higher scores indicate safer dividend sustainability (100=Safest, 0=Highest Risk)'}
+            </Typography>
+            {!customRiskMode && (
+              <Typography variant="caption" color="primary" sx={{ fontStyle: 'italic' }}>
+                💡 Turn on Custom Scoring to adjust risk components
+              </Typography>
+            )}
+          </Box>
         </CardContent>
       </Card>
+
+      {/* Custom Risk Component Scoring */}
+      {customRiskMode && (
+        <Card 
+          elevation={2}
+          sx={{ 
+            border: '2px solid #3B82F6',
+            background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+          }}
+        >
+          <CardContent sx={{ p: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 40,
+                    height: 40,
+                    borderRadius: 2,
+                    background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                  }}
+                >
+                  <TuneIcon sx={{ color: 'white', fontSize: 20 }} />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                  Custom Risk Component Scoring
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={resetToDefaultScores}
+                sx={{ textTransform: 'none' }}
+              >
+                Reset to Analysis
+              </Button>
+            </Box>
+            
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Adjust the scoring for each risk component based on your analysis. The overall risk score will be calculated using industry-standard weightings.
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 6 }}>
+              {/* Coverage Risk Component */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" color="primary">
+                    Coverage Analysis
+                  </Typography>
+                  <Chip 
+                    label={`${customRiskScores.coverage}/100`}
+                    size="small"
+                    color={customRiskScores.coverage >= 75 ? 'success' : customRiskScores.coverage >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  How well do earnings and cash flows cover dividend payments? (Weight: 35%)
+                </Typography>
+                <Box sx={{ px: 2, mb: 6 }}>
+                  <Slider
+                    value={customRiskScores.coverage}
+                    onChange={(_, newValue) => setCustomRiskScores(prev => ({ ...prev, coverage: newValue as number }))}
+                    min={0}
+                    max={100}
+                    marks={[
+                      { value: 0, label: 'Risky' },
+                      { value: 50, label: 'Moderate' },
+                      { value: 100, label: 'Safe' }
+                    ]}
+                    sx={{ '& .MuiSlider-markLabel': { fontSize: '0.75rem' } }}
+                    color={customRiskScores.coverage >= 75 ? 'success' : customRiskScores.coverage >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+              </Box>
+
+              {/* Financial Stability Component */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" color="primary">
+                    Financial Stability
+                  </Typography>
+                  <Chip 
+                    label={`${customRiskScores.stability}/100`}
+                    size="small"
+                    color={customRiskScores.stability >= 75 ? 'success' : customRiskScores.stability >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Overall financial health including debt management and liquidity. (Weight: 25%)
+                </Typography>
+                <Box sx={{ px: 2, mb: 6 }}>
+                  <Slider
+                    value={customRiskScores.stability}
+                    onChange={(_, newValue) => setCustomRiskScores(prev => ({ ...prev, stability: newValue as number }))}
+                    min={0}
+                    max={100}
+                    marks={[
+                      { value: 0, label: 'Weak' },
+                      { value: 50, label: 'Moderate' },
+                      { value: 100, label: 'Strong' }
+                    ]}
+                    sx={{ '& .MuiSlider-markLabel': { fontSize: '0.75rem' } }}
+                    color={customRiskScores.stability >= 75 ? 'success' : customRiskScores.stability >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+              </Box>
+
+              {/* Earnings Volatility Component */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" color="primary">
+                    Earnings Consistency
+                  </Typography>
+                  <Chip 
+                    label={`${customRiskScores.volatility}/100`}
+                    size="small"
+                    color={customRiskScores.volatility >= 75 ? 'success' : customRiskScores.volatility >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  How stable and predictable are the company's earnings? (Weight: 20%)
+                </Typography>
+                <Box sx={{ px: 2, mb: 6 }}>
+                  <Slider
+                    value={customRiskScores.volatility}
+                    onChange={(_, newValue) => setCustomRiskScores(prev => ({ ...prev, volatility: newValue as number }))}
+                    min={0}
+                    max={100}
+                    marks={[
+                      { value: 0, label: 'Volatile' },
+                      { value: 50, label: 'Moderate' },
+                      { value: 100, label: 'Stable' }
+                    ]}
+                    sx={{ '& .MuiSlider-markLabel': { fontSize: '0.75rem' } }}
+                    color={customRiskScores.volatility >= 75 ? 'success' : customRiskScores.volatility >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+              </Box>
+
+              {/* Growth Consistency Component */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" color="primary">
+                    Growth Track Record
+                  </Typography>
+                  <Chip 
+                    label={`${customRiskScores.growth}/100`}
+                    size="small"
+                    color={customRiskScores.growth >= 75 ? 'success' : customRiskScores.growth >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Consistency of dividend growth and payment history. (Weight: 20%)
+                </Typography>
+                <Box sx={{ px: 2, mb: 6 }}>
+                  <Slider
+                    value={customRiskScores.growth}
+                    onChange={(_, newValue) => setCustomRiskScores(prev => ({ ...prev, growth: newValue as number }))}
+                    min={0}
+                    max={100}
+                    marks={[
+                      { value: 0, label: 'Poor' },
+                      { value: 50, label: 'Moderate' },
+                      { value: 100, label: 'Excellent' }
+                    ]}
+                    sx={{ '& .MuiSlider-markLabel': { fontSize: '0.75rem' } }}
+                    color={customRiskScores.growth >= 75 ? 'success' : customRiskScores.growth >= 50 ? 'warning' : 'error'}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Summary */}
+            <Box sx={{ mt: 4, p: 3, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="h6">
+                  Your Custom Risk Assessment
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="h4" sx={{ color: getScoreColor(calculateCustomRiskScore()) }}>
+                    {calculateCustomRiskScore()}
+                  </Typography>
+                  <Chip 
+                    label={getCustomRiskRating(calculateCustomRiskScore())}
+                    color={calculateCustomRiskScore() >= 61 ? 'success' : calculateCustomRiskScore() >= 41 ? 'warning' : 'error'}
+                    size="medium"
+                  />
+                </Box>
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, mt: 2 }}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">Coverage (35%)</Typography>
+                  <Typography variant="h6" color="primary">{Math.round(customRiskScores.coverage * 0.35)}</Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">Stability (25%)</Typography>
+                  <Typography variant="h6" color="primary">{Math.round(customRiskScores.stability * 0.25)}</Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">Consistency (20%)</Typography>
+                  <Typography variant="h6" color="primary">{Math.round(customRiskScores.volatility * 0.20)}</Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">Growth (20%)</Typography>
+                  <Typography variant="h6" color="primary">{Math.round(customRiskScores.growth * 0.20)}</Typography>
+                </Box>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Risk Components Analysis */}
       <Card elevation={2}>
@@ -1646,82 +1977,7 @@ const DividendAnalysisComponent: React.FC = () => {
         </Card>
       </Box>
 
-      {/* Risk Score Breakdown */}
-      <Card elevation={2}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <AssessmentIcon sx={{ color: 'primary.main', mr: 1, fontSize: 24 }} />
-            <Typography variant="h6" color="primary" sx={{ fontWeight: 500 }}>
-              Risk Score Components
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Detailed breakdown of factors contributing to overall risk assessment
-          </Typography>
-          
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr 1fr' }, gap: 2 }}>
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Consistency</Typography>
-              <Typography variant="h6" color="primary">
-                {analysis?.dividend_quality_score?.components?.consistency_score || 0}/20
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={((analysis?.dividend_quality_score?.components?.consistency_score || 0) / 20) * 100} 
-                sx={{ mt: 1, height: 4, borderRadius: 2 }}
-              />
-            </Box>
 
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Growth</Typography>
-              <Typography variant="h6" color="primary">
-                {analysis?.dividend_quality_score?.components?.growth_score || 0}/20
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={((analysis?.dividend_quality_score?.components?.growth_score || 0) / 20) * 100} 
-                sx={{ mt: 1, height: 4, borderRadius: 2 }}
-              />
-            </Box>
-
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Coverage</Typography>
-              <Typography variant="h6" color="primary">
-                {analysis?.dividend_quality_score?.components?.coverage_score || 0}/20
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={((analysis?.dividend_quality_score?.components?.coverage_score || 0) / 20) * 100} 
-                sx={{ mt: 1, height: 4, borderRadius: 2 }}
-              />
-            </Box>
-
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Yield Quality</Typography>
-              <Typography variant="h6" color="primary">
-                {analysis?.dividend_quality_score?.components?.yield_quality_score || 0}/20
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={((analysis?.dividend_quality_score?.components?.yield_quality_score || 0) / 20) * 100} 
-                sx={{ mt: 1, height: 4, borderRadius: 2 }}
-              />
-            </Box>
-
-            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <Typography variant="body2" color="text.secondary">Financial Strength</Typography>
-              <Typography variant="h6" color="primary">
-                {analysis?.dividend_quality_score?.components?.financial_strength_score || 0}/20
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={((analysis?.dividend_quality_score?.components?.financial_strength_score || 0) / 20) * 100} 
-                sx={{ mt: 1, height: 4, borderRadius: 2 }}
-              />
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
 
       {/* Professional Dividend Stress Testing */}
       <Card elevation={2}>
@@ -2075,12 +2331,18 @@ const DividendAnalysisComponent: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">Performance Analysis Controls</Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                {['5Y', '10Y', '15Y', 'All'].map((period) => (
+                {['5Y', '10Y', '15Y', '20Y', '25Y', 'All'].map((period) => (
                   <Button
                     key={period}
                     variant={dateRange.years === (period === 'All' ? 0 : parseInt(period.slice(0, -1))) ? 'contained' : 'outlined'}
                     size="small"
-                    onClick={() => setDateRange({ years: period === 'All' ? 0 : parseInt(period.slice(0, -1)) })}
+                    onClick={async () => {
+                      const years = period === 'All' ? 0 : parseInt(period.slice(0, -1));
+                      setDateRange({ years });
+                      if (lastAnalyzedTicker) {
+                        await refreshChartData(lastAnalyzedTicker, years);
+                      }
+                    }}
                   >
                     {period}
                   </Button>
@@ -2110,9 +2372,7 @@ const DividendAnalysisComponent: React.FC = () => {
                 
                 <Box sx={{ width: '100%', height: 400 }}>
                   <ResponsiveContainer>
-                    <LineChart data={Array.isArray(growthChart) ? growthChart.filter((item: any, index: number) => 
-                      dateRange.years === 0 || index >= growthChart.length - dateRange.years
-                    ) : []}>
+                    <LineChart data={Array.isArray(growthChart) ? growthChart : []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="year" />
                       <YAxis yAxisId="left" orientation="left" />
@@ -2637,6 +2897,113 @@ const DividendAnalysisComponent: React.FC = () => {
           >
             {error}
           </Alert>
+        )}
+
+        {/* Company Header */}
+        {companyInfo && currentDividend && analysis && (
+          <Card 
+            elevation={0} 
+            sx={{ 
+              mb: 3,
+              border: '1px solid #E2E8F0',
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 3,
+                flexDirection: { xs: 'column', sm: 'row' },
+                textAlign: { xs: 'center', sm: 'left' }
+              }}>
+                {/* Company Logo */}
+                <Avatar
+                  src={companyInfo.logo_url || `https://logo.clearbit.com/${companyInfo.ticker.toLowerCase()}.com`}
+                  alt={`${companyInfo.name} logo`}
+                  sx={{
+                    width: { xs: 80, sm: 100 },
+                    height: { xs: 80, sm: 100 },
+                    bgcolor: 'grey.100',
+                    border: '3px solid white',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  }}
+                  imgProps={{
+                    onError: (e) => {
+                      const img = e.target as HTMLImageElement;
+                      // Try fallback URLs in order
+                      if (img.src.includes('financialmodelingprep.com')) {
+                        img.src = `https://logo.clearbit.com/${companyInfo.ticker.toLowerCase()}.com`;
+                      } else if (img.src.includes('clearbit.com')) {
+                        img.src = `https://img.logo.dev/${companyInfo.ticker.toLowerCase()}.com?token=pk_X-lqcjKBQtOpcU8KZieivw`;
+                      } else {
+                        // All fallbacks failed, hide image and show text avatar
+                        img.style.display = 'none';
+                      }
+                    }
+                  }}
+                >
+                  {companyInfo.name ? companyInfo.name.charAt(0) : companyInfo.ticker}
+                </Avatar>
+
+                {/* Company Info */}
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 2, 
+                    mb: 1,
+                    flexDirection: { xs: 'column', sm: 'row' }
+                  }}>
+                    <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontWeight: 700,
+                        color: 'text.primary',
+                        mb: { xs: 1, sm: 0 }
+                      }}
+                    >
+                      {companyInfo.name}
+                    </Typography>
+                    <Chip 
+                      label={companyInfo.ticker}
+                      size="medium"
+                      sx={{
+                        fontWeight: 600,
+                        backgroundColor: 'secondary.main',
+                        color: 'white',
+                        fontSize: '0.9rem',
+                      }}
+                    />
+                  </Box>
+                  
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 1, sm: 3 },
+                    alignItems: { xs: 'center', sm: 'flex-start' }
+                  }}>
+                    {companyInfo.exchange && (
+                      <Typography variant="body1" color="text.secondary">
+                        <strong>Exchange:</strong> {companyInfo.exchange}
+                      </Typography>
+                    )}
+                    {companyInfo.sector && (
+                      <Typography variant="body1" color="text.secondary">
+                        <strong>Sector:</strong> {companyInfo.sector}
+                      </Typography>
+                    )}
+                    {companyInfo.market_cap && (
+                      <Typography variant="body1" color="text.secondary">
+                        <strong>Market Cap:</strong> ${(companyInfo.market_cap / 1e12).toFixed(2)}T
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         )}
 
         {/* Enhanced Tabs Section */}

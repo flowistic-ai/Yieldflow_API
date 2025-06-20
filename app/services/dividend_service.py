@@ -79,7 +79,7 @@ class DividendService:
             if not end_date:
                 end_date = date.today()
             if not start_date:
-                start_date = end_date - timedelta(days=365 * 10)  # 10 years for robust analysis
+                start_date = end_date - timedelta(days=365 * 15)  # 15 years for more robust analysis
             
             # Multi-source data aggregation with parallel processing
             data_tasks = await asyncio.gather(

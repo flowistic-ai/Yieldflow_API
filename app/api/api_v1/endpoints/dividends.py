@@ -308,7 +308,7 @@ async def get_economic_indicators(
 @router.get("/{ticker}/charts/growth")
 async def get_dividend_growth_chart(
     ticker: str,
-    years: int = Query(10, description="Number of years to include", ge=3, le=20),
+    years: int = Query(15, description="Number of years to include", ge=3, le=30),
     current_user = Depends(get_current_user_from_api_key),
     dividend_service: DividendService = Depends(get_dividend_service)
 ):
@@ -391,7 +391,7 @@ async def get_dividend_growth_chart(
 @router.get("/{ticker}/charts/yield-vs-price")
 async def get_yield_vs_price_chart(
     ticker: str,
-    years: int = Query(5, description="Number of years to include", ge=1, le=10),
+    years: int = Query(10, description="Number of years to include", ge=1, le=20),
     current_user = Depends(get_current_user_from_api_key),
     dividend_service: DividendService = Depends(get_dividend_service)
 ):
@@ -467,7 +467,7 @@ async def get_yield_vs_price_chart(
 @router.get("/{ticker}/charts/payout-ratio")
 async def get_payout_ratio_chart(
     ticker: str,
-    years: int = Query(7, description="Number of years to include", ge=3, le=15),
+    years: int = Query(10, description="Number of years to include", ge=3, le=25),
     current_user = Depends(get_current_user_from_api_key),
     dividend_service: DividendService = Depends(get_dividend_service)
 ):
@@ -532,7 +532,7 @@ async def get_payout_ratio_chart(
 @router.get("/{ticker}/charts/dividend-vs-earnings")
 async def get_dividend_vs_earnings_chart(
     ticker: str,
-    years: int = Query(8, description="Number of years to include", ge=3, le=15),
+    years: int = Query(12, description="Number of years to include", ge=3, le=25),
     current_user = Depends(get_current_user_from_api_key),
     dividend_service: DividendService = Depends(get_dividend_service)
 ):
@@ -684,7 +684,7 @@ async def get_peer_comparison_chart(
 @router.get("/{ticker}/charts/total-return")
 async def get_total_return_breakdown_chart(
     ticker: str,
-    years: int = Query(5, description="Number of years to include", ge=1, le=10),
+    years: int = Query(10, description="Number of years to include", ge=1, le=20),
     current_user = Depends(get_current_user_from_api_key),
     dividend_service: DividendService = Depends(get_dividend_service)
 ):
@@ -870,4 +870,56 @@ def _determine_competitive_position(peer_comparison: Dict) -> str:
     elif avg_percentile > 25:
         return "Average"
     else:
-        return "Below Average" 
+        return "Below Average"
+
+@router.get("/{ticker}/company-info")
+async def get_company_basic_info(
+    ticker: str,
+    current_user = Depends(get_current_user_from_api_key),
+    dividend_service: DividendService = Depends(get_dividend_service)
+):
+    """
+    Get basic company information including name and logo.
+    
+    Returns:
+    - Company name
+    - Ticker symbol
+    - Logo URL
+    - Exchange
+    - Sector and industry
+    """
+    
+    try:
+        # Import data provider to get company info
+        from app.services.data_provider import DataProvider
+        data_provider = DataProvider()
+        
+        company_data = await data_provider.get_company_info(ticker.upper())
+        
+        if not company_data:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Company information not found for ticker {ticker}"
+            )
+        
+        return {
+            'ticker': ticker.upper(),
+            'name': company_data.get('name', ''),
+            'logo_url': company_data.get('logo_url', ''),
+            'exchange': company_data.get('exchange', ''),
+            'sector': company_data.get('sector', ''),
+            'industry': company_data.get('industry', ''),
+            'market_cap': company_data.get('market_cap'),
+            'description': company_data.get('description', ''),
+            'website': company_data.get('website', ''),
+            'last_updated': datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error in company info request", ticker=ticker, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve company information"
+        ) 

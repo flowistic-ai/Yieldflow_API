@@ -18,6 +18,7 @@ class CompanyBase(BaseModel):
     employees: Optional[int] = Field(None, description="Number of employees")
     description: Optional[str] = Field(None, description="Company description")
     website: Optional[str] = Field(None, description="Company website")
+    logo_url: Optional[str] = Field(None, description="Company logo URL")
 
 
 class CompanyCreate(CompanyBase):

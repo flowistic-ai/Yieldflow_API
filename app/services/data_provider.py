@@ -236,6 +236,7 @@ class DataProvider:
                 'market_cap': self._safe_float(company_data.get('MarketCapitalization')),
                 'description': company_data.get('Description', ''),
                 'employees': self._safe_int(company_data.get('FullTimeEmployees')),
+                'logo_url': self._get_company_logo_url(ticker),
                 'data_source': 'alpha_vantage'
             }
         except Exception as e:
@@ -375,6 +376,7 @@ class DataProvider:
                 'employees': info.get('fullTimeEmployees'),
                 'description': info.get('longBusinessSummary', ''),
                 'website': info.get('website', ''),
+                'logo_url': self._get_company_logo_url(ticker),
                 'data_source': 'yahoo_finance'
             }
         except Exception as e:
@@ -514,6 +516,7 @@ class DataProvider:
                                 'employees': company.get('fullTimeEmployees'),
                                 'description': company.get('description', ''),
                                 'website': company.get('website', ''),
+                                'logo_url': self._get_company_logo_url(ticker),
                                 'data_source': 'financial_modeling_prep'
                             }
         except Exception as e:
@@ -916,7 +919,7 @@ class DataProvider:
     
     def _standardize_company_data(self, data: Dict[str, Any], ticker: str) -> Dict[str, Any]:
         """Standardize company data from multiple sources"""
-        return {
+        standardized = {
             'ticker': ticker.upper(),
             'name': data.get('name', ''),
             'exchange': data.get('exchange', ''),
@@ -928,9 +931,31 @@ class DataProvider:
             'employees': data.get('employees'),
             'description': data.get('description', ''),
             'website': data.get('website', ''),
+            'logo_url': self._get_company_logo_url(ticker),
             'data_quality_score': self._calculate_data_quality_score(data),
             'last_updated': datetime.utcnow()
         }
+        return standardized
+    
+    def _get_company_logo_url(self, ticker: str) -> str:
+        """Get company logo URL from multiple sources"""
+        try:
+            # Try Financial Modeling Prep first (highest quality)
+            fmp_logo = f"https://financialmodelingprep.com/image-stock/{ticker.upper()}.png"
+            
+            # Alternative sources as fallbacks:
+            # 1. Logo.dev API (free tier available)
+            logodev_url = f"https://img.logo.dev/{ticker.lower()}.com?token=pk_X-lqcjKBQtOpcU8KZieivw"
+            
+            # 2. Clearbit Logo API (free for small logos)
+            clearbit_url = f"https://logo.clearbit.com/{ticker.lower()}.com"
+            
+            # Return primary URL (FMP) as it has good coverage
+            return fmp_logo
+            
+        except Exception as e:
+            logger.warning("Error getting company logo", ticker=ticker, error=str(e))
+            return ""
     
     def _calculate_data_quality_score(self, data: Dict[str, Any]) -> float:
         """Calculate data quality score based on completeness"""
