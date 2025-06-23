@@ -126,6 +126,28 @@ class DividendService {
     });
     return response.data;
   }
+
+  async getNEPOAnalysis(ticker: string, investmentAmount: number = 100000): Promise<any> {
+    const params = new URLSearchParams();
+    params.append('investment_amount', investmentAmount.toString());
+    params.append('time_horizon', 'medium');
+    params.append('include_news_analysis', 'true');
+    
+    // For single-stock NEPO analysis, we'll create a mini-portfolio with the target stock + SPY as benchmark
+    // This allows the optimization engine to work while focusing on the target stock
+    const response = await axios.post(`${API_BASE_URL}/portfolio/optimize-news-enhanced?${params.toString()}`, {
+      tickers: [ticker, 'SPY'], // Add SPY as a benchmark for portfolio optimization
+      objective: 'sharpe_ratio',
+      shrinkage_method: 'auto',
+      max_weight: 0.5 // Maximum allowed weight per asset
+    }, {
+      headers: {
+        'X-API-KEY': API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  }
 }
 
 export const dividendService = new DividendService();
@@ -153,4 +175,4 @@ export const getCompanyInfo = async (ticker: string): Promise<{
   }
   
   return response.json();
-}; 
+};

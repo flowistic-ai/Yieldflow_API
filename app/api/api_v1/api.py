@@ -9,6 +9,8 @@ from app.api.api_v1.endpoints import (
     compliance,
     auth,
     dividends,
+    portfolio,
+    query
 )
 
 api_router = APIRouter()
@@ -60,4 +62,16 @@ api_router.include_router(
     dividends.router,
     prefix="/dividends",
     tags=["Dividend Analysis"]
+)
+
+api_router.include_router(
+    portfolio.router,
+    prefix="/portfolio",
+    tags=["Portfolio Optimization"]
+)
+
+api_router.include_router(
+    query.router,
+    prefix="/query",
+    tags=["Natural Language Query"]
 )

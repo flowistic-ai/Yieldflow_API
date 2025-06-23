@@ -98,6 +98,8 @@ fonttools==4.58.2
     # via matplotlib
 forex-python==1.9.2
     # via yieldflow-api (pyproject.toml)
+google-generativeai==0.5.4
+    # via yieldflow-api (pyproject.toml)
 frozendict==2.4.6
     # via yfinance
 frozenlist==1.7.0
@@ -330,3 +332,4 @@ yfinance==0.2.63
 zipp==3.23.0
     # via importlib-resources
 gunicorn==21.2.0
+google-generativeai>=0.8.0

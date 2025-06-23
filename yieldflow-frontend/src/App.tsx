@@ -1,6 +1,8 @@
-import React from 'react';
-import { ThemeProvider, createTheme, CssBaseline, GlobalStyles } from '@mui/material';
+import React, { useState } from 'react';
+import { ThemeProvider, createTheme, CssBaseline, GlobalStyles, Box, Tabs, Tab, Container } from '@mui/material';
 import DividendAnalysisComponent from './components/DividendAnalysis';
+import PortfolioOptimization from './components/PortfolioOptimization';
+import SmartQueryInterface from './components/SmartQueryInterface';
 
 const theme = createTheme({
   palette: {
@@ -213,13 +215,79 @@ const globalStyles = (
   />
 );
 
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`app-tabpanel-${index}`}
+      aria-labelledby={`app-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
 function App() {
+  const [mainTabValue, setMainTabValue] = useState(0);
+
+  const handleMainTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setMainTabValue(newValue);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       {globalStyles}
       <div className="App">
-        <DividendAnalysisComponent />
+        <Box sx={{ bgcolor: 'background.paper', minHeight: '100vh' }}>
+          <Container maxWidth="xl" sx={{ p: 0 }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'white' }}>
+              <Tabs 
+                value={mainTabValue} 
+                onChange={handleMainTabChange}
+                aria-label="YieldFlow main navigation"
+                sx={{
+                  px: 4,
+                  '& .MuiTab-root': {
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    minHeight: 64,
+                    textTransform: 'none',
+                  },
+                }}
+              >
+                <Tab label="🤖 AI Assistant" />
+                <Tab label="Dividend Analysis" />
+                <Tab label="Portfolio Optimization" />
+              </Tabs>
+            </Box>
+            
+            <TabPanel value={mainTabValue} index={0}>
+              <SmartQueryInterface />
+            </TabPanel>
+            
+            <TabPanel value={mainTabValue} index={1}>
+              <DividendAnalysisComponent />
+            </TabPanel>
+            
+            <TabPanel value={mainTabValue} index={2}>
+              <PortfolioOptimization />
+            </TabPanel>
+          </Container>
+        </Box>
       </div>
     </ThemeProvider>
   );

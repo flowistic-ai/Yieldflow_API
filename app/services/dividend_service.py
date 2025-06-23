@@ -31,9 +31,10 @@ class DividendService:
         self.cache_service = CacheService()
         
         # API Configuration
-        if Fred and settings.FRED_API_KEY:
+        self.fred_api_key = settings.FRED_API_KEY
+        if Fred and self.fred_api_key:
             try:
-                self.fred = Fred(api_key=settings.FRED_API_KEY)
+                self.fred = Fred(api_key=self.fred_api_key)
             except Exception as e:
                 logger.warning("Failed to initialize FRED API", error=str(e))
                 self.fred = None
@@ -44,6 +45,18 @@ class DividendService:
         
         # API Base URLs
         self.fmp_base_url = "https://financialmodelingprep.com/api/v3"
+        self.fred_base_url = "https://api.stlouisfed.org/fred"
+        
+        # FRED Economic Indicators
+        self.fred_indicators = {
+            'treasury_10y': 'GS10',
+            'treasury_2y': 'GS2',
+            'federal_funds_rate': 'FEDFUNDS',
+            'inflation_rate': 'CPIAUCSL',
+            'gdp_growth': 'A191RL1Q225SBEA',
+            'unemployment_rate': 'UNRATE',
+            'vix': 'VIXCLS'
+        }
         
         # Financial constants for professional analysis
         self.RISK_FREE_RATE_PROXY = 'GS10'  # 10-Year Treasury
