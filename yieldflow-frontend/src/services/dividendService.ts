@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1`;
 
-// API Key from the backend - using the basic plan key
-const API_KEY = 'yk_eXZGE3PhU1E39cg5lEdTRSFl6BRKBX3w6Gk8GK0fD_g';
+// API Key from environment variable
+const API_KEY = process.env.REACT_APP_API_KEY || 'yk_DqSugEeLU7cYgCVWqHQ3Nz6Nju0Gq3Iz20OK97BeHDc';
 
 // Configure axios defaults
 axios.defaults.headers.common['X-API-KEY'] = API_KEY;
