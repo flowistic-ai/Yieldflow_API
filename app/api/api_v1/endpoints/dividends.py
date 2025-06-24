@@ -247,6 +247,7 @@ async def get_dividend_forecast(
             )
         
         forecast = await dividend_service._generate_professional_forecast(
+            ticker,
             dividends, financials, economic_context, years
         )
         

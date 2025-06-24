@@ -2674,37 +2674,52 @@ const DividendAnalysisComponent: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Forecasted Growth */}
+        {/* Enhanced Forecasted Growth with News Analysis */}
         <Card elevation={2}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Typography variant="h6">Forecasted Growth</Typography>
+              <Typography variant="h6">Enhanced Dividend Forecast</Typography>
               <Tooltip title={
                 <Box>
-                  <Typography variant="subtitle2" gutterBottom>Confidence Level Explained:</Typography>
+                  <Typography variant="subtitle2" gutterBottom>Enhanced Forecasting Methodology:</Typography>
                   <Typography variant="body2">
-                    Based on historical consistency, financial stability, and economic conditions:
+                    Combines traditional dividend analysis with:
                   </Typography>
-                  <Typography variant="body2">• <strong>High (80%+):</strong> Strong track record and stable financials</Typography>
-                  <Typography variant="body2">• <strong>Medium (60-80%):</strong> Good history with some variability</Typography>
-                  <Typography variant="body2">• <strong>Low (&lt;60%):</strong> Limited data or high uncertainty</Typography>
+                  <Typography variant="body2">• <strong>News Sentiment Analysis:</strong> Real-time market sentiment</Typography>
+                  <Typography variant="body2">• <strong>Quantitative Finance Models:</strong> CAPM, Gordon Growth Model</Typography>
+                  <Typography variant="body2">• <strong>Geopolitical Risk Assessment:</strong> Global events impact</Typography>
+                  <Typography variant="body2">• <strong>Confidence Intervals:</strong> Monte Carlo-style risk estimation</Typography>
                 </Box>
               } arrow placement="right">
                 <InfoIcon fontSize="small" color="action" />
               </Tooltip>
+              {analysis?.forecast?.[0]?.methodology === 'Enhanced News-Integrated Forecast' && (
+                <Chip 
+                  label="News-Enhanced" 
+                  size="small" 
+                  color="secondary" 
+                  sx={{ ml: 1 }}
+                />
+              )}
             </Box>
             
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+            {/* Key Metrics Grid */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, mb: 3 }}>
               <Box>
-                <Typography variant="body2" color="text.secondary">Next Year Projection</Typography>
+                <Typography variant="body2" color="text.secondary">Next Year Growth</Typography>
                 <Typography variant="h6" color="primary">
                   {analysis?.forecast && analysis.forecast.length > 0 ? 
                     `${analysis.forecast[0]?.growth_rate?.toFixed(2)}%` : 'N/A'}
                 </Typography>
+                {analysis?.forecast?.[0]?.news_adjustment && (
+                  <Typography variant="caption" color={analysis.forecast[0].news_adjustment > 0 ? 'success.main' : 'error.main'}>
+                    News Impact: {analysis.forecast[0].news_adjustment > 0 ? '+' : ''}{analysis.forecast[0].news_adjustment.toFixed(2)}%
+                  </Typography>
+                )}
               </Box>
               
               <Box>
-                <Typography variant="body2" color="text.secondary">3-Year Outlook</Typography>
+                <Typography variant="body2" color="text.secondary">3-Year Average</Typography>
                 <Typography variant="h6">
                   {analysis?.forecast && analysis.forecast.length >= 3 ? 
                     `${(analysis.forecast.slice(0, 3).reduce((sum: number, f: any) => sum + (f.growth_rate || 0), 0) / 3).toFixed(2)}%` : 'N/A'}
@@ -2712,23 +2727,288 @@ const DividendAnalysisComponent: React.FC = () => {
               </Box>
               
               <Box>
-                <Typography variant="body2" color="text.secondary">Growth Trend</Typography>
-                <Typography variant="h6">
-                  {analysis?.growth_analytics?.growth_trend || 'N/A'}
+                <Typography variant="body2" color="text.secondary">Confidence Level</Typography>
+                <Typography variant="h6" color={
+                  analysis?.forecast?.[0]?.confidence_level >= 80 ? 'success.main' :
+                  analysis?.forecast?.[0]?.confidence_level >= 60 ? 'warning.main' : 'error.main'
+                }>
+                  {analysis?.forecast?.[0]?.confidence_level ? 
+                    `${Math.round(analysis.forecast[0].confidence_level)}%` : 'N/A'}
                 </Typography>
               </Box>
               
               <Box>
-                <Typography variant="body2" color="text.secondary">Confidence Level</Typography>
-                <Typography variant="h6" color={
-                  (analysis?.forecast?.[0]?.confidence_level * 100) >= 80 ? 'success.main' :
-                  (analysis?.forecast?.[0]?.confidence_level * 100) >= 60 ? 'warning.main' : 'error.main'
-                }>
-                  {analysis?.forecast?.[0]?.confidence_level ? 
-                    `${(analysis.forecast[0].confidence_level * 100).toFixed(0)}%` : 'N/A'}
+                <Typography variant="body2" color="text.secondary">Methodology</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>
+                  {analysis?.forecast?.[0]?.methodology || 'Traditional Analysis'}
                 </Typography>
               </Box>
             </Box>
+
+            {/* Confidence Intervals */}
+            {analysis?.forecast?.[0]?.confidence_interval && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>95% Confidence Range (Next Year)</Typography>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 2,
+                  p: 2,
+                  backgroundColor: 'grey.50',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'grey.200'
+                }}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Lower Bound</Typography>
+                    <Typography variant="h6" color="error.main">
+                      ${analysis.forecast[0].confidence_interval.lower_95?.toFixed(4)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ 
+                    flex: 1, 
+                    height: '4px', 
+                    background: 'linear-gradient(90deg, #f44336 0%, #4caf50 50%, #2196f3 100%)',
+                    borderRadius: 2,
+                    position: 'relative'
+                  }}>
+                    <Box sx={{
+                      position: 'absolute',
+                      top: '-8px',
+                      left: '50%',
+                      width: '4px',
+                      height: '20px',
+                      backgroundColor: 'primary.main',
+                      borderRadius: 1,
+                      transform: 'translateX(-50%)'
+                    }} />
+                  </Box>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Upper Bound</Typography>
+                    <Typography variant="h6" color="success.main">
+                      ${analysis.forecast[0].confidence_interval.upper_95?.toFixed(4)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
+            {/* Enhanced Investment Analysis - Improved Design */}
+            {analysis?.forecast?.[0]?.investment_analysis && (
+              <Box sx={{ 
+                mt: 3, 
+                p: 0,
+                borderRadius: 3,
+                overflow: 'hidden',
+                boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.1)'
+              }}>
+                {/* Header */}
+                <Box sx={{
+                  p: 3,
+                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                  color: 'white'
+                }}>
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 700, 
+                    mb: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1
+                  }}>
+                    📊 Enhanced Analysis Summary
+                    <Chip 
+                      label="News-Powered" 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        fontSize: '0.7rem'
+                      }}
+                    />
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                    AI-powered analysis combining traditional metrics with real-time market sentiment
+                  </Typography>
+                </Box>
+
+                {/* Content */}
+                <Box sx={{ 
+                  p: 3,
+                  backgroundColor: 'white',
+                  color: 'text.primary'
+                }}>
+                  {(() => {
+                    const analysisText = analysis.forecast[0].investment_analysis;
+                    
+                    // Enhanced parsing with better regex patterns
+                    const parseAnalysis = (text: string) => {
+                      const growthMatch = text.match(/\*\*Growth Outlook:\*\* ([^.]+\.?[^*]*)/);
+                      const confidenceMatch = text.match(/Model confidence: (\w+) \((\d+)%\)/);
+                      const sentimentMatch = text.match(/News sentiment is ([^•]+)/);
+                      const riskMatch = text.match(/Risk level: (\w+)/);
+                      const bottomLineMatch = text.match(/\*\*Bottom Line:\*\* ([^*]+)/);
+                      
+                      return {
+                        growthOutlook: growthMatch ? growthMatch[1].trim() : '',
+                        confidence: confidenceMatch ? `${confidenceMatch[1]} (${confidenceMatch[2]}%)` : '',
+                        sentiment: sentimentMatch ? sentimentMatch[1].trim() : '',
+                        risk: riskMatch ? riskMatch[1] : '',
+                        bottomLine: bottomLineMatch ? bottomLineMatch[1].trim() : ''
+                      };
+                    };
+                    
+                    const parsed = parseAnalysis(analysisText);
+                    
+                    return (
+                      <Box sx={{ display: 'grid', gap: 3 }}>
+                        {/* Key Metrics Grid */}
+                        <Box sx={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
+                          gap: 3 
+                        }}>
+                          {parsed.growthOutlook && (
+                            <Box sx={{ 
+                              p: 2, 
+                              backgroundColor: 'success.50', 
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'success.200'
+                            }}>
+                              <Typography variant="subtitle2" sx={{ 
+                                fontWeight: 700, 
+                                color: 'success.800',
+                                mb: 1
+                              }}>
+                                🎯 Growth Outlook
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: 'success.700' }}>
+                                {parsed.growthOutlook}
+                              </Typography>
+                            </Box>
+                          )}
+                          
+                          {parsed.sentiment && (
+                            <Box sx={{ 
+                              p: 2, 
+                              backgroundColor: 'info.50', 
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'info.200'
+                            }}>
+                              <Typography variant="subtitle2" sx={{ 
+                                fontWeight: 700, 
+                                color: 'info.800',
+                                mb: 1
+                              }}>
+                                📰 Market Sentiment
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: 'info.700' }}>
+                                {parsed.sentiment}
+                              </Typography>
+                            </Box>
+                          )}
+                        </Box>
+
+                        {/* Bottom Line - Highlighted */}
+                        {parsed.bottomLine && (
+                          <Box sx={{ 
+                            p: 3,
+                            background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)',
+                            borderRadius: 2,
+                            border: '2px solid',
+                            borderColor: 'primary.100'
+                          }}>
+                            <Typography variant="subtitle2" sx={{ 
+                              fontWeight: 700, 
+                              color: 'primary.600',
+                              mb: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1
+                            }}>
+                              💡 Investment Summary
+                            </Typography>
+                            <Typography variant="body1" sx={{ 
+                              color: 'text.primary',
+                              lineHeight: 1.6,
+                              fontWeight: 500
+                            }}>
+                              {parsed.bottomLine}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        {/* Additional Details */}
+                        <Box sx={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap',
+                          gap: 2,
+                          justifyContent: 'space-between'
+                        }}>
+                          {parsed.confidence && (
+                            <Chip 
+                              label={`Confidence: ${parsed.confidence}`}
+                              color="success"
+                              variant="outlined"
+                              size="small"
+                            />
+                          )}
+                          {parsed.risk && (
+                            <Chip 
+                              label={`Risk: ${parsed.risk}`}
+                              color={parsed.risk === 'Low' ? 'success' : parsed.risk === 'Moderate' ? 'warning' : 'error'}
+                              variant="outlined"
+                              size="small"
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })()}
+                </Box>
+              </Box>
+            )}
+
+            {/* Forecast Table */}
+            {analysis?.forecast && analysis.forecast.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" gutterBottom>Detailed Forecast</Typography>
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                  gap: 2 
+                }}>
+                  {analysis.forecast.slice(0, 3).map((forecast: any, index: number) => (
+                    <Box 
+                      key={index}
+                      sx={{ 
+                        p: 2, 
+                        border: '1px solid', 
+                        borderColor: 'grey.300', 
+                        borderRadius: 1,
+                        textAlign: 'center'
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        Year {forecast.year}
+                      </Typography>
+                      <Typography variant="h6" color="primary">
+                        ${forecast.projected_dividend?.toFixed(4)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {forecast.growth_rate?.toFixed(2)}% growth
+                      </Typography>
+                      {forecast.confidence_interval && (
+                        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                          Range: ${forecast.confidence_interval.lower_95?.toFixed(4)} - ${forecast.confidence_interval.upper_95?.toFixed(4)}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Box>
