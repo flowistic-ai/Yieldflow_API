@@ -44,7 +44,6 @@ import SearchIcon from '@mui/icons-material/Search';
   import ShowChartIcon from '@mui/icons-material/ShowChart';
   import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
   import TuneIcon from '@mui/icons-material/Tune';
-  import AutoGraphIcon from '@mui/icons-material/AutoGraph';
 
 import {
   LineChart,
@@ -3045,11 +3044,6 @@ const DividendAnalysisComponent: React.FC = () => {
                   iconPosition="start"
                   label="Risk Analysis" 
                 />
-                <Tab 
-                  icon={<AutoGraphIcon />} 
-                  iconPosition="start"
-                  label="Portfolio Optimization" 
-                />
               </Tabs>
             </Box>
 
@@ -3067,21 +3061,6 @@ const DividendAnalysisComponent: React.FC = () => {
 
             <TabPanel value={tabValue} index={3}>
               <RiskTab />
-            </TabPanel>
-
-            <TabPanel value={tabValue} index={4}>
-              <Box sx={{ textAlign: 'center', py: 6 }}>
-                <AutoGraphIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Portfolio Optimization
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Advanced portfolio optimization is now available as a separate tab in the main navigation.
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Switch to the "Portfolio Optimization" tab to access both Traditional EPO and Advanced NEPO features.
-                </Typography>
-              </Box>
             </TabPanel>
           </Card>
         )}
