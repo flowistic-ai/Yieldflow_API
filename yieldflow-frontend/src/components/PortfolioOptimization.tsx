@@ -25,15 +25,13 @@ import {
   Stack,
   Divider,
   InputAdornment,
-  useTheme,
   Fade,
   Slide,
   Grow,
   Collapse,
   CircularProgress,
   Avatar,
-  AvatarGroup,
-  Tooltip,
+
 } from '@mui/material';
 
 import {
@@ -54,7 +52,7 @@ import {
   Analytics as AnalyticsIcon,
   Stars as StarsIcon,
 } from '@mui/icons-material';
-import { Pie, Line, Bar } from 'react-chartjs-2';
+import { Pie, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -67,7 +65,7 @@ import {
   ArcElement,
   BarElement,
 } from 'chart.js';
-import { portfolioService, OptimizationObjective } from '../services/portfolioService';
+import { portfolioService } from '../services/portfolioService';
 
 // Register Chart.js components
 ChartJS.register(
@@ -132,7 +130,6 @@ interface NEPOResults {
 }
 
 const PortfolioOptimization: React.FC = () => {
-  const theme = useTheme();
   const [tickers, setTickers] = useState(['AAPL', 'GOOGL', 'KO', 'PG']);
   const [newTicker, setNewTicker] = useState('');
   const [objective, setObjective] = useState(OptimizationObjectiveLocal.SHARPE_RATIO);
