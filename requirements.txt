@@ -332,4 +332,3 @@ yfinance==0.2.63
 zipp==3.23.0
     # via importlib-resources
 gunicorn==21.2.0
-google-generativeai>=0.8.0
