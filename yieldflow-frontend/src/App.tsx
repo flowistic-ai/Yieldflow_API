@@ -3,6 +3,7 @@ import { ThemeProvider, createTheme, CssBaseline, GlobalStyles, Box, Tabs, Tab, 
 import DividendAnalysisComponent from './components/DividendAnalysis';
 import PortfolioOptimization from './components/PortfolioOptimization';
 import SmartQueryInterface from './components/SmartQueryInterface';
+import FinancialModelsDocumentation from './components/FinancialModelsDocumentation';
 
 const theme = createTheme({
   palette: {
@@ -272,6 +273,7 @@ function App() {
                 <Tab label="🤖 AI Assistant" />
                 <Tab label="Dividend Analysis" />
                 <Tab label="Portfolio Optimization" />
+                <Tab label="📚 Documentation" />
               </Tabs>
             </Box>
             
@@ -285,6 +287,10 @@ function App() {
             
             <TabPanel value={mainTabValue} index={2}>
               <PortfolioOptimization />
+            </TabPanel>
+            
+            <TabPanel value={mainTabValue} index={3}>
+              <FinancialModelsDocumentation />
             </TabPanel>
           </Container>
         </Box>

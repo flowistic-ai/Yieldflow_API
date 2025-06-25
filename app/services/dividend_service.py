@@ -157,7 +157,7 @@ class DividendService:
                 'current_metrics': current_metrics,
                 
                 # OPTIONAL ADVANCED FEATURES
-                'forecast': await self._generate_professional_forecast(dividends, financials, economic_context, 3) if include_forecast else {
+                'forecast': await self._generate_professional_forecast(ticker, dividends, financials, economic_context, 3) if include_forecast else {
                     'status': 'not_requested',
                     'message': 'Forecast not included in this analysis'
                 },
@@ -2131,11 +2131,53 @@ class DividendService:
         else:
             return 'Very Volatile'
 
-    async def _generate_professional_forecast(self, dividends: List[Dict], financials: Dict, economic_context: Dict, years: int) -> List[Dict[str, Any]]:
-        """Generate professional dividend forecast with special handling for new dividend payers"""
+    async def _generate_professional_forecast(self, ticker: str, dividends: List[Dict], financials: Dict, economic_context: Dict, years: int) -> List[Dict[str, Any]]:
+        """Generate professional dividend forecast with enhanced news analysis"""
         if not dividends:
             return []
         
+        try:
+            # Try enhanced forecasting first
+            from app.services.enhanced_dividend_forecaster import EnhancedDividendForecaster
+            
+            enhanced_forecaster = EnhancedDividendForecaster()
+            market_data = {'sector': financials.get('sector', 'Unknown')}
+            
+            enhanced_result = await enhanced_forecaster.generate_enhanced_forecast(
+                ticker=ticker,  # Fix: use the actual ticker parameter
+                dividends=dividends,
+                financials=financials,
+                market_data=market_data,
+                years=years
+            )
+            
+            # Convert enhanced forecast to expected format
+            forecast = []
+            investment_analysis = enhanced_result.get('investment_analysis', '')
+            
+            for projection in enhanced_result.get('projections', []):
+                forecast.append({
+                    'year': projection['year'],
+                    'projected_dividend': round(projection['projected_dividend'], 4),
+                    'growth_rate': round(projection['enhanced_growth_rate'] * 100, 2),
+                    'confidence_level': round(projection['confidence_interval']['confidence_level'] * 100, 2),
+                    'news_adjustment': round(projection.get('news_adjustment', 0) * 100, 2),
+                    'confidence_interval': {
+                        'lower_95': round(projection['confidence_interval']['lower_95'], 4),
+                        'upper_95': round(projection['confidence_interval']['upper_95'], 4)
+                    },
+                    'methodology': 'Enhanced News-Integrated Forecast',
+                    'investment_analysis': investment_analysis  # Add to each projection so UI can access it
+                })
+            
+            return forecast
+            
+        except Exception as e:
+            logger.warning(f"Enhanced forecasting failed, falling back to traditional method: {e}")
+            return self._generate_traditional_forecast(dividends, financials, economic_context, years)
+    
+    def _generate_traditional_forecast(self, dividends: List[Dict], financials: Dict, economic_context: Dict, years: int) -> List[Dict[str, Any]]:
+        """Generate traditional dividend forecast (fallback method)"""
         # Handle new dividend payers with limited history
         if len(dividends) < 4:
             return self._generate_new_payer_forecast(dividends, financials, economic_context, years)
@@ -2170,7 +2212,8 @@ class DividendService:
                 'year': years_data[0] + year,
                 'projected_dividend': round(projected_dividend, 4),
                 'growth_rate': round(avg_growth * 100, 2),
-                'confidence_level': round(confidence, 2)
+                'confidence_level': round(confidence, 2),
+                'methodology': 'Traditional Historical Analysis'
             })
         
         return forecast
