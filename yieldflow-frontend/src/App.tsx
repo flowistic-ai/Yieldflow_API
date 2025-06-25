@@ -4,6 +4,7 @@ import DividendAnalysisComponent from './components/DividendAnalysis';
 import PortfolioOptimization from './components/PortfolioOptimization';
 import SmartQueryInterface from './components/SmartQueryInterface';
 import FinancialModelsDocumentation from './components/FinancialModelsDocumentation';
+import ProfessionalDemo from './components/ProfessionalDemo';
 
 // Extend the Material-UI theme interface for custom properties
 declare module '@mui/material/styles' {
@@ -561,6 +562,7 @@ function App() {
                   },
                 }}
               >
+                <Tab label="🎨 Professional Demo" />
                 <Tab label="🤖 AI Assistant" />
                 <Tab label="Dividend Analysis" />
                 <Tab label="Portfolio Optimization" />
@@ -569,18 +571,22 @@ function App() {
             </Box>
             
             <TabPanel value={mainTabValue} index={0}>
-              <SmartQueryInterface />
+              <ProfessionalDemo />
             </TabPanel>
             
             <TabPanel value={mainTabValue} index={1}>
-              <DividendAnalysisComponent />
+              <SmartQueryInterface />
             </TabPanel>
             
             <TabPanel value={mainTabValue} index={2}>
-              <PortfolioOptimization />
+              <DividendAnalysisComponent />
             </TabPanel>
             
             <TabPanel value={mainTabValue} index={3}>
+              <PortfolioOptimization />
+            </TabPanel>
+            
+            <TabPanel value={mainTabValue} index={4}>
               <FinancialModelsDocumentation />
             </TabPanel>
           </Container>
