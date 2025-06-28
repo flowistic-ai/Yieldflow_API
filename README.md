@@ -59,7 +59,7 @@ pip install -r requirements.txt
 
 3. **Environment configuration**
 ```bash
-cp .env.example .env
+cp env.example .env
 # Edit .env with your configuration
 ```
 
