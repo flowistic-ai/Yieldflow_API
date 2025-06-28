@@ -29,6 +29,7 @@ class DataProvider:
         self.iex_key = getattr(settings, 'IEX_CLOUD_API_KEY', None)
         self.quandl_key = getattr(settings, 'QUANDL_API_KEY', None)
         self.eod_key = getattr(settings, 'EOD_HISTORICAL_API_KEY', None)
+        self.fred_key = getattr(settings, 'FRED_API_KEY', None)
         
         # Initialize Alpha Vantage clients
         if self.alpha_vantage_key:
@@ -41,6 +42,7 @@ class DataProvider:
         self.twelvedata_base_url = "https://api.twelvedata.com"
         self.iex_base_url = "https://cloud.iexapis.com/stable"
         self.eod_base_url = "https://eodhd.com/api"
+        self.fred_base_url = "https://api.stlouisfed.org/fred"
         
         # Data source priority ranking (higher is better)
         self.source_reliability = {
@@ -51,37 +53,53 @@ class DataProvider:
             'iex_cloud': 0.85,        # Previously reliable until shutdown
             'eod_historical': 0.80,   # Good for historical data
             'yahoo_finance': 0.75,    # Free but sometimes inconsistent
-            'quandl': 0.90           # High-quality for specific datasets
+            'quandl': 0.90,          # High-quality for specific datasets
+            'fred': 0.98             # Federal Reserve official data - highest quality
         }
     
     async def get_company_info(self, ticker: str) -> Dict[str, Any]:
-        """Get comprehensive company information from multiple sources"""
+        """Get company information with SMART FAILOVER - Primary -> Secondary -> Tertiary"""
         
         # Check cache first
         cached_data = await self.cache_service.get_static_data(f"company_info_{ticker}")
         if cached_data:
             return cached_data
         
-        company_data = {}
-        
         try:
-            # Primary source: yfinance (free and comprehensive)
-            yf_data = await self._get_yfinance_company_info(ticker)
-            if yf_data:
-                company_data.update(yf_data)
+            # SMART FAILOVER STRATEGY for company info
+            sources = [
+                ('Yahoo Finance', self._get_yfinance_company_info),
+                ('Alpha Vantage', self._get_alpha_vantage_company_info),
+                ('Financial Modeling Prep', self._get_fmp_company_info)
+            ]
             
-            # Secondary source: Alpha Vantage (for additional details)
-            av_data = await self._get_alpha_vantage_company_info(ticker)
-            if av_data:
-                company_data.update(av_data)
+            company_data = {}
+            successful_source = None
             
-            # Tertiary source: Financial Modeling Prep (if available)
-            if self.fmp_key:
-                fmp_data = await self._get_fmp_company_info(ticker)
-                if fmp_data:
-                    company_data.update(fmp_data)
+            for source_name, fetch_method in sources:
+                try:
+                    logger.info(f"Attempting to fetch company info from {source_name}", ticker=ticker)
+                    
+                    if source_name == 'Financial Modeling Prep' and not self.fmp_key:
+                        logger.info(f"Skipping {source_name} - API key not available")
+                        continue
+                    
+                    source_data = await fetch_method(ticker)
+                    
+                    if source_data and source_data.get('name'):  # Minimum requirement: company name
+                        company_data = source_data
+                        successful_source = source_name
+                        logger.info(f"✅ Successfully fetched company info from {source_name}", ticker=ticker)
+                        break  # SUCCESS - Stop trying other sources
+                    else:
+                        logger.warning(f"❌ {source_name} returned insufficient data", ticker=ticker)
+                        
+                except Exception as e:
+                    logger.warning(f"❌ {source_name} failed: {str(e)}", ticker=ticker)
+                    continue  # Try next source
             
             if not company_data:
+                logger.error(f"🚨 ALL SOURCES FAILED for company info", ticker=ticker)
                 raise TickerNotFoundError(ticker)
             
             # Standardize and validate data
@@ -90,13 +108,14 @@ class DataProvider:
             # Cache the result
             await self.cache_service.cache_static_data(f"company_info_{ticker}", standardized_data)
             
+            logger.info(f"📊 Final result: Company info from {successful_source}", ticker=ticker)
             return standardized_data
             
         except Exception as e:
-            logger.error("Error fetching company info", ticker=ticker, error=str(e))
+            logger.error("Error in smart failover for company info", ticker=ticker, error=str(e))
             if isinstance(e, TickerNotFoundError):
                 raise e
-            raise DataSourceError(f"Failed to fetch company info: {str(e)}", "multi_source")
+            raise DataSourceError(f"All sources failed for company info: {str(e)}", "smart_failover")
     
     async def get_income_statements(
         self,
@@ -106,7 +125,7 @@ class DataProvider:
         period_gte: Optional[date] = None,
         period_lte: Optional[date] = None
     ) -> List[Dict[str, Any]]:
-        """Get income statements from multiple sources with cross-validation"""
+        """Get income statements with SMART FAILOVER - Primary -> Secondary -> Tertiary"""
         
         cache_key = f"income_statements_{ticker}_{period}_{limit}"
         cached_data = await self.cache_service.get_financial_data(ticker, f"income_{period}")
@@ -114,31 +133,52 @@ class DataProvider:
             return cached_data.get('income_statements', [])
         
         try:
+            # SMART FAILOVER STRATEGY - Stop at first successful source
+            sources = [
+                ('Alpha Vantage', self._get_alpha_vantage_income_statements),
+                ('Yahoo Finance', self._get_yfinance_income_statements), 
+                ('Financial Modeling Prep', self._get_fmp_income_statements)
+            ]
+            
             statements = []
+            successful_source = None
             
-            # Primary source: Alpha Vantage
-            av_statements = await self._get_alpha_vantage_income_statements(ticker, period)
+            for source_name, fetch_method in sources:
+                try:
+                    logger.info(f"Attempting to fetch income statements from {source_name}", ticker=ticker)
+                    
+                    if source_name == 'Financial Modeling Prep' and not self.fmp_key:
+                        logger.info(f"Skipping {source_name} - API key not available")
+                        continue
+                    
+                    source_statements = await fetch_method(ticker, period)
+                    
+                    if source_statements and len(source_statements) > 0:
+                        statements = source_statements
+                        successful_source = source_name
+                        logger.info(f"✅ Successfully fetched {len(statements)} statements from {source_name}", ticker=ticker)
+                        break  # SUCCESS - Stop trying other sources
+                    else:
+                        logger.warning(f"❌ {source_name} returned no data", ticker=ticker)
+                        
+                except Exception as e:
+                    logger.warning(f"❌ {source_name} failed: {str(e)}", ticker=ticker)
+                    continue  # Try next source
             
-            # Secondary source: yfinance
-            yf_statements = await self._get_yfinance_income_statements(ticker, period)
+            if not statements:
+                logger.error(f"🚨 ALL SOURCES FAILED for income statements", ticker=ticker)
+                return []
             
-            # Tertiary source: Financial Modeling Prep
-            fmp_statements = []
-            if self.fmp_key:
-                fmp_statements = await self._get_fmp_income_statements(ticker, period)
-            
-            # Use the enhanced merging logic (backward compatible for now)
-            statements = self._merge_income_statements(av_statements, yf_statements, fmp_statements)
-            
-            # Apply filters
+            # Apply filters to successful data
             statements = self._filter_statements_by_date(statements, period_gte, period_lte)
             statements = statements[:limit] if limit else statements
             
+            logger.info(f"📊 Final result: {len(statements)} statements from {successful_source}", ticker=ticker)
             return statements
             
         except Exception as e:
-            logger.error("Error fetching income statements", ticker=ticker, error=str(e))
-            raise DataSourceError(f"Failed to fetch income statements: {str(e)}", "multi_source")
+            logger.error("Error in smart failover for income statements", ticker=ticker, error=str(e))
+            raise DataSourceError(f"All sources failed for income statements: {str(e)}", "smart_failover")
     
     async def get_balance_sheets(
         self,
@@ -148,34 +188,55 @@ class DataProvider:
         period_gte: Optional[date] = None,
         period_lte: Optional[date] = None
     ) -> List[Dict[str, Any]]:
-        """Get balance sheets from multiple sources"""
+        """Get balance sheets with SMART FAILOVER - Primary -> Secondary -> Tertiary"""
         
         try:
+            # SMART FAILOVER STRATEGY
+            sources = [
+                ('Alpha Vantage', self._get_alpha_vantage_balance_sheets),
+                ('Yahoo Finance', self._get_yfinance_balance_sheets),
+                ('Financial Modeling Prep', self._get_fmp_balance_sheets)
+            ]
+            
             statements = []
+            successful_source = None
             
-            # Primary source: Alpha Vantage
-            av_statements = await self._get_alpha_vantage_balance_sheets(ticker, period)
+            for source_name, fetch_method in sources:
+                try:
+                    logger.info(f"Attempting to fetch balance sheets from {source_name}", ticker=ticker)
+                    
+                    if source_name == 'Financial Modeling Prep' and not self.fmp_key:
+                        logger.info(f"Skipping {source_name} - API key not available")
+                        continue
+                    
+                    source_statements = await fetch_method(ticker, period)
+                    
+                    if source_statements and len(source_statements) > 0:
+                        statements = source_statements
+                        successful_source = source_name
+                        logger.info(f"✅ Successfully fetched {len(statements)} balance sheets from {source_name}", ticker=ticker)
+                        break  # SUCCESS - Stop trying other sources
+                    else:
+                        logger.warning(f"❌ {source_name} returned no data", ticker=ticker)
+                        
+                except Exception as e:
+                    logger.warning(f"❌ {source_name} failed: {str(e)}", ticker=ticker)
+                    continue  # Try next source
             
-            # Secondary source: yfinance
-            yf_statements = await self._get_yfinance_balance_sheets(ticker, period)
+            if not statements:
+                logger.error(f"🚨 ALL SOURCES FAILED for balance sheets", ticker=ticker)
+                return []
             
-            # Tertiary source: Financial Modeling Prep
-            fmp_statements = []
-            if self.fmp_key:
-                fmp_statements = await self._get_fmp_balance_sheets(ticker, period)
-            
-            # Cross-validate and merge data
-            statements = self._merge_balance_sheets(av_statements, yf_statements, fmp_statements)
-            
-            # Apply filters
+            # Apply filters to successful data
             statements = self._filter_statements_by_date(statements, period_gte, period_lte)
             statements = statements[:limit] if limit else statements
             
+            logger.info(f"📊 Final result: {len(statements)} balance sheets from {successful_source}", ticker=ticker)
             return statements
             
         except Exception as e:
-            logger.error("Error fetching balance sheets", ticker=ticker, error=str(e))
-            raise DataSourceError(f"Failed to fetch balance sheets: {str(e)}", "multi_source")
+            logger.error("Error in smart failover for balance sheets", ticker=ticker, error=str(e))
+            raise DataSourceError(f"All sources failed for balance sheets: {str(e)}", "smart_failover")
     
     async def get_cash_flows(
         self,
@@ -185,34 +246,55 @@ class DataProvider:
         period_gte: Optional[date] = None,
         period_lte: Optional[date] = None
     ) -> List[Dict[str, Any]]:
-        """Get cash flow statements from multiple sources"""
+        """Get cash flows with SMART FAILOVER - Primary -> Secondary -> Tertiary"""
         
         try:
+            # SMART FAILOVER STRATEGY
+            sources = [
+                ('Alpha Vantage', self._get_alpha_vantage_cash_flows),
+                ('Yahoo Finance', self._get_yfinance_cash_flows),
+                ('Financial Modeling Prep', self._get_fmp_cash_flows)
+            ]
+            
             statements = []
+            successful_source = None
             
-            # Primary source: Alpha Vantage
-            av_statements = await self._get_alpha_vantage_cash_flows(ticker, period)
+            for source_name, fetch_method in sources:
+                try:
+                    logger.info(f"Attempting to fetch cash flows from {source_name}", ticker=ticker)
+                    
+                    if source_name == 'Financial Modeling Prep' and not self.fmp_key:
+                        logger.info(f"Skipping {source_name} - API key not available")
+                        continue
+                    
+                    source_statements = await fetch_method(ticker, period)
+                    
+                    if source_statements and len(source_statements) > 0:
+                        statements = source_statements
+                        successful_source = source_name
+                        logger.info(f"✅ Successfully fetched {len(statements)} cash flows from {source_name}", ticker=ticker)
+                        break  # SUCCESS - Stop trying other sources
+                    else:
+                        logger.warning(f"❌ {source_name} returned no data", ticker=ticker)
+                        
+                except Exception as e:
+                    logger.warning(f"❌ {source_name} failed: {str(e)}", ticker=ticker)
+                    continue  # Try next source
             
-            # Secondary source: yfinance
-            yf_statements = await self._get_yfinance_cash_flows(ticker, period)
+            if not statements:
+                logger.error(f"🚨 ALL SOURCES FAILED for cash flows", ticker=ticker)
+                return []
             
-            # Tertiary source: Financial Modeling Prep
-            fmp_statements = []
-            if self.fmp_key:
-                fmp_statements = await self._get_fmp_cash_flows(ticker, period)
-            
-            # Cross-validate and merge data
-            statements = self._merge_cash_flows(av_statements, yf_statements, fmp_statements)
-            
-            # Apply filters
+            # Apply filters to successful data  
             statements = self._filter_statements_by_date(statements, period_gte, period_lte)
             statements = statements[:limit] if limit else statements
             
+            logger.info(f"📊 Final result: {len(statements)} cash flows from {successful_source}", ticker=ticker)
             return statements
             
         except Exception as e:
-            logger.error("Error fetching cash flows", ticker=ticker, error=str(e))
-            raise DataSourceError(f"Failed to fetch cash flows: {str(e)}", "multi_source")
+            logger.error("Error in smart failover for cash flows", ticker=ticker, error=str(e))
+            raise DataSourceError(f"All sources failed for cash flows: {str(e)}", "smart_failover")
     
     # Alpha Vantage implementations
     async def _get_alpha_vantage_company_info(self, ticker: str) -> Dict[str, Any]:
@@ -233,6 +315,7 @@ class DataProvider:
                 'market_cap': self._safe_float(company_data.get('MarketCapitalization')),
                 'description': company_data.get('Description', ''),
                 'employees': self._safe_int(company_data.get('FullTimeEmployees')),
+                'logo_url': self._get_company_logo_url(ticker),
                 'data_source': 'alpha_vantage'
             }
         except Exception as e:
@@ -372,6 +455,7 @@ class DataProvider:
                 'employees': info.get('fullTimeEmployees'),
                 'description': info.get('longBusinessSummary', ''),
                 'website': info.get('website', ''),
+                'logo_url': self._get_company_logo_url(ticker),
                 'data_source': 'yahoo_finance'
             }
         except Exception as e:
@@ -511,6 +595,7 @@ class DataProvider:
                                 'employees': company.get('fullTimeEmployees'),
                                 'description': company.get('description', ''),
                                 'website': company.get('website', ''),
+                                'logo_url': self._get_company_logo_url(ticker),
                                 'data_source': 'financial_modeling_prep'
                             }
         except Exception as e:
@@ -913,7 +998,7 @@ class DataProvider:
     
     def _standardize_company_data(self, data: Dict[str, Any], ticker: str) -> Dict[str, Any]:
         """Standardize company data from multiple sources"""
-        return {
+        standardized = {
             'ticker': ticker.upper(),
             'name': data.get('name', ''),
             'exchange': data.get('exchange', ''),
@@ -925,9 +1010,31 @@ class DataProvider:
             'employees': data.get('employees'),
             'description': data.get('description', ''),
             'website': data.get('website', ''),
+            'logo_url': self._get_company_logo_url(ticker),
             'data_quality_score': self._calculate_data_quality_score(data),
             'last_updated': datetime.utcnow()
         }
+        return standardized
+    
+    def _get_company_logo_url(self, ticker: str) -> str:
+        """Get company logo URL from multiple sources"""
+        try:
+            # Try Financial Modeling Prep first (highest quality)
+            fmp_logo = f"https://financialmodelingprep.com/image-stock/{ticker.upper()}.png"
+            
+            # Alternative sources as fallbacks:
+            # 1. Logo.dev API (free tier available)
+            logodev_url = f"https://img.logo.dev/{ticker.lower()}.com?token=pk_X-lqcjKBQtOpcU8KZieivw"
+            
+            # 2. Clearbit Logo API (free for small logos)
+            clearbit_url = f"https://logo.clearbit.com/{ticker.lower()}.com"
+            
+            # Return primary URL (FMP) as it has good coverage
+            return fmp_logo
+            
+        except Exception as e:
+            logger.warning("Error getting company logo", ticker=ticker, error=str(e))
+            return ""
     
     def _calculate_data_quality_score(self, data: Dict[str, Any]) -> float:
         """Calculate data quality score based on completeness"""

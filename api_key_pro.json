@@ -1,5 +1,5 @@
 {
-  "api_key": "yk_5o1ShHWAHIqc4OqZrDrdr_WNEquR914BeLDuhh6xeA0",
+  "api_key": "yk_DqSugEeLU7cYgCVWqHQ3Nz6Nju0Gq3Iz20OK97BeHDc",
   "plan": "pro",
   "user_data": {
     "id": 1,
@@ -9,19 +9,19 @@
     "plan": "pro",
     "is_verified": true,
     "is_superuser": false,
-    "created_at": "2025-06-12T15:18:05.138132"
+    "created_at": "2025-06-20T13:27:15.430134"
   },
   "api_key_data": {
-    "key_id": "55ebbabb-c909-464f-9a0b-7ee807d223aa",
-    "key": "yk_5o1ShHWAHIqc4OqZrDrdr_WNEquR914BeLDuhh6xeA0",
-    "key_hash": "d87239cc2e7ca96817566c6927f048261019b77f203ec3f4d983fcee6ee6bcae",
+    "key_id": "5e10e0fe-f12a-4b35-97fc-e84b151355d7",
+    "key": "yk_DqSugEeLU7cYgCVWqHQ3Nz6Nju0Gq3Iz20OK97BeHDc",
+    "key_hash": "b5492fb6495535a8ae76aaa6eab728b97acc981856eec25fe65a85b2a1a1ad25",
     "name": "Pro Test Key",
     "user_id": 1,
     "is_active": true,
-    "expires_at": "2026-06-12T15:18:05.138313",
-    "created_at": "2025-06-12T15:18:05.138318",
+    "expires_at": "2026-06-20T13:27:15.430891",
+    "created_at": "2025-06-20T13:27:15.430907",
     "allowed_ips": null,
     "scopes": null
   },
-  "created_at": "2025-06-12T15:18:05.138364"
+  "created_at": "2025-06-20T13:27:15.431037"
 }

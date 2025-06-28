@@ -105,24 +105,24 @@ class RatioCalculator:
             latest_balance = balance_sheets[0]
             ratios = {}
             
-            # Basic liquidity ratios
-            current_assets = latest_balance.get('current_assets', 0)
-            current_liabilities = latest_balance.get('current_liabilities', 0)
-            inventory = latest_balance.get('inventory', 0)
-            cash_and_equivalents = latest_balance.get('cash_and_equivalents', 0)
+            # Basic liquidity ratios - handle None values properly
+            current_assets = latest_balance.get('current_assets') or 0
+            current_liabilities = latest_balance.get('current_liabilities') or 0
+            inventory = latest_balance.get('inventory') or 0
+            cash_and_equivalents = latest_balance.get('cash_and_equivalents') or 0
             
             ratios['current_ratio'] = self._safe_divide(current_assets, current_liabilities)
             
-            ratios['quick_ratio'] = self._safe_divide(
-                current_assets - inventory, current_liabilities
-            )
+            # Safely calculate quick ratio
+            quick_assets = (current_assets or 0) - (inventory or 0)
+            ratios['quick_ratio'] = self._safe_divide(quick_assets, current_liabilities)
             
             ratios['cash_ratio'] = self._safe_divide(
                 cash_and_equivalents, current_liabilities
             )
             
-            # Working capital metrics
-            ratios['working_capital'] = current_assets - current_liabilities
+            # Working capital metrics - handle None values
+            ratios['working_capital'] = (current_assets or 0) - (current_liabilities or 0)
             ratios['working_capital_to_sales'] = self._calculate_working_capital_to_sales(
                 latest_balance, balance_sheets
             )

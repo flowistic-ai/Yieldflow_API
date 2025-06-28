@@ -28,7 +28,11 @@ class Settings(BaseSettings):
     IEX_CLOUD_API_KEY: str = Field(default="", description="IEX Cloud API key")
     QUANDL_API_KEY: str = Field(default="", description="Quandl API key")
     EOD_HISTORICAL_API_KEY: str = Field(default="", description="EOD Historical Data API key")
+    FRED_API_KEY: str = Field(default="a8e11fe22a153d722a432b582ac47912", description="FRED (Federal Reserve Economic Data) API key")
     OPENAI_API_KEY: str = Field(default="", description="OpenAI API key for AI insights")
+    ANTHROPIC_API_KEY: str = Field(default="", description="Anthropic Claude API key for AI insights")
+    GOOGLE_GEMINI_API_KEY: str = Field(default="", description="Google Gemini API key for AI insights")
+    NEWS_API_KEY: str = Field(default="", description="NewsAPI.org API key for news sentiment analysis")
     
     # CORS settings
     BACKEND_CORS_ORIGINS: List[str] = Field(

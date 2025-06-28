@@ -22,6 +22,7 @@ class Company(BaseModel):
     employees = Column(Integer, nullable=True)
     description = Column(Text, nullable=True)
     website = Column(String(255), nullable=True)
+    logo_url = Column(String(500), nullable=True)
     
     # Metadata
     data_quality_score = Column(Float, nullable=True)  # 0-1 score

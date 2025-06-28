@@ -4,7 +4,7 @@ Handles authentication, authorization, and feature access control
 """
 
 from typing import Optional, Dict, Any
-from fastapi import Depends, HTTPException, status, Security
+from fastapi import Depends, HTTPException, status, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import structlog
 import json
@@ -53,6 +53,8 @@ def load_test_api_keys():
         "test_basic_key": {"user_id": 101, "email": "basic@test.com", "plan": "basic", "is_active": True},
         "test_pro_key": {"user_id": 102, "email": "pro@test.com", "plan": "pro", "is_active": True},
         "test_enterprise_key": {"user_id": 103, "email": "enterprise@test.com", "plan": "enterprise", "is_active": True},
+        # User's actual API key
+        "yk_wMUsnDqpdIjHFj2lFB-CxjHdKQte4BkpJBY1rNFA3bw": {"user_id": 200, "email": "user@yieldflow.com", "plan": "pro", "is_active": True},
     })
     
     return test_keys
@@ -60,6 +62,50 @@ def load_test_api_keys():
 
 # Load test keys at startup
 TEST_API_KEYS = load_test_api_keys()
+
+
+async def get_current_user_from_api_key(request: Request) -> MockUser:
+    """
+    Get current user from X-API-KEY header (preferred method)
+    """
+    try:
+        api_key = request.headers.get("X-API-KEY")
+        
+        if not api_key:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="API key required. Please provide X-API-KEY header."
+            )
+        
+        # Check if API key exists in our test keys
+        if api_key in TEST_API_KEYS:
+            key_data = TEST_API_KEYS[api_key]
+            logger.info("Using API key from X-API-KEY header", 
+                       user_id=key_data["user_id"], 
+                       plan=key_data["plan"],
+                       email=key_data["email"])
+            
+            return MockUser(
+                id=key_data["user_id"],
+                email=key_data["email"], 
+                plan=key_data["plan"],
+                is_active=key_data["is_active"]
+            )
+        
+        # If we get here, the API key is invalid
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("X-API-KEY authentication error", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
+        )
 
 
 async def get_current_user(
