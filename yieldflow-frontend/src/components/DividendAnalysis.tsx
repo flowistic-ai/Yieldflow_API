@@ -59,6 +59,10 @@ import {
 } from 'recharts';
 import { dividendService, getCompanyInfo } from '../services/dividendService';
 import Header from './Header';
+import FinancialDataService from '../services/financialDataService';
+import DividendQualitySnowflake from './SnowflakeAnalysis';
+import KpiCard from './common/KpiCard';
+import AnimatedDonut from './common/AnimatedDonut';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -264,361 +268,112 @@ const DividendAnalysisComponent: React.FC = () => {
   };
 
   // Current Tab Content
-  const CurrentTab = () => (
-    <Stack spacing={4}>
-      {/* Overall Quality Score - Hero Card */}
-      <Card 
-        elevation={0}
-        sx={{ 
-          background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)',
-          border: '2px solid #CBD5E1',
-          borderRadius: 3,
-        }}
-      >
-        <CardContent sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2,
-                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
-                }}
-              >
-                <AssessmentIcon sx={{ color: 'white', fontSize: 24 }} />
-              </Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                Overall Dividend Quality
-              </Typography>
-            </Box>
-            <Tooltip title="Click for detailed scoring methodology">
-              <IconButton 
-                onClick={() => setQualityInfoExpanded(!qualityInfoExpanded)}
-                sx={{ 
-                  color: 'primary.main',
-                  backgroundColor: 'rgba(15, 23, 42, 0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(15, 23, 42, 0.15)',
-                  },
-                }}
-              >
-                <InfoIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Typography 
-                variant="h2" 
-                sx={{ 
-                  fontWeight: 800,
-                  color: getScoreColor(analysis?.dividend_quality_score?.quality_score || 0),
-                  lineHeight: 1,
-                }}
-              >
-                {analysis?.dividend_quality_score?.quality_score || 0}
-              </Typography>
-              <Box>
-                <Chip 
-                  label={analysis?.dividend_quality_score?.grade || 'F'} 
-                  color={getGradeColor(analysis?.dividend_quality_score?.grade || '')}
-                  size="medium"
-                  sx={{ 
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    height: 36,
-                    mb: 1,
-                  }}
-                />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                  {analysis?.dividend_quality_score?.rating || 'No Rating'}
-                </Typography>
-              </Box>
+  const CurrentTab = () => {
+    return (
+      <Stack spacing={4}>
+        {analysis && (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 2 }}>
+            <KpiCard
+              label="Dividend Yield"
+              value={(() => {
+                  const y = analysis?.current_metrics?.current_yield_pct;
+                  if (typeof y !== 'number') return 'N/A';
+                  return y > 10 ? (y / 100).toFixed(2) : y.toFixed(2);
+              })()}
+              unit="%"
+            />
+            <KpiCard
+              label="Payout Ratio"
+              value={(analysis?.sustainability_analysis?.key_ratios?.payout_ratio * 100).toFixed(1)}
+              unit="%"
+            />
+            <KpiCard
+              label="Annual Dividend"
+              prefix="$"
+              value={analysis?.current_metrics?.estimated_annual_dividend || 0}
+            />
+            <KpiCard
+              label="Frequency"
+              value={analysis?.current_metrics?.payment_frequency || 'N/A'}
+            />
+             <KpiCard
+              label="Last Pay Date"
+              value={analysis?.current_metrics?.last_payment?.ex_date ? 
+                new Date(analysis.current_metrics.last_payment.ex_date).toLocaleDateString() : 'N/A'}
+            />
+            <Box sx={{ position: 'relative' }}>
+              <KpiCard
+                label="Coverage Grade"
+                value={analysis?.coverage_analysis?.coverage_grades?.composite_grade || 'N/A'}
+              />
+              <Tooltip title="Coverage Grade Explanation">
+                <IconButton
+                  size="small"
+                  onClick={() => setCoverageInfoExpanded(!coverageInfoExpanded)}
+                  sx={{ position: 'absolute', top: 4, right: 4, color: 'text.secondary' }}
+                >
+                  <InfoIcon fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Box>
-          
-          <Collapse in={qualityInfoExpanded}>
-            <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-              <Typography variant="h6" gutterBottom color="primary">
-                How We Calculate Dividend Quality Score
-              </Typography>
-              <Typography variant="body2" paragraph>
-                Our institutional-grade scoring system (0-100) is based on Morningstar and S&P methodologies:
-              </Typography>
-              <Box sx={{ pl: 2 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Consistency (25%):</strong> Years of maintained/increased dividends
+        )}
+        <Collapse in={coverageInfoExpanded}>
+            <Paper elevation={0} sx={{ p: 2, mt: 1, border: '1px solid', borderColor: 'rgba(0,0,0,0.12)' }}>
+                <Typography variant="h6" gutterBottom>Coverage Grade Explanation</Typography>
+                <Typography variant="body2" paragraph>
+                    The Coverage Grade assesses a company's ability to pay its dividends using its earnings and free cash flow. A higher grade suggests a safer dividend.
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Growth (25%):</strong> CAGR analysis with 5-15% optimal target
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Coverage (25%):</strong> EPS & Free Cash Flow coverage ratios
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Yield Quality (15%):</strong> Stability vs volatility assessment
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Financial Strength (10%):</strong> ROE and balance sheet metrics
-                </Typography>
-              </Box>
-              <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
-                <strong>Grading Scale:</strong> A+ (90-100), A (80-89), B (60-79), C (40-59), D (30-39), F (0-29)
-              </Typography>
-            </Box>
-          </Collapse>
-          <LinearProgress 
-            variant="determinate" 
-            value={analysis?.dividend_quality_score?.quality_score || 0} 
-            sx={{ height: 10, borderRadius: 5, mb: 2 }}
-          />
-          <Typography variant="body1" color="text.secondary">
-            <strong>Investment Recommendation:</strong> {analysis?.dividend_quality_score?.investment_recommendation || 'N/A'}
-          </Typography>
-        </CardContent>
-      </Card>
+                <ul>
+                    <li><Typography variant="body2"><strong>Primary:</strong> Net Income / Total Dividends</Typography></li>
+                    <li><Typography variant="body2"><strong>Fallback:</strong> Earnings Per Share / Dividend Per Share</Typography></li>
+                </ul>
+                <Typography variant="caption">Grading Scale: A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (&lt;1.0x)</Typography>
+            </Paper>
+        </Collapse>
 
-      {/* Current Dividend Information and Key Metrics */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-        <Card 
-          elevation={0}
-          sx={{ 
-            border: '1px solid #E2E8F0',
-            borderRadius: 2,
-            '&:hover': {
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <AccountBalanceIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                Current Dividend Information
-              </Typography>
+        <Card elevation={2}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Overall Dividend Quality
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+              <AnimatedDonut value={analysis?.dividend_quality_score?.quality_score || 0} size={150} />
             </Box>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Dividend Yield:</strong></Typography>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const yield_pct = analysis?.current_metrics?.current_yield_pct || 
-                                     currentDividend?.current_dividend_info?.current_yield_pct || 
-                                     currentDividend?.current_metrics?.current_yield_pct ||
-                                     currentDividend?.yield;
-                    
-                    if (yield_pct !== undefined && yield_pct !== null && yield_pct !== 'N/A') {
-                      return `${Number(yield_pct).toFixed(2)}%`;
-                    }
-                    return '0.00%';
-                  })()}
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+                <Chip label={analysis?.dividend_quality_score?.grade || 'N/A'} color="primary" sx={{ mb: 1, fontWeight: 'bold' }} />
+                <Typography variant="h6" >
+                {analysis?.dividend_quality_score?.rating || 'No Rating'}
                 </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Tooltip title="Total dividends per share expected over the next 12 months">
-                  <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                    <strong>Annual Dividend (per share):</strong>
-                  </Typography>
-                </Tooltip>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const annual_div = analysis?.current_metrics?.estimated_annual_dividend ||
-                                      currentDividend?.current_dividend_info?.estimated_annual_dividend ||
-                                      currentDividend?.current_metrics?.estimated_annual_dividend ||
-                                      currentDividend?.estimated_annual;
-                    
-                    if (annual_div !== undefined && annual_div !== null && annual_div !== 'N/A') {
-                      return `$${Number(annual_div).toFixed(2)}`;
-                    }
-                    return '$0.00';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Tooltip title="Most recent dividend payment amount per share">
-                  <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                    <strong>Last Payment (per share):</strong>
-                  </Typography>
-                </Tooltip>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const last_amount = analysis?.current_metrics?.last_payment?.amount ||
-                                       currentDividend?.current_dividend_info?.last_payment?.amount ||
-                                       currentDividend?.current_metrics?.last_payment?.amount ||
-                                       currentDividend?.last_payment?.amount;
-                    
-                    if (last_amount !== undefined && last_amount !== null && last_amount !== 'N/A') {
-                      return `$${Number(last_amount).toFixed(2)}`;
-                    }
-                    return '$0.00';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Tooltip title="Ex-dividend date of the most recent payment">
-                  <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                    <strong>Last Payment Date:</strong>
-                  </Typography>
-                </Tooltip>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const lastPaymentDate = analysis?.current_metrics?.last_payment?.ex_date ||
-                      currentDividend?.current_dividend_info?.last_payment?.ex_date ||
-                      currentDividend?.current_metrics?.last_payment?.ex_date ||
-                      currentDividend?.last_payment?.ex_date;
-                    
-                    if (lastPaymentDate) {
-                      try {
-                        return new Date(lastPaymentDate).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        });
-                      } catch {
-                        return lastPaymentDate;
-                      }
-                    }
-                    return 'N/A';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Payment Frequency:</strong></Typography>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const frequency = analysis?.current_metrics?.payment_frequency ||
-                                     currentDividend?.current_dividend_info?.payment_frequency ||
-                                     currentDividend?.current_metrics?.payment_frequency ||
-                                     currentDividend?.payment_frequency;
-                    
-                    if (frequency && frequency !== 'N/A') {
-                      return frequency;
-                    }
-                    return 'No Dividends';
-                  })()}
-                </Typography>
-              </Box>
             </Box>
+            <LinearProgress
+              variant="determinate"
+              value={analysis?.dividend_quality_score?.quality_score || 0}
+              sx={{ height: 8, borderRadius: 5, mb: 2 }}
+            />
+             <Typography variant="body2" color="text.secondary" align="center">
+              <strong>Recommendation:</strong> {analysis?.dividend_quality_score?.investment_recommendation || 'N/A'}
+            </Typography>
           </CardContent>
         </Card>
 
-        <Card 
-          elevation={0}
-          sx={{ 
-            border: '1px solid #E2E8F0',
-            borderRadius: 2,
-            '&:hover': {
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <ShowChartIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                Key Metrics Summary
+        {analysis && (
+          <Card elevation={2}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Financial Health
               </Typography>
-            </Box>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Analysis Period:</strong></Typography>
-                <Typography variant="body1">
-                  {(() => {
-                    const years = analysis?.analysis_period?.years_analyzed;
-                    if (years && years > 0) {
-                      return `${Number(years).toFixed(1)} years`;
-                    }
-                    return 'Limited Data';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Sustainability Score:</strong></Typography>
-                          <Typography variant="body1" color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success.main' : 'info.main'}>
-            {(() => {
-              const score = analysis?.sustainability_analysis?.sustainability_score;
-              if (score !== undefined && score !== null && score !== 'N/A') {
-                return `${Number(score)}/100`;
-              }
-              return '0/100';
-            })()}
-          </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Risk Rating:</strong></Typography>
-                <Chip 
-                  label={(() => {
-                    const rating = analysis?.risk_assessment?.risk_rating;
-                    if (rating && rating !== 'N/A') {
-                      return rating;
-                    }
-                    return 'Unknown';
-                  })()}
-                  color={analysis?.risk_assessment?.risk_rating === 'Low' ? 'success' : 
-                         analysis?.risk_assessment?.risk_rating === 'Medium' ? 'warning' : 'error'}
-                  size="small"
-                />
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Tooltip title="Click for detailed coverage analysis explanation">
-                    <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                      <strong>Coverage Grade:</strong>
-                    </Typography>
-                  </Tooltip>
-                  <IconButton 
-                    size="small"
-                    onClick={() => setCoverageInfoExpanded(!coverageInfoExpanded)}
-                    sx={{ color: 'primary.main' }}
-                  >
-                    {coverageInfoExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                  </IconButton>
-                </Box>
-                <Chip 
-                  label={analysis?.coverage_analysis?.coverage_grades?.composite_grade || 'N/A'}
-                  color={getGradeColor(analysis?.coverage_analysis?.coverage_grades?.composite_grade || '')}
-                  size="small"
-                />
-              </Box>
-              
-              <Collapse in={coverageInfoExpanded}>
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    📊 Coverage Grade Explanation
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Coverage Grade</strong> measures the company's ability to pay dividends from its earnings and cash flows. Higher ratios indicate stronger dividend security.
-                  </Typography>
-                  <Box sx={{ pl: 2 }}>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>• Primary:</strong> Net Income ÷ Total Dividends (preferred when available)
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>• Fallback:</strong> Earnings Per Share ÷ Dividend Per Share
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    <strong>Grading Scale:</strong> A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (&lt;1.0x)
-                  </Typography>
-                  {analysis?.coverage_analysis?.coverage_grades?.composite_grade === 'N/A' && (
-                    <Typography variant="body2" sx={{ mt: 1, color: 'warning.main' }}>
-                      <strong>Note:</strong> Coverage grade shows "N/A" when insufficient financial data is available for calculation.
-                    </Typography>
-                  )}
-                </Box>
-              </Collapse>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-    </Stack>
-  );
+              <DividendQualitySnowflake
+                analysis={analysis}
+                ticker={lastAnalyzedTicker}
+                companyInfo={companyInfo}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </Stack>
+    );
+  };
 
   // Sustainability Tab Content
   const SustainabilityTab = () => (
