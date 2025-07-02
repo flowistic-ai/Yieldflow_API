@@ -204,26 +204,50 @@ class DividendService:
                 'investment_recommendation': 'No Dividend'
             }
         
-        # Component calculations with institutional weighting
-        consistency_score = self._score_dividend_consistency(dividends) * 0.25    # 25%
-        growth_score = self._score_dividend_growth(dividends) * 0.25             # 25%
-        coverage_score = self._score_dividend_coverage(dividends, financials) * 0.25  # 25%
-        yield_quality_score = self._score_dividend_yield_quality(dividends) * 0.15    # 15%
-        financial_strength = self._score_financial_strength(financials) * 0.10        # 10%
-        
-        total_score = consistency_score + growth_score + coverage_score + yield_quality_score + financial_strength
-        
-        # Professional grading scale
-        if total_score >= 90: grade, rating = 'A+', 'Exceptional'
-        elif total_score >= 80: grade, rating = 'A', 'Excellent'
-        elif total_score >= 70: grade, rating = 'B+', 'Very Good'
-        elif total_score >= 60: grade, rating = 'B', 'Good'
-        elif total_score >= 50: grade, rating = 'C+', 'Fair'
-        elif total_score >= 40: grade, rating = 'C', 'Below Average'
-        elif total_score >= 30: grade, rating = 'D', 'Poor'
-        else: grade, rating = 'F', 'Very Poor'
-        
-        # Determine investment recommendation
+        # --- Component calculations (raw scores) ---
+        # Each helper returns a raw score on its own limited scale (0-20 or 0-15).
+        consistency_raw = self._score_dividend_consistency(dividends)      # 0 – 20
+        growth_raw = self._score_dividend_growth(dividends)                # 0 – 20
+        coverage_raw = self._score_dividend_coverage(dividends, financials)  # 0 – 20
+        yield_quality_raw = self._score_dividend_yield_quality(dividends)   # 0 – 15
+        financial_strength_raw = self._score_financial_strength(financials) # 0 – 20
+
+        # --- Normalise raw scores to 0-100 percentage scale ---
+        # This ensures each category is comparable before applying the weightings.
+        consistency_pct = (consistency_raw / 20.0) * 100
+        growth_pct = (growth_raw / 20.0) * 100
+        coverage_pct = (coverage_raw / 20.0) * 100
+        yield_quality_pct = (yield_quality_raw / 15.0) * 100 if yield_quality_raw <= 15 else 100
+        financial_strength_pct = (financial_strength_raw / 20.0) * 100
+
+        # --- Apply institutional weightings ---
+        total_score = (
+            consistency_pct * 0.25 +
+            growth_pct * 0.25 +
+            coverage_pct * 0.25 +
+            yield_quality_pct * 0.15 +
+            financial_strength_pct * 0.10
+        )
+
+        # --- Determine grades & ratings based on the new 0-100 scale ---
+        if total_score >= 90:
+            grade, rating = 'A+', 'Exceptional'
+        elif total_score >= 80:
+            grade, rating = 'A', 'Excellent'
+        elif total_score >= 70:
+            grade, rating = 'B+', 'Very Good'
+        elif total_score >= 60:
+            grade, rating = 'B', 'Good'
+        elif total_score >= 50:
+            grade, rating = 'C+', 'Fair'
+        elif total_score >= 40:
+            grade, rating = 'C', 'Below Average'
+        elif total_score >= 30:
+            grade, rating = 'D', 'Poor'
+        else:
+            grade, rating = 'F', 'Very Poor'
+
+        # --- Map total score to investment recommendation ---
         if total_score >= 80:
             recommendation = 'Strong Buy'
         elif total_score >= 70:
@@ -234,17 +258,17 @@ class DividendService:
             recommendation = 'Weak Hold'
         else:
             recommendation = 'Avoid'
-        
+
         return {
             'quality_score': round(total_score, 1),
             'grade': grade,
             'rating': rating,
             'components': {
-                'consistency_score': round(consistency_score / 0.25, 1),  # Show as 0-100
-                'growth_score': round(growth_score / 0.25, 1),
-                'coverage_score': round(coverage_score / 0.25, 1),
-                'yield_quality_score': round(yield_quality_score / 0.15, 1),
-                'financial_strength_score': round(financial_strength / 0.10, 1)
+                'consistency_score': round(consistency_pct, 1),
+                'growth_score': round(growth_pct, 1),
+                'coverage_score': round(coverage_pct, 1),
+                'yield_quality_score': round(yield_quality_pct, 1),
+                'financial_strength_score': round(financial_strength_pct, 1)
             },
             'investment_recommendation': recommendation
         }
