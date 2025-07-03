@@ -564,7 +564,7 @@ function App() {
                 <Tab label="🤖 AI Assistant" />
                 <Tab label="Dividend Analysis" />
                 <Tab label="Portfolio Optimization" />
-                <Tab label="📚 Documentation" />
+                <Tab label="Documentation" />
               </Tabs>
             </Box>
             

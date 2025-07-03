@@ -1218,16 +1218,6 @@ const PortfolioOptimization: React.FC = () => {
                           )}
                         </Typography>
                         
-                        {/* Investment Thesis */}
-                        <Box sx={{ mb: 3, p: 2, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 1 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                            Investment Thesis:
-                          </Typography>
-                          <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
-                            {nepoResults.news_intelligence.investment_thesis || 'News-enhanced analysis completed with market intelligence integration.'}
-                          </Typography>
-                        </Box>
-
                         {/* News Analyses */}
                         {nepoResults.news_intelligence.news_analyses && Object.keys(nepoResults.news_intelligence.news_analyses).length > 0 && (
                           <Box>
@@ -1294,38 +1284,51 @@ const PortfolioOptimization: React.FC = () => {
                       )}
                     </Paper>
                   </Grow>
+
+                  {/* ===== Additional visualisations on same page ===== */}
+                  {showResults && (
+                    <Box sx={{ mt: 4 }}>
+                      {/* Efficient Frontier */}
+                      {efficientFrontier && (
+                        <Box sx={{ mb: 4 }}>
+                          <Typography variant="h6" gutterBottom>
+                            Efficient Frontier
+                          </Typography>
+                          <Scatter
+                            data={{
+                              datasets: [
+                                {
+                                  label: 'Efficient Frontier',
+                                  data: efficientFrontier.frontier_points.map(p => ({ x: p.volatility * 100, y: p.expected_return * 100 })),
+                                  borderColor: '#3B82F6',
+                                  backgroundColor: 'rgba(59,130,246,0.4)',
+                                  showLine: true,
+                                  fill: false,
+                                },
+                              ],
+                            }}
+                            options={{
+                              scales: {
+                                x: { title: { display: true, text: 'Volatility (%)' }, beginAtZero: true },
+                                y: { title: { display: true, text: 'Expected Return (%)' }, beginAtZero: true },
+                              },
+                              plugins: { legend: { position: 'top' } },
+                            }}
+                          />
+                        </Box>
+                      )}
+
+                      {/* Correlation Matrix */}
+                      <Box>
+                        <Typography variant="h6" gutterBottom>
+                          Correlation Matrix
+                        </Typography>
+                        {renderCorrelationMatrix()}
+                      </Box>
+                    </Box>
+                  )}
                 </Stack>
               )}
-              {/* Efficient Frontier Tab */}
-              {activeTab === 1 && (
-                efficientFrontier ? (
-                  <Box sx={{ height: 400 }}>
-                    <Scatter
-                      data={{
-                        datasets: [{
-                          label: 'Efficient Frontier',
-                          data: efficientFrontier.frontier_points.map(p => ({ x: p.volatility * 100, y: p.expected_return * 100 })),
-                          borderColor: '#3B82F6',
-                          backgroundColor: 'rgba(59,130,246,0.4)',
-                          showLine: true,
-                          fill: false,
-                        }]
-                      }}
-                      options={{
-                        scales: {
-                          x: { title: { display: true, text: 'Volatility (%)' }, beginAtZero: true },
-                          y: { title: { display: true, text: 'Expected Return (%)' }, beginAtZero: true }
-                        },
-                        plugins: { legend: { position: 'top' } }
-                      }}
-                    />
-                  </Box>
-                ) : (
-                  <Typography>Loading Efficient Frontier...</Typography>
-                )
-              )}
-              {/* Correlation Tab */}
-              {activeTab === 2 && renderCorrelationMatrix()}
             </Box>
           </Paper>
         </Collapse>

@@ -311,58 +311,52 @@ class EnhancedPortfolioOptimizer:
             }
     
     async def _compute_asset_metrics(self, tickers: List[str]) -> List[AssetMetrics]:
-        """Compute comprehensive metrics for each asset."""
-        metrics = []
-        
-        for ticker in tickers:
-            try:
-                # Note: We need to use the dividend service since data_provider doesn't have get_dividend_analysis
-                from app.services.dividend_service import DividendService
-                dividend_service = DividendService()
-                
-                # Get dividend analysis
-                analysis = await dividend_service.get_comprehensive_dividend_analysis(ticker)
-                
-                # Get financial data - use realistic estimates based on ticker
-                financial_data = self._get_realistic_financial_metrics(ticker)
-                
-                # Extract metrics from analysis dictionary
-                current_metrics = analysis.get('current_metrics', {})
-                growth_analytics = analysis.get('growth_analytics', {})
-                risk_assessment = analysis.get('risk_assessment', {})
-                
-                # Calculate expected return with realistic differentiation
-                dividend_yield = current_metrics.get('current_dividend_yield', self._get_realistic_yield(ticker)) / 100
-                growth_rate = growth_analytics.get('five_year_cagr', self._get_realistic_growth(ticker)) / 100
-                expected_return = dividend_yield + growth_rate + self._get_realistic_risk_premium(ticker)
-                
-                # Risk metrics with realistic differentiation
-                volatility = risk_assessment.get('dividend_volatility', self._get_realistic_volatility(ticker)) / 100
-                payout_ratio = current_metrics.get('payout_ratio', self._get_realistic_payout(ticker)) / 100
-                
-                # Dividend quality score
-                consistency_score = self._calculate_dividend_consistency(analysis)
-                
-                metrics.append(AssetMetrics(
-                    ticker=ticker,
-                    expected_return=expected_return,
-                    volatility=volatility,
-                    dividend_yield=dividend_yield,
-                    dividend_growth_rate=growth_rate,
-                    payout_ratio=payout_ratio,
-                    debt_to_equity=financial_data.get("debt_to_equity", 0.5),
-                    roe=financial_data.get("roe", 0.12),
-                    current_ratio=financial_data.get("current_ratio", 1.5),
-                    earnings_growth=financial_data.get("earnings_growth", growth_rate),
-                    dividend_consistency_score=consistency_score
-                ))
-                
-            except Exception as e:
-                logger.warning(f"Failed to get metrics for {ticker}: {e}")
-                # Use realistic fallback data
-                metrics.append(self._get_fallback_metrics(ticker))
-                
-        return metrics
+        """Compute comprehensive metrics for each asset **in parallel** to speed-up requests."""
+        from app.services.dividend_service import DividendService
+        dividend_service = DividendService()
+
+        # Limit concurrent outbound requests to avoid overwhelming external APIs
+        semaphore = asyncio.Semaphore(5)
+
+        async def _fetch_for_ticker(ticker: str) -> AssetMetrics:
+            """Wrapper that fetches and constructs AssetMetrics for one ticker with fallback handling."""
+            async with semaphore:
+                try:
+                    analysis = await dividend_service.get_comprehensive_dividend_analysis(ticker)
+
+                    financial_data = self._get_realistic_financial_metrics(ticker)
+
+                    current_metrics = analysis.get('current_metrics', {})
+                    growth_analytics = analysis.get('growth_analytics', {})
+                    risk_assessment = analysis.get('risk_assessment', {})
+
+                    dividend_yield = current_metrics.get('current_dividend_yield', self._get_realistic_yield(ticker)) / 100
+                    growth_rate = growth_analytics.get('five_year_cagr', self._get_realistic_growth(ticker)) / 100
+                    expected_return = dividend_yield + growth_rate + self._get_realistic_risk_premium(ticker)
+
+                    volatility = risk_assessment.get('dividend_volatility', self._get_realistic_volatility(ticker)) / 100
+                    payout_ratio = current_metrics.get('payout_ratio', self._get_realistic_payout(ticker)) / 100
+
+                    consistency_score = self._calculate_dividend_consistency(analysis)
+
+                    return AssetMetrics(
+                        ticker=ticker,
+                        expected_return=expected_return,
+                        volatility=volatility,
+                        dividend_yield=dividend_yield,
+                        dividend_growth_rate=growth_rate,
+                        payout_ratio=payout_ratio,
+                        debt_to_equity=financial_data.get("debt_to_equity", 0.5),
+                        roe=financial_data.get("roe", 0.12),
+                        current_ratio=financial_data.get("current_ratio", 1.5),
+                        earnings_growth=financial_data.get("earnings_growth", growth_rate),
+                        dividend_consistency_score=consistency_score
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to get metrics for {ticker}: {e}")
+                    return self._get_fallback_metrics(ticker)
+
+        return await asyncio.gather(*[asyncio.create_task(_fetch_for_ticker(t)) for t in tickers])
     
     def _get_realistic_financial_metrics(self, ticker: str) -> Dict[str, float]:
         """Get realistic financial metrics based on ticker type."""
@@ -474,46 +468,37 @@ class EnhancedPortfolioOptimizer:
             return 0.75
     
     async def _get_historical_returns(self, tickers: List[str], years: int = 5) -> pd.DataFrame:
-        """Get historical returns for covariance estimation."""
-        try:
-            import yfinance as yf
-            returns_data = {}
-            
-            for ticker in tickers:
+        """Fetch historical returns concurrently for faster covariance estimation."""
+        import yfinance as yf
+
+        semaphore = asyncio.Semaphore(5)
+
+        async def _fetch_returns(ticker: str):
+            async with semaphore:
                 try:
-                    # Use yfinance to get historical data
                     stock = yf.Ticker(ticker)
                     hist = stock.history(period=f"{years}y")
-                    
                     if len(hist) > 20:
                         prices = hist['Close'].values
-                        returns = np.diff(np.log(prices))
-                        returns_data[ticker] = returns
-                    else:
-                        # Fallback to realistic synthetic data
-                        np.random.seed(hash(ticker) % 2**32)
-                        volatility = self._get_realistic_volatility(ticker) / 100
-                        returns_data[ticker] = np.random.normal(0.08/252, volatility/np.sqrt(252), years * 252)
-                        
-                except Exception as ticker_error:
-                    logger.warning(f"Failed to get data for {ticker}: {ticker_error}")
-                    # Use realistic synthetic data as fallback
+                        return ticker, np.diff(np.log(prices))
+                    # Synthetic fallback
                     np.random.seed(hash(ticker) % 2**32)
-                    volatility = self._get_realistic_volatility(ticker) / 100
-                    returns_data[ticker] = np.random.normal(0.08/252, volatility/np.sqrt(252), years * 252)
-                    
-            return pd.DataFrame(returns_data).fillna(0)
-            
+                    vol = self._get_realistic_volatility(ticker) / 100
+                    return ticker, np.random.normal(0.08/252, vol/np.sqrt(252), years * 252)
+                except Exception as e:
+                    logger.warning(f"Failed to get data for {ticker}: {e}")
+                    np.random.seed(hash(ticker) % 2**32)
+                    vol = self._get_realistic_volatility(ticker) / 100
+                    return ticker, np.random.normal(0.08/252, vol/np.sqrt(252), years * 252)
+
+        results = await asyncio.gather(*[asyncio.create_task(_fetch_returns(t)) for t in tickers])
+        returns_data = {ticker: ret for ticker, ret in results}
+
+        try:
+            return pd.DataFrame(returns_data)
         except Exception as e:
-            logger.error(f"Failed to get historical returns: {e}")
-            # Generate realistic synthetic correlation matrix
-            np.random.seed(42)
-            n_days = years * 252
-            data = {}
-            for i, ticker in enumerate(tickers):
-                volatility = self._get_realistic_volatility(ticker) / 100
-                data[ticker] = np.random.normal(0.08/252, volatility/np.sqrt(252), n_days)
-            return pd.DataFrame(data)
+            logger.error(f"Failed to assemble returns DataFrame: {e}")
+            raise
     
     def _compute_expected_returns(self, asset_metrics: List[AssetMetrics], objective: str) -> np.ndarray:
         """Compute expected returns vector based on objective."""

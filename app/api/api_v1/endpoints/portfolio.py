@@ -24,6 +24,7 @@ from app.schemas.portfolio import (
     PortfolioRiskAnalysis
 )
 from app.core.config import settings
+from app.services.cache_service import CacheService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -42,6 +43,13 @@ async def optimize_dividend_portfolio(
     - Multiple optimization objectives for dividend-focused investing
     """
     try:
+        # Check cache first to avoid recomputation
+        cache = CacheService()
+        cache_key = f"portfolio_opt:{','.join(sorted(request.tickers))}:{request.objective}:{request.shrinkage_method}:{request.max_weight}:{request.min_dividend_yield}:{request.anchor_portfolio}"
+        cached = await cache.get_analytics(cache_key)
+        if cached:
+            return cached
+
         logger.info(f"Starting portfolio optimization for user {current_user.get('email', 'unknown')}")
         logger.info(f"Tickers: {request.tickers}, Objective: {request.objective}")
         
@@ -74,6 +82,10 @@ async def optimize_dividend_portfolio(
         
         # Convert PortfolioResults to PortfolioOptimizationResult
         converted_result = _convert_portfolio_result(result)
+
+        # Cache result for future identical requests (24h TTL via analytics bucket)
+        await cache.cache_analytics(cache_key, converted_result)
+
         return converted_result
         
     except Exception as e:

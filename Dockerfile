@@ -11,13 +11,18 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
         build-essential \
         libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install uv (fast dependency manager)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Copy dependency lockfiles and install Python dependencies with uv
+COPY requirements-uv.txt uv.lock ./
+RUN uv pip install -r requirements-uv.txt --system --no-cache-dir
 
 # Copy project
 COPY . .

@@ -25,6 +25,19 @@ Yieldflow API provides intelligent dividend analysis that goes beyond raw data t
 - PostgreSQL (optional - uses SQLite by default)
 - Redis (optional - for caching)
 
+### 🚀 Docker Quick Start (zero-install)
+
+```bash
+# Spin up API (FastAPI) and its dependencies
+docker compose up --build
+
+# —or— build/run the backend image yourself
+docker build -t yieldflow-api .
+docker run -p 8000:8000 yieldflow-api
+```
+
+The Docker image installs Python packages with the ultra-fast [uv](https://github.com/astral-sh/uv) resolver, so image builds finish 2-3× quicker than traditional `pip`.
+
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/flowistic-ai/Yieldflow_API.git
@@ -38,8 +51,12 @@ cd Yieldflow_API
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Preferred: fast & reproducible via uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv pip install -r requirements-uv.txt --system
+
+# (Optional) traditional fallback
+# pip install -r requirements.txt
 
 3. **Environment configuration**
 ```bash
@@ -171,7 +188,9 @@ yieldflow-API/
 │   │   ├── components/    # React components
 │   │   └── services/      # API services
 │   └── public/
-├── requirements.txt       # Python dependencies
+├── requirements-uv.txt    # Python deps (primary, used by uv)
+├── uv.lock               # Locked versions for reproducible builds
+├── requirements.txt       # Legacy dependency list
 └── README.md             # This file
 ```
 

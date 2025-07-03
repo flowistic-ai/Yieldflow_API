@@ -78,18 +78,18 @@ const FinancialModelsDocumentation: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header Section */}
-      <Paper elevation={2} sx={{ p: 4, mb: 4, background: 'linear-gradient(135deg, #0F172A 0%, #334155 100%)', color: 'white' }}>
+      <Paper elevation={2} sx={{ p: 4, mb: 4, background: 'linear-gradient(135deg, #1E293B 0%, #475569 100%)', color: 'white' }}>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
           <Box>
-            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
+            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700, color: 'white' }}>
               📊 YieldFlow Financial Models
             </Typography>
-            <Typography variant="h6" sx={{ opacity: 0.9, mb: 2 }}>
+            <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.9)', mb: 2 }}>
               Comprehensive Technical Documentation for Advanced Investment Analytics
             </Typography>
             <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
               <Chip label="June 2025" color="secondary" />
-              <Chip label="Technical Documentation" variant="outlined" sx={{ color: 'white', borderColor: 'white' }} />
+              <Chip label="Technical Documentation" sx={{ bgcolor: 'white', color: 'primary.main', fontWeight: 600 }} />
             </Stack>
           </Box>
           <Box>

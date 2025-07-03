@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+import pytest
+
+# Skip this helper script when running pytest – it's intended for manual use only
+pytest.skip("Helper script, not part of automated test suite", allow_module_level=True)
+
 """
 Comprehensive Endpoint Testing Script
 Tests all Yieldflow API endpoints to ensure they work correctly

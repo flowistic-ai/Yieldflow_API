@@ -723,6 +723,16 @@ class RatioCalculator:
         elif roe < 0:
             score -= 1.5
         
+        # ROA scoring (newly added)
+        if roa >= 0.12:
+            score += 1.5
+        elif roa >= 0.08:
+            score += 1.0
+        elif roa >= 0.04:
+            score += 0.5
+        elif roa < 0:
+            score -= 1.0
+        
         return max(1.0, min(10.0, score))
     
     def _score_liquidity_ratios(self, ratios: Dict[str, Any]) -> float:
