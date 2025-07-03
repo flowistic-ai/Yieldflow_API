@@ -8,12 +8,9 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   Switch,
   FormControlLabel,
   Alert,
-  Card,
-  CardContent,
   Chip,
   Table,
   TableBody,
@@ -26,12 +23,10 @@ import {
   Divider,
   InputAdornment,
   Fade,
-  Slide,
-  Grow,
   Collapse,
   CircularProgress,
   Avatar,
-
+  Grow,
 } from '@mui/material';
 
 import {
@@ -243,13 +238,13 @@ const PortfolioOptimization: React.FC = () => {
   const formatPercent = (value: number) => `${(value * 100).toFixed(2)}%`;
   const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
 
-  // Create pie chart data for portfolio allocation
+  // Create professional pie chart data for portfolio allocation
   const createPieData = (weights: Record<string, number>) => {
     const labels = Object.keys(weights);
     const data = Object.values(weights).map(w => w * 100);
     const colors = [
-      '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
-      '#ec4899', '#14b8a6', '#f97316', '#84cc16', '#6366f1'
+      '#0F172A', '#3B82F6', '#10B981', '#F59E0B', '#DC2626',
+      '#8B5CF6', '#EC4899', '#14B8A6', '#84CC16', '#64748B'
     ];
 
     return {
@@ -257,8 +252,10 @@ const PortfolioOptimization: React.FC = () => {
       datasets: [{
         data,
         backgroundColor: colors.slice(0, labels.length),
-        borderWidth: 2,
-        borderColor: '#ffffff'
+        borderWidth: 1,
+        borderColor: '#FFFFFF',
+        hoverBorderWidth: 2,
+        hoverBorderColor: '#E2E8F0'
       }]
     };
   };
@@ -297,129 +294,233 @@ const PortfolioOptimization: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 4 }}>
-      {/* Animated Header */}
-      <Slide direction="down" in mountOnEnter unmountOnExit>
+    <Box sx={{ 
+      p: 3,
+      backgroundColor: '#F8FAFC',
+      minHeight: '100vh'
+    }}>
+      {/* Professional Header */}
+      <Box sx={{ mb: 4 }}>
         <Paper 
           elevation={0} 
           sx={{ 
-            mb: 4, 
-            p: 4, 
-            background: useNewsEnhancement 
-              ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
-              : 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', 
-            color: 'white',
-            borderRadius: 3,
-            position: 'relative',
-            overflow: 'hidden'
+            p: 3,
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 2,
+            borderLeft: `4px solid ${useNewsEnhancement ? '#F59E0B' : '#0F172A'}`
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <AutoGraphIcon sx={{ mr: 2, fontSize: 40 }} />
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                Portfolio Optimization
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <AutoGraphIcon 
+                sx={{ 
+                  mr: 2, 
+                  fontSize: 32, 
+                  color: useNewsEnhancement ? '#F59E0B' : '#0F172A' 
+                }} 
+              />
+              <Box>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 700,
+                    color: '#0F172A',
+                    fontSize: '1.75rem',
+                    mb: 0.5
+                  }}
+                >
+                  Portfolio Optimization
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    color: '#64748B',
+                    fontSize: '0.875rem',
+                    fontWeight: 500
+                  }}
+                >
+                  Enhanced quantitative optimization with real-time market intelligence
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: '#64748B',
+                  fontSize: '0.75rem',
+                  fontFamily: 'monospace'
+                }}
+              >
+                {useNewsEnhancement ? 'NEPO Mode' : 'EPO Mode'}
               </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                Traditional EPO & Advanced News-Enhanced Optimization
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  color: useNewsEnhancement ? '#F59E0B' : '#0F172A',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  fontFamily: 'monospace'
+                }}
+              >
+                {useNewsEnhancement ? 'AI Enhanced' : 'Quantitative'}
               </Typography>
             </Box>
           </Box>
-          
-          <Typography variant="body1" sx={{ opacity: 0.9 }}>
-            Choose between traditional Enhanced Portfolio Optimization (EPO) or advanced 
-            News-Enhanced Portfolio Optimization (NEPO) with real-time market intelligence.
-          </Typography>
-
-          {/* Animated background effects */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -50,
-              right: -50,
-              width: 200,
-              height: 200,
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '50%',
-              animation: 'pulse 4s ease-in-out infinite',
-              '@keyframes pulse': {
-                '0%, 100%': { transform: 'scale(1)', opacity: 0.5 },
-                '50%': { transform: 'scale(1.1)', opacity: 0.3 }
-              }
-            }}
-          />
         </Paper>
-      </Slide>
+      </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 4 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '400px 1fr' }, gap: 3 }}>
         {/* Configuration Panel */}
-        <Fade in>
-          <Card elevation={2} sx={{ height: 'fit-content' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <TuneIcon sx={{ mr: 1 }} />
-                Optimization Settings
-              </Typography>
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            height: 'fit-content',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 2
+          }}
+        >
+          <Box sx={{ 
+            p: 2, 
+            borderBottom: '1px solid #F1F5F9',
+            backgroundColor: '#F8FAFC'
+          }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                fontSize: '1rem',
+                fontWeight: 600,
+                color: '#0F172A'
+              }}
+            >
+              <TuneIcon sx={{ mr: 1, fontSize: 20 }} />
+              Configuration
+            </Typography>
+          </Box>
+          
+          <Box sx={{ p: 3 }}>
+            <Stack spacing={3}>
+              {/* Optimization Mode Toggle */}
+              <Box>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    mb: 2,
+                    fontWeight: 600,
+                    color: '#334155',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Optimization Method
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={useNewsEnhancement}
+                      onChange={(e) => setUseNewsEnhancement(e.target.checked)}
+                      color="primary"
+                      size="medium"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography 
+                        variant="body1" 
+                        sx={{ 
+                          fontWeight: 600, 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          fontSize: '0.875rem',
+                          color: '#0F172A'
+                        }}
+                      >
+                        {useNewsEnhancement ? (
+                          <>
+                            <PsychologyIcon sx={{ mr: 1, color: '#F59E0B', fontSize: 18 }} />
+                            Advanced NEPO
+                          </>
+                        ) : (
+                          <>
+                            <EqualizerIcon sx={{ mr: 1, color: '#0F172A', fontSize: 18 }} />
+                            Traditional EPO
+                          </>
+                        )}
+                      </Typography>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: '#64748B',
+                          fontSize: '0.75rem',
+                          mt: 0.5
+                        }}
+                      >
+                        {useNewsEnhancement 
+                          ? 'AI-enhanced optimization with market sentiment'
+                          : 'Quantitative optimization with correlation analysis'
+                        }
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </Box>
 
-              <Stack spacing={3}>
-                {/* Optimization Mode Toggle */}
-                <Box>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={useNewsEnhancement}
-                        onChange={(e) => setUseNewsEnhancement(e.target.checked)}
-                        color="primary"
-                        size="medium"
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                          {useNewsEnhancement ? (
-                            <>
-                              <PsychologyIcon sx={{ mr: 1, color: 'warning.main' }} />
-                              Advanced NEPO Mode
-                            </>
-                          ) : (
-                            <>
-                              <EqualizerIcon sx={{ mr: 1, color: 'primary.main' }} />
-                              Traditional EPO Mode
-                            </>
-                          )}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {useNewsEnhancement 
-                            ? 'News-Enhanced Portfolio Optimization with real-time market intelligence'
-                            : 'Enhanced Portfolio Optimization using quantitative methods only'
-                          }
-                        </Typography>
-                      </Box>
-                    }
-                  />
-                </Box>
-
-                <Divider />
+                <Divider sx={{ borderColor: '#F1F5F9' }} />
 
                 {/* Tickers */}
                 <Box>
-                  <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                    Stock Tickers
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{ 
+                      mb: 2,
+                      fontWeight: 600,
+                      color: '#334155',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    Portfolio Instruments
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     <TextField
                       size="small"
-                      placeholder="Enter ticker (e.g., AAPL)"
+                      placeholder="Ticker symbol (e.g., AAPL)"
                       value={newTicker}
                       onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
                       onKeyPress={(e) => e.key === 'Enter' && addTicker()}
-                      sx={{ flexGrow: 1 }}
+                      sx={{ 
+                        flexGrow: 1,
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: '#F8FAFC',
+                          fontSize: '0.875rem',
+                          fontFamily: 'monospace',
+                          '& fieldset': {
+                            borderColor: '#E2E8F0'
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#CBD5E1'
+                          }
+                        }
+                      }}
                     />
                     <Button
                       variant="outlined"
                       startIcon={<AddIcon />}
                       onClick={addTicker}
                       disabled={!newTicker.trim()}
+                      sx={{
+                        borderColor: '#E2E8F0',
+                        color: '#475569',
+                        fontSize: '0.75rem',
+                        px: 2,
+                        '&:hover': {
+                          borderColor: '#CBD5E1',
+                          backgroundColor: '#F8FAFC'
+                        }
+                      }}
                     >
                       Add
                     </Button>
@@ -427,81 +528,186 @@ const PortfolioOptimization: React.FC = () => {
                   
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {tickers.filter(t => t).map((ticker, index) => (
-                      <Grow key={index} in>
-                        <Chip
-                          label={ticker}
-                          onDelete={() => removeTicker(index)}
-                          deleteIcon={<RemoveIcon />}
-                          color="primary"
-                          variant="outlined"
-                          avatar={<Avatar sx={{ fontSize: '0.75rem' }}>{ticker[0]}</Avatar>}
-                        />
-                      </Grow>
+                      <Chip
+                        key={index}
+                        label={ticker}
+                        onDelete={() => removeTicker(index)}
+                        deleteIcon={<RemoveIcon />}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          backgroundColor: '#F8FAFC',
+                          borderColor: '#E2E8F0',
+                          color: '#0F172A',
+                          fontFamily: 'monospace',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          '& .MuiChip-deleteIcon': {
+                            color: '#64748B',
+                            fontSize: '14px',
+                            '&:hover': {
+                              color: '#DC2626'
+                            }
+                          }
+                        }}
+                      />
                     ))}
                   </Box>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      mt: 1,
+                      color: '#64748B',
+                      fontSize: '0.6875rem'
+                    }}
+                  >
+                    {tickers.filter(t => t).length} instruments selected • Min: 2 required
+                  </Typography>
                 </Box>
 
                 {/* Investment Amount */}
-                <TextField
-                  label="Investment Amount"
-                  type="number"
-                  value={investmentAmount}
-                  onChange={(e) => setInvestmentAmount(Number(e.target.value))}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                  }}
-                  size="small"
-                />
+                <Box>
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{ 
+                      mb: 1,
+                      fontWeight: 600,
+                      color: '#334155',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    Investment Capital
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={investmentAmount}
+                    onChange={(e) => setInvestmentAmount(Number(e.target.value))}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                    size="small"
+                    fullWidth
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F8FAFC',
+                        fontFamily: 'monospace',
+                        fontSize: '0.875rem',
+                        '& fieldset': {
+                          borderColor: '#E2E8F0'
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#CBD5E1'
+                        }
+                      }
+                    }}
+                  />
+                </Box>
 
                 {/* Optimization Objective */}
-                <FormControl size="small">
-                  <InputLabel>Optimization Objective</InputLabel>
-                  <Select
-                    value={objective}
-                    label="Optimization Objective"
-                    onChange={(e) => setObjective(e.target.value as OptimizationObjectiveLocal)}
+                <Box>
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{ 
+                      mb: 1,
+                      fontWeight: 600,
+                      color: '#334155',
+                      fontSize: '0.875rem'
+                    }}
                   >
-                    <MenuItem value="sharpe_ratio">
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <SpeedIcon sx={{ mr: 1, fontSize: 18 }} />
-                        Sharpe Ratio
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="dividend_yield">
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <ShowChartIcon sx={{ mr: 1, fontSize: 18 }} />
-                        Dividend Yield
-                      </Box>
-                    </MenuItem>
-                    <MenuItem value="balanced">
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <SecurityIcon sx={{ mr: 1, fontSize: 18 }} />
-                        Balanced
-                      </Box>
-                    </MenuItem>
-                  </Select>
-                </FormControl>
+                    Optimization Target
+                  </Typography>
+                  <FormControl size="small" fullWidth>
+                    <Select
+                      value={objective}
+                      onChange={(e) => setObjective(e.target.value as OptimizationObjectiveLocal)}
+                      sx={{
+                        backgroundColor: '#F8FAFC',
+                        fontSize: '0.875rem',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#E2E8F0'
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#CBD5E1'
+                        }
+                      }}
+                    >
+                      <MenuItem value="sharpe_ratio">
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <SpeedIcon sx={{ mr: 2, fontSize: 16, color: '#6366F1' }} />
+                          <Box>
+                            <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Sharpe Ratio</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#64748B' }}>Risk-adjusted returns</Typography>
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="dividend_yield">
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <ShowChartIcon sx={{ mr: 2, fontSize: 16, color: '#10B981' }} />
+                          <Box>
+                            <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Dividend Yield</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#64748B' }}>Income optimization</Typography>
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                      <MenuItem value="balanced">
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <SecurityIcon sx={{ mr: 2, fontSize: 16, color: '#F59E0B' }} />
+                          <Box>
+                            <Typography sx={{ fontSize: '0.875rem', fontWeight: 600 }}>Balanced</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#64748B' }}>Growth & income</Typography>
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
 
                 {/* Time Horizon (NEPO only) */}
                 <Collapse in={useNewsEnhancement}>
-                  <FormControl size="small" fullWidth>
-                    <InputLabel>Time Horizon</InputLabel>
-                    <Select
-                      value={timeHorizon}
-                      label="Time Horizon"
-                      onChange={(e) => setTimeHorizon(e.target.value)}
+                  <Box>
+                    <Typography 
+                      variant="subtitle2" 
+                      sx={{ 
+                        mb: 1,
+                        fontWeight: 600,
+                        color: '#334155',
+                        fontSize: '0.875rem'
+                      }}
                     >
-                      <MenuItem value="short">Short (3-6 months)</MenuItem>
-                      <MenuItem value="medium">Medium (6-18 months)</MenuItem>
-                      <MenuItem value="long">Long (18+ months)</MenuItem>
-                    </Select>
-                  </FormControl>
+                      Investment Horizon
+                    </Typography>
+                    <FormControl size="small" fullWidth>
+                      <Select
+                        value={timeHorizon}
+                        onChange={(e) => setTimeHorizon(e.target.value)}
+                        sx={{
+                          backgroundColor: '#FEF3C7',
+                          fontSize: '0.875rem',
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#F59E0B'
+                          }
+                        }}
+                      >
+                        <MenuItem value="short">Short Term (3-6 months)</MenuItem>
+                        <MenuItem value="medium">Medium Term (6-18 months)</MenuItem>
+                        <MenuItem value="long">Long Term (18+ months)</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
                 </Collapse>
 
                 {/* Max Weight */}
                 <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Maximum Weight per Stock
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{ 
+                      mb: 1,
+                      fontWeight: 600,
+                      color: '#334155',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    Position Limit
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <TextField
@@ -510,10 +716,27 @@ const PortfolioOptimization: React.FC = () => {
                       onChange={(e) => setMaxWeight(Number(e.target.value))}
                       inputProps={{ min: 0.1, max: 1, step: 0.1 }}
                       size="small"
-                      sx={{ width: 100 }}
+                      sx={{ 
+                        width: 120,
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: '#F8FAFC',
+                          fontFamily: 'monospace',
+                          fontSize: '0.875rem',
+                          '& fieldset': {
+                            borderColor: '#E2E8F0'
+                          }
+                        }
+                      }}
                     />
-                    <Typography variant="body2" color="text.secondary">
-                      {maxWeight} = {(maxWeight * 100).toFixed(0)}% maximum allocation
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: '#64748B',
+                        fontSize: '0.75rem',
+                        fontFamily: 'monospace'
+                      }}
+                    >
+                      = {(maxWeight * 100).toFixed(0)}% maximum allocation
                     </Typography>
                   </Box>
                 </Box>
@@ -524,107 +747,247 @@ const PortfolioOptimization: React.FC = () => {
                   onClick={handleOptimize}
                   disabled={loading || tickers.filter(t => t).length < 2}
                   size="large"
-                  startIcon={loading ? <CircularProgress size={20} /> : <AnalyticsIcon />}
+                  startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AnalyticsIcon />}
                   sx={{
                     mt: 2,
                     py: 1.5,
-                    background: useNewsEnhancement 
-                      ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
-                      : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    backgroundColor: useNewsEnhancement ? '#F59E0B' : '#0F172A',
+                    color: '#FFFFFF',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    borderRadius: 1,
+                    textTransform: 'none',
                     '&:hover': {
-                      background: useNewsEnhancement
-                        ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
-                        : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
+                      backgroundColor: useNewsEnhancement ? '#D97706' : '#1E293B',
+                    },
+                    '&:disabled': {
+                      backgroundColor: '#E2E8F0',
+                      color: '#94A3B8'
                     }
                   }}
                 >
                   {loading 
-                    ? 'Optimizing Portfolio...' 
+                    ? 'Analyzing Portfolio...' 
                     : useNewsEnhancement 
-                      ? 'Run Advanced NEPO Analysis'
-                      : 'Run Traditional EPO'
+                      ? 'Run NEPO Analysis'
+                      : 'Run EPO Analysis'
                   }
                 </Button>
 
                 {useNewsEnhancement && (
-                  <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
-                    <strong>NEPO Mode:</strong> Combines quantitative optimization with real-time news sentiment analysis for enhanced returns
+                  <Alert 
+                    severity="info" 
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      backgroundColor: '#FEF3C7',
+                      color: '#92400E',
+                      border: '1px solid #F59E0B',
+                      '& .MuiAlert-icon': {
+                        color: '#F59E0B'
+                      }
+                    }}
+                  >
+                    <strong>NEPO:</strong> AI-enhanced optimization with real-time market sentiment
                   </Alert>
                 )}
               </Stack>
-            </CardContent>
-          </Card>
-        </Fade>
+            </Box>
+          </Paper>
 
         {/* Results Panel */}
         <Collapse in={showResults && !!results}>
-          <Card elevation={2}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <AssessmentIcon sx={{ mr: 1 }} />
-                Optimization Results
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: 2
+            }}
+          >
+            <Box sx={{ 
+              p: 2, 
+              borderBottom: '1px solid #F1F5F9',
+              backgroundColor: '#F8FAFC'
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    color: '#0F172A'
+                  }}
+                >
+                  <AssessmentIcon sx={{ mr: 1, fontSize: 20 }} />
+                  Portfolio Analysis Results
+                </Typography>
                 {useNewsEnhancement && nepoResults && (
                   <Chip 
                     label="NEPO Enhanced" 
-                    color="warning" 
                     size="small" 
-                    sx={{ ml: 1 }}
-                    icon={<StarsIcon />}
+                    sx={{ 
+                      backgroundColor: '#FEF3C7',
+                      color: '#92400E',
+                      border: '1px solid #F59E0B',
+                      fontSize: '0.6875rem',
+                      fontWeight: 600
+                    }}
+                    icon={<StarsIcon sx={{ fontSize: '12px !important' }} />}
                   />
                 )}
-              </Typography>
+              </Box>
+            </Box>
+            
+            <Box sx={{ p: 3 }}>
 
               <Stack spacing={3}>
                 {/* Key Metrics Cards */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
-                  <Grow in={showResults} timeout={500}>
-                    <Paper 
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
+                  <Paper 
+                    sx={{ 
+                      p: 3, 
+                      textAlign: 'center', 
+                      backgroundColor: '#EFF6FF',
+                      border: '1px solid #DBEAFE',
+                      borderRadius: 1,
+                      borderLeft: '4px solid #3B82F6'
+                    }}
+                  >
+                    <Typography 
+                      variant="body2" 
                       sx={{ 
-                        p: 2, 
-                        textAlign: 'center', 
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', 
-                        color: 'white',
-                        borderRadius: 2
+                        fontSize: '0.6875rem',
+                        fontWeight: 500,
+                        color: '#64748B',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.025em',
+                        mb: 1
                       }}
                     >
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Expected Return</Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mt: 1 }}>
-                        {results ? formatPercent(results.expected_return) : '0.00%'}
-                      </Typography>
-                    </Paper>
-                  </Grow>
-                  <Grow in={showResults} timeout={700}>
-                    <Paper 
+                      Expected Return
+                    </Typography>
+                    <Typography 
+                      variant="h4" 
                       sx={{ 
-                        p: 2, 
-                        textAlign: 'center', 
-                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
-                        color: 'white',
-                        borderRadius: 2
+                        fontWeight: 700, 
+                        color: '#1E40AF',
+                        fontFamily: 'monospace',
+                        fontSize: '1.5rem'
                       }}
                     >
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Risk (Volatility)</Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mt: 1 }}>
-                        {results ? formatPercent(results.volatility) : '0.00%'}
-                      </Typography>
-                    </Paper>
-                  </Grow>
-                  <Grow in={showResults} timeout={900}>
-                    <Paper 
+                      {results ? formatPercent(results.expected_return) : '--'}
+                    </Typography>
+                  </Paper>
+                  
+                  <Paper 
+                    sx={{ 
+                      p: 3, 
+                      textAlign: 'center', 
+                      backgroundColor: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      borderRadius: 1,
+                      borderLeft: '4px solid #DC2626'
+                    }}
+                  >
+                    <Typography 
+                      variant="body2" 
                       sx={{ 
-                        p: 2, 
-                        textAlign: 'center', 
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-                        color: 'white',
-                        borderRadius: 2
+                        fontSize: '0.6875rem',
+                        fontWeight: 500,
+                        color: '#64748B',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.025em',
+                        mb: 1
                       }}
                     >
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>Sharpe Ratio</Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, mt: 1 }}>
-                        {results ? results.sharpe_ratio.toFixed(3) : '0.000'}
-                      </Typography>
-                    </Paper>
-                  </Grow>
+                      Volatility Risk
+                    </Typography>
+                    <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontWeight: 700, 
+                        color: '#DC2626',
+                        fontFamily: 'monospace',
+                        fontSize: '1.5rem'
+                      }}
+                    >
+                      {results ? formatPercent(results.volatility) : '--'}
+                    </Typography>
+                  </Paper>
+                  
+                  <Paper 
+                    sx={{ 
+                      p: 3, 
+                      textAlign: 'center', 
+                      backgroundColor: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      borderRadius: 1,
+                      borderLeft: '4px solid #10B981'
+                    }}
+                  >
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontSize: '0.6875rem',
+                        fontWeight: 500,
+                        color: '#64748B',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.025em',
+                        mb: 1
+                      }}
+                    >
+                      Sharpe Ratio
+                    </Typography>
+                    <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontWeight: 700, 
+                        color: '#059669',
+                        fontFamily: 'monospace',
+                        fontSize: '1.5rem'
+                      }}
+                    >
+                      {results ? results.sharpe_ratio.toFixed(2) : '--'}
+                    </Typography>
+                  </Paper>
+                  
+                  <Paper 
+                    sx={{ 
+                      p: 3, 
+                      textAlign: 'center', 
+                      backgroundColor: '#FFFBEB',
+                      border: '1px solid #FED7AA',
+                      borderRadius: 1,
+                      borderLeft: '4px solid #F59E0B'
+                    }}
+                  >
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontSize: '0.6875rem',
+                        fontWeight: 500,
+                        color: '#64748B',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.025em',
+                        mb: 1
+                      }}
+                    >
+                      Div. Yield
+                    </Typography>
+                    <Typography 
+                      variant="h4" 
+                      sx={{ 
+                        fontWeight: 700, 
+                        color: '#D97706',
+                        fontFamily: 'monospace',
+                        fontSize: '1.5rem'
+                      }}
+                    >
+                      {results ? formatPercent(results.expected_dividend_yield) : '--'}
+                    </Typography>
+                  </Paper>
                 </Box>
 
                 {/* Performance Comparison for NEPO */}
@@ -895,8 +1258,8 @@ const PortfolioOptimization: React.FC = () => {
                   </Paper>
                 </Grow>
               </Stack>
-            </CardContent>
-          </Card>
+            </Box>
+          </Paper>
         </Collapse>
       </Box>
     </Box>
