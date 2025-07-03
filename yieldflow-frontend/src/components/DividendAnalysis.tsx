@@ -63,6 +63,7 @@ import FinancialDataService from '../services/financialDataService';
 import DividendQualitySnowflake from './SnowflakeAnalysis';
 import KpiCard from './common/KpiCard';
 import AnimatedDonut from './common/AnimatedDonut';
+import PeerComparisonHeatMap from './PeerComparisonHeatMap';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -2469,155 +2470,11 @@ const DividendAnalysisComponent: React.FC = () => {
             </Typography>
             
             {peerComparison && peerComparison.chart_data ? (
-              <Box>
-
-
-                {/* Key Metrics Comparison */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 3 }}>
-                  {/* Dividend Yield Comparison */}
-                  <Box>
-                    <Typography variant="subtitle1" gutterBottom color="primary">
-                      Dividend Yield Comparison
-                    </Typography>
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="body2">{ticker}: {peerComparison.chart_data.peer_comparison.dividend_yield.target?.toFixed(2)}%</Typography>
-                        <Chip 
-                          label={(() => {
-                            const percentile = peerComparison.chart_data.peer_comparison.dividend_yield.percentile_rank;
-                            if (percentile >= 90) return "Top 10%";
-                            else if (percentile >= 75) return "Top 25%";
-                            else if (percentile >= 50) return "Top 50%";
-                            else if (percentile >= 25) return "Bottom 50%";
-                            else if (percentile > 0) return "Bottom 25%";
-                            else return "Bottom 10%";
-                          })()}
-                          color={peerComparison.chart_data.peer_comparison.dividend_yield.percentile_rank >= 75 ? 'success' : 
-                                 peerComparison.chart_data.peer_comparison.dividend_yield.percentile_rank >= 50 ? 'warning' : 'error'}
-                          size="small"
-                        />
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        vs Industry Avg: {peerComparison.chart_data.sector_benchmarks?.avg_yield?.toFixed(2)}%
-                      </Typography>
-                    </Box>
-                    <Box sx={{ width: '100%', height: 200 }}>
-                      <ResponsiveContainer>
-                        <BarChart data={[
-                          { symbol: ticker, value: peerComparison.chart_data.peer_comparison.dividend_yield.target, isTarget: true },
-                          { symbol: 'MSFT', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.MSFT },
-                          { symbol: 'GOOGL', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.GOOGL },
-                          { symbol: 'META', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.META },
-                          { symbol: 'NVDA', value: peerComparison.chart_data.peer_comparison.dividend_yield.peers.NVDA },
-                          { symbol: 'Industry', value: peerComparison.chart_data.sector_benchmarks?.avg_yield, isIndustry: true }
-                        ]} margin={{ bottom: 40 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="symbol" angle={-45} textAnchor="end" height={60} />
-                          <YAxis />
-                          <RechartsTooltip formatter={(value: number) => [`${value?.toFixed(2)}%`, 'Dividend Yield']} />
-                          <Bar dataKey="value" fill="#2196f3" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </Box>
-                  </Box>
-
-                  {/* Payout Ratio Comparison */}
-                  <Box>
-                    <Typography variant="subtitle1" gutterBottom color="primary">
-                      Payout Ratio Comparison
-                    </Typography>
-                    <Box sx={{ mb: 2 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="body2">{ticker}: {peerComparison.chart_data.peer_comparison.payout_ratio.target?.toFixed(1)}%</Typography>
-                        <Chip 
-                          label={(() => {
-                            const percentile = peerComparison.chart_data.peer_comparison.payout_ratio.percentile_rank;
-                            if (percentile >= 90) return "Top 10%";
-                            else if (percentile >= 75) return "Top 25%";
-                            else if (percentile >= 50) return "Top 50%";
-                            else if (percentile >= 25) return "Bottom 50%";
-                            else if (percentile > 0) return "Bottom 25%";
-                            else return "Bottom 10%";
-                          })()}
-                          color={peerComparison.chart_data.peer_comparison.payout_ratio.percentile_rank <= 25 ? 'success' : 
-                                 peerComparison.chart_data.peer_comparison.payout_ratio.percentile_rank <= 50 ? 'warning' : 'error'}
-                          size="small"
-                        />
-                      </Box>
-                      <Typography variant="body2" color="text.secondary">
-                        vs Industry Avg: {peerComparison.chart_data.sector_benchmarks?.avg_payout?.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                    <Box sx={{ width: '100%', height: 200 }}>
-                      <ResponsiveContainer>
-                        <BarChart data={[
-                          { symbol: ticker, value: peerComparison.chart_data.peer_comparison.payout_ratio.target, isTarget: true },
-                          { symbol: 'MSFT', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.MSFT },
-                          { symbol: 'GOOGL', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.GOOGL },
-                          { symbol: 'META', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.META },
-                          { symbol: 'NVDA', value: peerComparison.chart_data.peer_comparison.payout_ratio.peers.NVDA },
-                          { symbol: 'Industry', value: peerComparison.chart_data.sector_benchmarks?.avg_payout, isIndustry: true }
-                        ]} margin={{ bottom: 40 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="symbol" angle={-45} textAnchor="end" height={60} />
-                          <YAxis />
-                          <RechartsTooltip formatter={(value: number) => [`${value?.toFixed(1)}%`, 'Payout Ratio']} />
-                          <Bar dataKey="value" fill="#ff9800" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </Box>
-                  </Box>
-                </Box>
-
-                {/* 5-Year Growth Comparison */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" gutterBottom color="primary">
-                    5-Year Dividend Growth Comparison
-                  </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2">{ticker}: {peerComparison.chart_data.peer_comparison.dividend_growth_5y.target?.toFixed(1)}%</Typography>
-                      <Chip 
-                        label={(() => {
-                          const percentile = peerComparison.chart_data.peer_comparison.dividend_growth_5y.percentile_rank;
-                          if (percentile >= 90) return "Top 10%";
-                          else if (percentile >= 75) return "Top 25%";
-                          else if (percentile >= 50) return "Top 50%";
-                          else if (percentile >= 25) return "Bottom 50%";
-                          else if (percentile > 0) return "Bottom 25%";
-                          else return "Bottom 10%";
-                        })()}
-                        color={peerComparison.chart_data.peer_comparison.dividend_growth_5y.percentile_rank >= 75 ? 'success' : 
-                               peerComparison.chart_data.peer_comparison.dividend_growth_5y.percentile_rank >= 50 ? 'warning' : 'error'}
-                        size="small"
-                      />
-                    </Box>
-                    <Typography variant="body2" color="text.secondary">
-                      vs Industry Avg: {peerComparison.chart_data.sector_benchmarks?.avg_growth?.toFixed(1)}%
-                    </Typography>
-                  </Box>
-                  <Box sx={{ width: '100%', height: 250 }}>
-                    <ResponsiveContainer>
-                      <BarChart data={[
-                        { symbol: ticker, value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.target, isTarget: true },
-                        { symbol: 'MSFT', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.MSFT },
-                        { symbol: 'GOOGL', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.GOOGL },
-                        { symbol: 'META', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.META },
-                        { symbol: 'NVDA', value: peerComparison.chart_data.peer_comparison.dividend_growth_5y.peers.NVDA },
-                        { symbol: 'Industry', value: peerComparison.chart_data.sector_benchmarks?.avg_growth, isIndustry: true }
-                      ]} margin={{ bottom: 60 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="symbol" angle={-45} textAnchor="end" height={80} />
-                        <YAxis />
-                        <RechartsTooltip formatter={(value: number) => [`${value?.toFixed(1)}%`, '5Y Growth']} />
-                        <Bar dataKey="value" fill="#4caf50" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </Box>
-
-
-              </Box>
+              <PeerComparisonHeatMap
+                ticker={ticker}
+                data={peerComparison.chart_data.peer_comparison}
+                sectorBenchmarks={peerComparison.chart_data.sector_benchmarks}
+              />
             ) : (
               <Typography variant="body2" color="text.secondary">
                 Industry comparison data not available
