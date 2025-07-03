@@ -22,7 +22,8 @@ from app.schemas.financial import (
     DividendType, DividendFrequency, ComprehensiveDividendResponse
 )
 
-logger = logging.getLogger(__name__)
+# Use structlog for contextual logging so we can pass keyword arguments like 'ticker' safely
+logger = structlog.get_logger()
 
 
 class DividendService:

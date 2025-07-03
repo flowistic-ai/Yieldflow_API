@@ -33,7 +33,7 @@ class ValidationError(YieldflowException):
 class DataSourceError(YieldflowException):
     """Raised when external data source fails"""
     
-    def __init__(self, message: str, source: str, details: Optional[Dict[str, Any]] = None):
+    def __init__(self, message: str, source: str = "unknown", details: Optional[Dict[str, Any]] = None):
         super().__init__(
             message=f"Data source error from {source}: {message}",
             error_code="DATA_SOURCE_ERROR",

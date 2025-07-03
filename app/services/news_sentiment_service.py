@@ -12,9 +12,11 @@ import logging
 import re
 from collections import defaultdict
 
+import structlog
 from app.core.config import settings
 
-logger = logging.getLogger(__name__)
+# Use structlog so we can pass context safely
+logger = structlog.get_logger()
 
 class NewsEnhancedPortfolioService:
     """
@@ -297,11 +299,43 @@ class NewsEnhancedPortfolioService:
     async def _fetch_ticker_news(self, ticker: str) -> Dict[str, Any]:
         """Fetch recent news for a ticker"""
         try:
-            # Try Alpha Vantage News API first
-            if hasattr(settings, 'ALPHA_VANTAGE_API_KEY') and settings.ALPHA_VANTAGE_API_KEY:
+            # 1️⃣  NewsAPI.org (https://newsapi.org) – uses NEWS_API_KEY from .env
+            if self.news_api_key:
                 try:
                     async with aiohttp.ClientSession() as session:
-                        url = f"https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers={ticker}&apikey={settings.ALPHA_VANTAGE_API_KEY}&limit=20"
+                        url = (
+                            "https://newsapi.org/v2/everything?"
+                            f"q={ticker}&language=en&sortBy=publishedAt&pageSize=20&apiKey={self.news_api_key}"
+                        )
+                        async with session.get(url) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                if data.get("articles"):
+                                    # Map NewsAPI format to the internal structure (title/summary/time_published)
+                                    mapped = [
+                                        {
+                                            "title": art.get("title"),
+                                            "summary": art.get("description") or art.get("content") or "",
+                                            "time_published": art.get("publishedAt", ""),
+                                            "source": art.get("source", {}).get("name", "NewsAPI")
+                                        }
+                                        for art in data["articles"][:15]
+                                    ]
+                                    return {"articles": mapped}
+                            logger.warning(
+                                "NewsAPI request failed", ticker=ticker, status=response.status
+                            )
+                except Exception as e:
+                    logger.warning(f"NewsAPI fetch failed for {ticker}: {e}")
+
+            # 2️⃣  Alpha Vantage (if configured)
+            if getattr(settings, 'ALPHA_VANTAGE_API_KEY', None):
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        url = (
+                            "https://www.alphavantage.co/query?function=NEWS_SENTIMENT&"
+                            f"tickers={ticker}&apikey={settings.ALPHA_VANTAGE_API_KEY}&limit=20"
+                        )
                         async with session.get(url) as response:
                             if response.status == 200:
                                 data = await response.json()
