@@ -618,11 +618,42 @@ async def get_peer_comparison_chart(
         
         # Determine peer tickers
         if sector_tickers:
-            peer_list = [t.strip().upper() for t in sector_tickers.split(',')]
+            peer_list = [t.strip().upper() for t in sector_tickers.split(',') if t.strip().upper() != ticker.upper()]
         else:
-            # Default tech peers for demo
-            peer_list = ['MSFT', 'GOOGL', 'META', 'NVDA', 'TSLA']
-        
+            # Auto-detect peers using yfinance sector info
+            import yfinance as yf
+            try:
+                target_info = yf.Ticker(ticker).info
+                target_sector = target_info.get('sector')
+            except Exception:
+                target_sector = None
+
+            peer_list = []
+            if target_sector:
+                # Get potential tickers from S&P 500 constituents via yfinance shared list
+                import pandas as pd
+                try:
+                    sp500 = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]
+                    sector_matches = sp500[sp500['GICS Sector'] == target_sector]['Symbol'].tolist()
+                    peer_list = [sym for sym in sector_matches if sym != ticker.upper()][:5]
+                except Exception:
+                    peer_list = []
+
+            # Fallback: use yfinance peers API which may include cross-sector names but better than nothing
+            if not peer_list:
+                try:
+                    peer_list = yf.Ticker(ticker).get_peers()[:5]
+                    peer_list = [sym for sym in peer_list if sym != ticker.upper()]
+                except Exception:
+                    peer_list = []
+
+            # Absolute fallback if still empty → choose mega-caps same sector list
+            if not peer_list:
+                peer_list = ['JNJ','PFE','MRK','ABBV','LLY'] if target_sector == 'Healthcare' else ['MSFT','AAPL','GOOGL','AMZN','META']
+
+        # Limit to max 5 peers
+        peer_list = peer_list[:5]
+
         # Get peer metrics in parallel
         peer_metrics = {}
         for peer in peer_list:
@@ -631,6 +662,17 @@ async def get_peer_comparison_chart(
             except:
                 continue
         
+        # Calculate sector benchmarks based on peer set
+        import statistics as _stats
+
+        def _avg_safe(values):
+            vals = [v for v in values if v is not None]
+            return round(_stats.mean(vals), 2) if vals else None
+
+        avg_yield = _avg_safe([m['yield'] for m in peer_metrics.values()])
+        avg_payout = _avg_safe([m['payout_ratio'] for m in peer_metrics.values()])
+        avg_growth = _avg_safe([m['growth_5y'] for m in peer_metrics.values()])
+
         # Create comparison data
         comparison_data = {
             'target_company': ticker.upper(),
@@ -661,9 +703,9 @@ async def get_peer_comparison_chart(
                 }
             },
             'sector_benchmarks': {
-                'avg_yield': 1.2,  # Technology sector average
-                'avg_growth': 8.0,
-                'avg_payout': 25.0
+                'avg_yield': avg_yield,
+                'avg_growth': avg_growth,
+                'avg_payout': avg_payout
             }
         }
         
