@@ -8,6 +8,7 @@ from datetime import datetime, date, timedelta
 import structlog
 from statistics import mean, stdev
 import math
+import logging
 try:
     from fredapi import Fred
 except ImportError:
@@ -21,7 +22,7 @@ from app.schemas.financial import (
     DividendType, DividendFrequency, ComprehensiveDividendResponse
 )
 
-logger = structlog.get_logger()
+logger = logging.getLogger(__name__)
 
 
 class DividendService:
@@ -171,6 +172,10 @@ class DividendService:
                 'analysis_timestamp': datetime.utcnow().isoformat(),
                 'confidence_score': self._calculate_data_reliability_score(dividends, financials)
             }
+            
+            # Log unusual payout ratio scenarios
+            if current_metrics.get('payout_ratio', {}).get('warning'):
+                logger.warning(f"Unusual Payout Ratio for {ticker}: {current_metrics['payout_ratio']}")
             
         except Exception as e:
             logger.error("Professional dividend analysis failed", ticker=ticker, error=str(e))
