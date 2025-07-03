@@ -21,6 +21,23 @@ export interface DividendAnalysis {
     estimated_annual: number;
     payment_frequency: string;
   };
+  current_metrics?: {
+    current_yield_pct?: number;
+    estimated_annual_dividend?: number;
+    payment_frequency?: string;
+    last_payment?: {
+      ex_date?: string;
+    };
+    payout_ratio?: {
+      value?: number;
+      warning?: string;
+      explanation?: string;
+      recommendation?: string;
+      raw_dividend_per_share?: number;
+      raw_eps?: number;
+      financial_health_warning?: string;
+    };
+  };
   historical_data: {
     years_of_increases: number;
     consecutive_payments: number;
@@ -31,6 +48,65 @@ export interface DividendAnalysis {
     risk_rating: string;
     sustainability_score: number;
   };
+  coverage_analysis?: {
+    coverage_grades?: {
+      composite_grade?: string;
+    };
+    coverage_ratios?: {
+      primary_coverage?: number;
+      fallback_coverage?: number;
+    };
+    coverage_assessment?: string;
+  };
+  dividend_quality_score?: {
+    quality_score?: number;
+    grade?: string;
+    rating?: string;
+    investment_recommendation?: string;
+  };
+  sustainability_analysis?: {
+    sustainability_score?: number;
+    sustainability_rating?: string;
+    key_ratios?: {
+      payout_ratio?: number;
+      fcf_coverage_ratio?: number;
+      debt_service_coverage?: number;
+      earnings_volatility?: number;
+      working_capital_ratio?: number;
+      fcf_to_equity_ratio?: number;
+    };
+    financial_metrics?: {
+      free_cash_flow?: number;
+      market_cap?: number;
+    };
+    strengths?: string[];
+    risk_factors?: string[];
+  };
+  growth_analytics?: {
+    average_annual_growth?: number;
+    growth_volatility?: number;
+    growth_quality?: string;
+    growth_trend?: string;
+    consecutive_increases?: number;
+    growth_consistency?: number;
+  };
+  risk_assessment?: {
+    risk_score?: number;
+    risk_rating?: string;
+  };
+  forecast?: Array<{
+    year?: number;
+    predicted_dividend?: number;
+    growth_rate?: number;
+    confidence_level?: number;
+    methodology?: string;
+    news_adjustment?: number;
+    confidence_interval?: {
+      lower_95?: number;
+      upper_95?: number;
+    };
+    investment_analysis?: string;
+  }>;
 }
 
 export interface DividendChart {

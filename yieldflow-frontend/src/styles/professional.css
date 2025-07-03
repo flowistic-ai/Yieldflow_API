@@ -1,0 +1,464 @@
+/* Professional Financial Interface CSS Framework */
+
+/* ==========================================
+   TYPOGRAPHY UTILITIES
+   ========================================== */
+
+.text-financial-data {
+  font-family: "JetBrains Mono", "SF Mono", "Monaco", "Menlo", "Consolas", monospace !important;
+  font-weight: 500;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.text-financial-large {
+  font-family: "JetBrains Mono", "SF Mono", "Monaco", "Menlo", "Consolas", monospace !important;
+  font-weight: 600;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.text-data-label {
+  font-size: 0.6875rem !important;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: #64748B;
+}
+
+.text-professional {
+  font-family: "Inter", "SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================
+   LAYOUT UTILITIES
+   ========================================== */
+
+.layout-dense {
+  padding: 4px 8px !important;
+}
+
+.layout-compact {
+  padding: 8px 12px !important;
+}
+
+.layout-comfortable {
+  padding: 12px 16px !important;
+}
+
+.layout-tight {
+  margin: 0;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.layout-financial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.layout-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* ==========================================
+   PROFESSIONAL CARDS
+   ========================================== */
+
+.card-financial {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.card-financial:hover {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+.card-data {
+  padding: 12px !important;
+  background: #FFFFFF;
+  border: 1px solid #F1F5F9;
+  border-radius: 4px;
+}
+
+.card-status {
+  border-left: 4px solid #059669 !important;
+  padding-left: 12px !important;
+}
+
+.card-status.negative {
+  border-left-color: #DC2626 !important;
+}
+
+.card-status.warning {
+  border-left-color: #D97706 !important;
+}
+
+.card-status.neutral {
+  border-left-color: #6B7280 !important;
+}
+
+/* ==========================================
+   STATUS INDICATORS
+   ========================================== */
+
+.status-positive {
+  color: #059669 !important;
+  background-color: #F0FDF4 !important;
+  border: 1px solid #BBF7D0 !important;
+}
+
+.status-negative {
+  color: #DC2626 !important;
+  background-color: #FEF2F2 !important;
+  border: 1px solid #FECACA !important;
+}
+
+.status-neutral {
+  color: #6B7280 !important;
+  background-color: #F9FAFB !important;
+  border: 1px solid #E5E7EB !important;
+}
+
+.status-warning {
+  color: #D97706 !important;
+  background-color: #FFFBEB !important;
+  border: 1px solid #FED7AA !important;
+}
+
+.status-info {
+  color: #3B82F6 !important;
+  background-color: #EFF6FF !important;
+  border: 1px solid #DBEAFE !important;
+}
+
+/* ==========================================
+   DATA TABLES
+   ========================================== */
+
+.table-financial {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 6px !important;
+}
+
+.table-financial thead th {
+  background-color: #F8FAFC !important;
+  border-bottom: 2px solid #E2E8F0 !important;
+  padding: 8px 12px !important;
+  font-weight: 700 !important;
+  font-size: 0.6875rem !important;
+  letter-spacing: 0.025em !important;
+  text-transform: uppercase !important;
+  color: #64748B !important;
+}
+
+.table-financial tbody td {
+  font-size: 0.75rem !important;
+  padding: 6px 12px !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+  font-family: "JetBrains Mono", "SF Mono", monospace !important;
+}
+
+.table-financial tbody tr:hover {
+  background-color: #F8FAFC !important;
+}
+
+.table-dense thead th {
+  padding: 4px 8px !important;
+  font-size: 0.625rem !important;
+}
+
+.table-dense tbody td {
+  padding: 3px 8px !important;
+  font-size: 0.6875rem !important;
+}
+
+/* ==========================================
+   BUTTONS
+   ========================================== */
+
+.btn-professional {
+  border-radius: 6px !important;
+  padding: 8px 20px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0.01em !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.btn-professional:hover {
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary-professional {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+  border: 1px solid transparent !important;
+  color: white !important;
+}
+
+.btn-primary-professional:hover {
+  background: linear-gradient(135deg, #1E293B 0%, #334155 100%) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25) !important;
+}
+
+.btn-secondary-professional {
+  border: 1px solid #E2E8F0 !important;
+  color: #334155 !important;
+  background-color: #FFFFFF !important;
+}
+
+.btn-secondary-professional:hover {
+  border-color: #059669 !important;
+  background-color: #F8FAFC !important;
+  color: #059669 !important;
+}
+
+/* ==========================================
+   FINANCIAL METRICS
+   ========================================== */
+
+.metric-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.metric-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: #64748B;
+  margin-bottom: 2px;
+}
+
+.metric-value {
+  font-family: "JetBrains Mono", "SF Mono", monospace;
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.2;
+  color: #0F172A;
+}
+
+.metric-value.positive {
+  color: #059669;
+}
+
+.metric-value.negative {
+  color: #DC2626;
+}
+
+.metric-value.neutral {
+  color: #6B7280;
+}
+
+.metric-subtitle {
+  font-size: 0.625rem;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+/* ==========================================
+   BLOOMBERG-INSPIRED UTILITIES
+   ========================================== */
+
+.bloomberg-header {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+  color: white;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bloomberg-panel {
+  background: #000000;
+  color: #00FF41;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #333333;
+}
+
+.terminal-text {
+  font-family: "JetBrains Mono", "SF Mono", monospace !important;
+  font-size: 0.75rem;
+  color: #00FF41;
+  background: #000000;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+/* ==========================================
+   REFINITIV-INSPIRED UTILITIES
+   ========================================== */
+
+.refinitiv-workspace {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 8px;
+  padding: 8px;
+  background: #F5F5F5;
+  min-height: 100vh;
+}
+
+.refinitiv-panel {
+  background: white;
+  border: 1px solid #CCCCCC;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.refinitiv-header {
+  background: #2E5EAA;
+  color: white;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 4px 4px 0 0;
+}
+
+/* ==========================================
+   LOADING AND STATES
+   ========================================== */
+
+.loading-skeleton {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE UTILITIES
+   ========================================== */
+
+@media (max-width: 768px) {
+  .layout-financial-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .layout-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .text-financial-large {
+    font-size: 1rem;
+  }
+
+  .metric-value {
+    font-size: 1rem;
+  }
+
+  .table-financial thead th,
+  .table-financial tbody td {
+    padding: 4px 6px !important;
+    font-size: 0.625rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-financial {
+    margin: 0 4px;
+  }
+
+  .layout-dense {
+    padding: 2px 4px !important;
+  }
+
+  .btn-professional {
+    padding: 6px 12px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* ==========================================
+   ACCESSIBILITY
+   ========================================== */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.focus-visible:focus {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+
+/* ==========================================
+   PRINT STYLES
+   ========================================== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .card-financial {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .table-financial {
+    border-collapse: collapse !important;
+  }
+
+  .table-financial th,
+  .table-financial td {
+    border: 1px solid #000 !important;
+  }
+} 

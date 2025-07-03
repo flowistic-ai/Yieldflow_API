@@ -5,6 +5,49 @@ import PortfolioOptimization from './components/PortfolioOptimization';
 import SmartQueryInterface from './components/SmartQueryInterface';
 import FinancialModelsDocumentation from './components/FinancialModelsDocumentation';
 
+// Extend the Material-UI theme interface for custom properties
+declare module '@mui/material/styles' {
+  interface Palette {
+    financial: {
+      positive: string;
+      negative: string;
+      neutral: string;
+      warning: string;
+      positiveBackground: string;
+      negativeBackground: string;
+      neutralBackground: string;
+      warningBackground: string;
+    };
+  }
+
+  interface PaletteOptions {
+    financial?: {
+      positive?: string;
+      negative?: string;
+      neutral?: string;
+      warning?: string;
+      positiveBackground?: string;
+      negativeBackground?: string;
+      neutralBackground?: string;
+      warningBackground?: string;
+    };
+  }
+
+  interface TypographyVariants {
+    financialData: React.CSSProperties;
+    financialLarge: React.CSSProperties;
+    dataLabel: React.CSSProperties;
+    fontFamilyMonospace: string;
+  }
+
+  interface TypographyVariantsOptions {
+    financialData?: React.CSSProperties;
+    financialLarge?: React.CSSProperties;
+    dataLabel?: React.CSSProperties;
+    fontFamilyMonospace?: string;
+  }
+}
+
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -49,113 +92,266 @@ const theme = createTheme({
       secondary: '#64748B',
     },
     divider: '#E2E8F0',
+    // Enhanced financial status colors
+    financial: {
+      positive: '#059669',
+      negative: '#DC2626',
+      neutral: '#6B7280',
+      warning: '#D97706',
+      positiveBackground: '#F0FDF4',
+      negativeBackground: '#FEF2F2',
+      neutralBackground: '#F9FAFB',
+      warningBackground: '#FFFBEB',
+    },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    // Professional typography system for financial applications
+    fontFamily: '"Inter", "SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif',
+    
+    // Financial data monospace font
+    fontFamilyMonospace: '"JetBrains Mono", "SF Mono", "Monaco", "Menlo", "Consolas", monospace',
+    
     h1: {
-      fontSize: '2.5rem',
+      fontSize: '2.25rem', // 36px
       fontWeight: 700,
       lineHeight: 1.2,
-      letterSpacing: '-0.02em',
+      letterSpacing: '-0.025em',
+      color: '#0F172A',
     },
     h2: {
-      fontSize: '2rem',
-      fontWeight: 600,
-      lineHeight: 1.3,
-      letterSpacing: '-0.01em',
+      fontSize: '1.875rem', // 30px
+      fontWeight: 700,
+      lineHeight: 1.25,
+      letterSpacing: '-0.02em',
+      color: '#0F172A',
     },
     h3: {
-      fontSize: '1.75rem',
+      fontSize: '1.5rem', // 24px
       fontWeight: 600,
       lineHeight: 1.3,
+      letterSpacing: '-0.015em',
+      color: '#0F172A',
     },
     h4: {
-      fontSize: '1.5rem',
+      fontSize: '1.25rem', // 20px
       fontWeight: 600,
-      lineHeight: 1.4,
+      lineHeight: 1.35,
+      letterSpacing: '-0.01em',
+      color: '#1E293B',
     },
     h5: {
-      fontSize: '1.25rem',
+      fontSize: '1.125rem', // 18px
       fontWeight: 600,
       lineHeight: 1.4,
+      color: '#1E293B',
     },
     h6: {
-      fontSize: '1.125rem',
+      fontSize: '1rem', // 16px
       fontWeight: 600,
       lineHeight: 1.4,
+      color: '#334155',
     },
+    
+    // Body text for general content
     body1: {
-      fontSize: '1rem',
-      lineHeight: 1.6,
+      fontSize: '0.875rem', // 14px - More compact for financial data
+      lineHeight: 1.5,
+      color: '#334155',
     },
     body2: {
-      fontSize: '0.875rem',
-      lineHeight: 1.6,
+      fontSize: '0.75rem', // 12px - Dense information display
+      lineHeight: 1.4,
+      color: '#475569',
     },
-    button: {
-      textTransform: 'none',
+    
+    // Financial data typography
+    financialData: {
+      fontSize: '0.75rem', // 12px
+      fontFamily: '"JetBrains Mono", "SF Mono", "Monaco", "Menlo", "Consolas", monospace',
+      fontWeight: 500,
+      lineHeight: 1.2,
+      letterSpacing: '0.01em',
+    },
+    
+    // Large financial numbers
+    financialLarge: {
+      fontSize: '1.125rem', // 18px
+      fontFamily: '"JetBrains Mono", "SF Mono", "Monaco", "Menlo", "Consolas", monospace',
       fontWeight: 600,
+      lineHeight: 1.2,
+      letterSpacing: '-0.01em',
+    },
+    
+    // Compact data labels
+    dataLabel: {
+      fontSize: '0.6875rem', // 11px
+      fontWeight: 500,
+      lineHeight: 1.2,
+      letterSpacing: '0.025em',
+      textTransform: 'uppercase',
+      color: '#64748B',
+    },
+    
+    button: {
+      fontSize: '0.875rem',
+      fontWeight: 600,
+      lineHeight: 1.4,
+      letterSpacing: '0.01em',
+      textTransform: 'none',
+    },
+    
+    caption: {
+      fontSize: '0.6875rem', // 11px
+      lineHeight: 1.3,
+      color: '#64748B',
     },
   },
+  spacing: 4, // 4px base unit for tighter professional spacing
   shape: {
-    borderRadius: 12,
+    borderRadius: 6, // More conservative radius for professional look
   },
-  spacing: 8,
   components: {
+    // Enhanced Button Components
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          padding: '10px 24px',
+          borderRadius: 6,
+          padding: '8px 20px',
           fontSize: '0.875rem',
           fontWeight: 600,
+          lineHeight: 1.4,
+          letterSpacing: '0.01em',
           textTransform: 'none',
           boxShadow: 'none',
+          transition: 'all 0.15s ease-in-out',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.15)',
+            transform: 'translateY(-1px)',
+          },
+          '&:active': {
+            transform: 'translateY(0)',
           },
         },
         contained: {
-          background: 'linear-gradient(135deg, #0F172A 0%, #334155 100%)',
+          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+          border: '1px solid transparent',
           '&:hover': {
-            background: 'linear-gradient(135deg, #334155 0%, #475569 100%)',
+            background: 'linear-gradient(135deg, #1E293B 0%, #334155 100%)',
+            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)',
+          },
+        },
+        outlined: {
+          borderColor: '#E2E8F0',
+          color: '#334155',
+          backgroundColor: '#FFFFFF',
+          '&:hover': {
+            borderColor: '#059669',
+            backgroundColor: '#F8FAFC',
+            color: '#059669',
+          },
+        },
+        text: {
+          color: '#334155',
+          '&:hover': {
+            backgroundColor: '#F1F5F9',
+            color: '#059669',
           },
         },
       },
     },
+
+    // Professional Card Design System
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-          border: '1px solid #F1F5F9',
+          borderRadius: 6,
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
+          transition: 'all 0.15s ease-in-out',
           '&:hover': {
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            borderColor: '#CBD5E1',
+            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.12)',
+            transform: 'translateY(-1px)',
           },
-          transition: 'box-shadow 0.2s ease-in-out',
+          // Professional card variants
+          '&.financial-card': {
+            background: 'linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 100%)',
+            borderColor: '#E1E5E9',
+          },
+          '&.data-card': {
+            padding: '12px',
+            '& .MuiCardContent-root': {
+              padding: '8px !important',
+              '&:last-child': {
+                paddingBottom: '8px !important',
+              },
+            },
+          },
+          '&.status-card': {
+            borderLeft: '4px solid #059669',
+            paddingLeft: '12px',
+          },
         },
       },
     },
+
+    // Enhanced Paper Component
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+          borderRadius: 6,
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #F1F5F9',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
+          '&.dense-paper': {
+            padding: '8px 12px',
+          },
+          '&.financial-paper': {
+            background: 'linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 100%)',
+          },
+        },
+        elevation1: {
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08)',
+        },
+        elevation2: {
+          boxShadow: '0 2px 6px rgba(15, 23, 42, 0.12)',
+        },
+        elevation3: {
+          boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
         },
       },
     },
+
+    // Professional Input Fields
     MuiTextField: {
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
+            borderRadius: 6,
+            fontSize: '0.875rem',
+            backgroundColor: '#FFFFFF',
+            transition: 'all 0.15s ease-in-out',
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: '#059669',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#059669',
+              borderWidth: '2px',
+            },
+          },
+          '& .MuiInputLabel-root': {
+            fontSize: '0.875rem',
+            color: '#64748B',
+            '&.Mui-focused': {
+              color: '#059669',
             },
           },
         },
       },
     },
+
+    // Enhanced Navigation Tabs
     MuiTab: {
       styleOverrides: {
         root: {
@@ -163,26 +359,121 @@ const theme = createTheme({
           fontSize: '0.875rem',
           fontWeight: 600,
           minHeight: 48,
+          padding: '12px 20px',
+          color: '#64748B',
+          transition: 'all 0.15s ease-in-out',
           '&.Mui-selected': {
             color: '#059669',
+            fontWeight: 700,
+          },
+          '&:hover': {
+            color: '#334155',
+            backgroundColor: '#F8FAFC',
           },
         },
       },
     },
+
     MuiTabs: {
       styleOverrides: {
+        root: {
+          borderBottom: '1px solid #E2E8F0',
+        },
         indicator: {
           backgroundColor: '#059669',
           height: 3,
-          borderRadius: 2,
+          borderRadius: '2px 2px 0 0',
         },
       },
     },
+
+    // Professional Chip Component
     MuiChip: {
       styleOverrides: {
         root: {
+          fontSize: '0.75rem',
           fontWeight: 500,
-          borderRadius: 6,
+          borderRadius: 4,
+          height: 24,
+          '&.status-positive': {
+            backgroundColor: '#F0FDF4',
+            color: '#059669',
+            border: '1px solid #BBF7D0',
+          },
+          '&.status-negative': {
+            backgroundColor: '#FEF2F2',
+            color: '#DC2626',
+            border: '1px solid #FECACA',
+          },
+          '&.status-neutral': {
+            backgroundColor: '#F9FAFB',
+            color: '#6B7280',
+            border: '1px solid #E5E7EB',
+          },
+          '&.status-warning': {
+            backgroundColor: '#FFFBEB',
+            color: '#D97706',
+            border: '1px solid #FED7AA',
+          },
+        },
+        label: {
+          padding: '0 8px',
+        },
+      },
+    },
+
+    // Enhanced Table Components
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#F8FAFC',
+          '& .MuiTableCell-head': {
+            fontSize: '0.6875rem',
+            fontWeight: 600,
+            letterSpacing: '0.025em',
+            textTransform: 'uppercase',
+            color: '#64748B',
+            padding: '8px 12px',
+            borderBottom: '1px solid #E2E8F0',
+          },
+        },
+      },
+    },
+
+    MuiTableBody: {
+      styleOverrides: {
+        root: {
+          '& .MuiTableCell-body': {
+            fontSize: '0.75rem',
+            padding: '6px 12px',
+            borderBottom: '1px solid #F1F5F9',
+            fontFamily: '"JetBrains Mono", "SF Mono", monospace',
+          },
+          '& .MuiTableRow-root:hover': {
+            backgroundColor: '#F8FAFC',
+          },
+        },
+      },
+    },
+
+    // Loading Progress Components
+    MuiLinearProgress: {
+      styleOverrides: {
+        root: {
+          borderRadius: 2,
+          backgroundColor: '#E2E8F0',
+        },
+        bar: {
+          borderRadius: 2,
+          backgroundColor: '#059669',
+        },
+      },
+    },
+
+    MuiCircularProgress: {
+      styleOverrides: {
+        root: {
+          color: '#059669',
         },
       },
     },

@@ -57,8 +57,12 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { dividendService, getCompanyInfo } from '../services/dividendService';
+import { dividendService, DividendAnalysis, getCompanyInfo } from '../services/dividendService';
 import Header from './Header';
+import FinancialDataService from '../services/financialDataService';
+import DividendQualitySnowflake from './SnowflakeAnalysis';
+import KpiCard from './common/KpiCard';
+import AnimatedDonut from './common/AnimatedDonut';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -89,12 +93,212 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+// PayoutRatioDisplay component with enhanced error handling
+const PayoutRatioDisplay = ({ analysis }: { analysis?: DividendAnalysis | null }) => {
+  // Try multiple possible locations for payout ratio data
+  const payoutRatioComplex = analysis?.current_metrics?.payout_ratio;
+  const payoutRatioSimple = analysis?.current_dividend_info?.payout_ratio;
+  const payoutRatioSustainability = analysis?.sustainability_analysis?.key_ratios?.payout_ratio;
+  
+  console.log('PayoutRatioDisplay - Complex:', payoutRatioComplex);
+  console.log('PayoutRatioDisplay - Simple:', payoutRatioSimple);
+  console.log('PayoutRatioDisplay - Sustainability:', payoutRatioSustainability);
+  
+  // Handle sustainability analysis payout ratio (decimal format)
+  if (typeof payoutRatioSustainability === 'number' && !payoutRatioComplex && !payoutRatioSimple) {
+    const payoutPercentage = payoutRatioSustainability * 100;
+    const isHighPayout = payoutPercentage > 80;
+    const isVeryHighPayout = payoutPercentage > 100;
+    
+    if (isVeryHighPayout) {
+      return (
+        <Card 
+          variant="outlined" 
+          sx={{ 
+            backgroundColor: 'error.light', 
+            p: 2, 
+            mt: 2 
+          }}
+        >
+          <Typography variant="h6" color="error.dark">
+            High Payout Ratio
+          </Typography>
+          <Typography variant="body2">
+            Payout ratio of {payoutPercentage.toFixed(1)}% exceeds 100%, indicating potential sustainability concerns.
+          </Typography>
+        </Card>
+      );
+    }
+    
+    if (isHighPayout) {
+      return (
+        <Card 
+          variant="outlined" 
+          sx={{ 
+            backgroundColor: 'warning.light', 
+            p: 2, 
+            mt: 2 
+          }}
+        >
+          <Typography variant="h6" color="warning.dark">
+            Elevated Payout Ratio
+          </Typography>
+          <Typography variant="body2">
+            Payout ratio of {payoutPercentage.toFixed(1)}% is above the conservative 60% threshold but still sustainable.
+          </Typography>
+        </Card>
+      );
+    }
+    
+    return (
+      <KpiCard
+        label="Payout Ratio"
+        value={payoutPercentage.toFixed(1)}
+        unit="%"
+      />
+    );
+  }
+  
+  // If we have a simple number, create a simplified display
+  if (typeof payoutRatioSimple === 'number' && !payoutRatioComplex) {
+    const isHighPayout = payoutRatioSimple > 100;
+    const isExtremePayout = payoutRatioSimple > 200;
+    
+    if (isExtremePayout) {
+      return (
+        <Card 
+          variant="outlined" 
+          sx={{ 
+            backgroundColor: 'error.light', 
+            p: 2, 
+            mt: 2 
+          }}
+        >
+          <Typography variant="h6" color="error.dark">
+            Extreme Payout Ratio
+          </Typography>
+          <Typography variant="body2">
+            Payout ratio of {payoutRatioSimple.toFixed(1)}% is extremely high and may indicate unsustainable dividend payments.
+          </Typography>
+        </Card>
+      );
+    }
+    
+    if (isHighPayout) {
+      return (
+        <Card 
+          variant="outlined" 
+          sx={{ 
+            backgroundColor: 'warning.light', 
+            p: 2, 
+            mt: 2 
+          }}
+        >
+          <Typography variant="h6" color="warning.dark">
+            High Payout Ratio
+          </Typography>
+          <Typography variant="body2">
+            Payout ratio of {payoutRatioSimple.toFixed(1)}% is above the typical 60-80% range.
+          </Typography>
+        </Card>
+      );
+    }
+    
+    return (
+      <KpiCard
+        label="Payout Ratio"
+        value={payoutRatioSimple.toFixed(1)}
+        unit="%"
+      />
+    );
+  }
+  
+  // Handle complex payout ratio object
+  if (!payoutRatioComplex || payoutRatioComplex.warning) {
+    return (
+      <Card 
+        variant="outlined" 
+        sx={{ 
+          backgroundColor: payoutRatioComplex?.warning === 'negative_earnings' ? 'warning.light' : 'error.light', 
+          p: 2, 
+          mt: 2 
+        }}
+      >
+        <Typography variant="h6" color="warning.dark">
+          Dividend Payout Ratio Analysis
+        </Typography>
+        {payoutRatioComplex?.warning === 'negative_earnings' && (
+          <>
+            <Typography variant="body1" color="error.main">
+              Payout Ratio Cannot Be Calculated
+            </Typography>
+            <Typography variant="body2">
+              Reason: Negative Earnings
+              <br />
+              Dividend per Share: ${payoutRatioComplex.raw_dividend_per_share?.toFixed(2)}
+              <br />
+              Earnings per Share: ${payoutRatioComplex.raw_eps?.toFixed(2)}
+            </Typography>
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              {payoutRatioComplex.financial_health_warning}
+            </Alert>
+          </>
+        )}
+        {payoutRatioComplex?.warning === 'division_by_zero' && (
+          <Typography variant="body2" color="error.main">
+            Unable to calculate payout ratio due to zero earnings.
+          </Typography>
+        )}
+        {payoutRatioComplex?.warning === 'high_payout' && (
+          <>
+            <Typography variant="body1" color="warning.main">
+              High Payout Ratio Detected
+            </Typography>
+            <Typography variant="body2">
+              {payoutRatioComplex.explanation}
+            </Typography>
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              {payoutRatioComplex.recommendation}
+            </Alert>
+          </>
+        )}
+        {!payoutRatioComplex && (
+          <Typography variant="body2" color="text.secondary">
+            No payout ratio data available for this stock.
+          </Typography>
+        )}
+      </Card>
+    );
+  }
+  
+  return (
+    <KpiCard
+      label="Payout Ratio"
+      value={payoutRatioComplex.value?.toFixed(1) || 'N/A'}
+      unit="%"
+    />
+  );
+};
+
+// Utility functions for safe property access
+const safePayout = (analysis: DividendAnalysis | null) => analysis?.sustainability_analysis?.key_ratios?.payout_ratio ?? 0;
+const safeFcfCoverage = (analysis: DividendAnalysis | null) => analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio ?? 0;
+const safeDebtCoverage = (analysis: DividendAnalysis | null) => analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage ?? 0;
+const safeEarningsVolatility = (analysis: DividendAnalysis | null) => analysis?.sustainability_analysis?.key_ratios?.earnings_volatility ?? 0.5;
+const safeGrowthVolatility = (analysis: DividendAnalysis | null) => analysis?.growth_analytics?.growth_volatility ?? 50;
+const safeGrowthConsistency = (analysis: DividendAnalysis | null) => analysis?.growth_analytics?.growth_consistency ?? 50;
+const safeConsecutiveIncreases = (analysis: DividendAnalysis | null) => analysis?.growth_analytics?.consecutive_increases ?? 0;
+const safeSustainabilityScore = (analysis: DividendAnalysis | null) => analysis?.sustainability_analysis?.sustainability_score ?? 0;
+const safeRiskScore = (analysis: DividendAnalysis | null) => analysis?.risk_assessment?.risk_score ?? 50;
+const safePrimaryCoverage = (analysis: DividendAnalysis | null) => analysis?.coverage_analysis?.coverage_ratios?.primary_coverage ?? 0;
+const safeConfidenceLevel = (analysis: DividendAnalysis | null) => analysis?.forecast?.[0]?.confidence_level ?? 0;
+
 const DividendAnalysisComponent: React.FC = () => {
   const [ticker, setTicker] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentDividend, setCurrentDividend] = useState<any>(null);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<DividendAnalysis | null>(null);
   const [growthChart, setGrowthChart] = useState<any>([]);
   const [lastAnalyzedTicker, setLastAnalyzedTicker] = useState<string>('');
   const [tabValue, setTabValue] = useState(0);
@@ -157,6 +361,7 @@ const DividendAnalysisComponent: React.FC = () => {
       setCurrentDividend(currentData);
       setAnalysis(analysisData);
       console.log('Analysis data received:', analysisData);
+      console.log('Payout Ratio Details:', analysisData?.current_dividend_info?.payout_ratio);
       console.log('Peer comparison data received:', peerData);
       console.log('Company info received:', companyData);
       setPeerComparison(peerData);
@@ -246,14 +451,14 @@ const DividendAnalysisComponent: React.FC = () => {
 
   const resetToDefaultScores = () => {
     // Reset to calculated scores from analysis data
-    const coverage = analysis?.coverage_analysis?.coverage_ratios?.primary_coverage >= 3 ? 85 : 
-                    analysis?.coverage_analysis?.coverage_ratios?.primary_coverage >= 2 ? 70 : 50;
-    const stability = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.2 ? 85 : 
-                     analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.4 ? 65 : 45;
-    const volatility = analysis?.growth_analytics?.growth_volatility <= 20 ? 85 : 
-                      analysis?.growth_analytics?.growth_volatility <= 40 ? 65 : 45;
-    const growth = analysis?.growth_analytics?.growth_consistency >= 70 ? 85 : 
-                  analysis?.growth_analytics?.growth_consistency >= 50 ? 65 : 45;
+    const coverage = (analysis?.coverage_analysis?.coverage_ratios?.primary_coverage ?? 0) >= 3 ? 85 : 
+                    (analysis?.coverage_analysis?.coverage_ratios?.primary_coverage ?? 0) >= 2 ? 70 : 50;
+    const stability = (analysis?.sustainability_analysis?.key_ratios?.earnings_volatility ?? 0.5) <= 0.2 ? 85 : 
+                     (analysis?.sustainability_analysis?.key_ratios?.earnings_volatility ?? 0.5) <= 0.4 ? 65 : 45;
+    const volatility = (analysis?.growth_analytics?.growth_volatility ?? 50) <= 20 ? 85 : 
+                      (analysis?.growth_analytics?.growth_volatility ?? 50) <= 40 ? 65 : 45;
+    const growth = (analysis?.growth_analytics?.growth_consistency ?? 50) >= 70 ? 85 : 
+                  (analysis?.growth_analytics?.growth_consistency ?? 50) >= 50 ? 65 : 45;
     
     setCustomRiskScores({
       coverage: coverage,
@@ -264,361 +469,108 @@ const DividendAnalysisComponent: React.FC = () => {
   };
 
   // Current Tab Content
-  const CurrentTab = () => (
-    <Stack spacing={4}>
-      {/* Overall Quality Score - Hero Card */}
-      <Card 
-        elevation={0}
-        sx={{ 
-          background: 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)',
-          border: '2px solid #CBD5E1',
-          borderRadius: 3,
-        }}
-      >
-        <CardContent sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 48,
-                  height: 48,
-                  borderRadius: 2,
-                  background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-                  boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
-                }}
-              >
-                <AssessmentIcon sx={{ color: 'white', fontSize: 24 }} />
-              </Box>
-              <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                Overall Dividend Quality
-              </Typography>
-            </Box>
-            <Tooltip title="Click for detailed scoring methodology">
-              <IconButton 
-                onClick={() => setQualityInfoExpanded(!qualityInfoExpanded)}
-                sx={{ 
-                  color: 'primary.main',
-                  backgroundColor: 'rgba(15, 23, 42, 0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(15, 23, 42, 0.15)',
-                  },
-                }}
-              >
-                <InfoIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 4, mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <Typography 
-                variant="h2" 
-                sx={{ 
-                  fontWeight: 800,
-                  color: getScoreColor(analysis?.dividend_quality_score?.quality_score || 0),
-                  lineHeight: 1,
-                }}
-              >
-                {analysis?.dividend_quality_score?.quality_score || 0}
-              </Typography>
-              <Box>
-                <Chip 
-                  label={analysis?.dividend_quality_score?.grade || 'F'} 
-                  color={getGradeColor(analysis?.dividend_quality_score?.grade || '')}
-                  size="medium"
-                  sx={{ 
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    height: 36,
-                    mb: 1,
-                  }}
-                />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                  {analysis?.dividend_quality_score?.rating || 'No Rating'}
-                </Typography>
-              </Box>
+  const CurrentTab = () => {
+    return (
+      <Stack spacing={4}>
+        {analysis && (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 2 }}>
+            <KpiCard
+              label="Dividend Yield"
+              value={(() => {
+                  const y = analysis?.current_metrics?.current_yield_pct;
+                  if (typeof y !== 'number') return 'N/A';
+                  return y > 10 ? (y / 100).toFixed(2) : y.toFixed(2);
+              })()}
+              unit="%"
+            />
+            <PayoutRatioDisplay analysis={analysis} />
+            <KpiCard
+              label="Annual Dividend"
+              prefix="$"
+              value={analysis?.current_metrics?.estimated_annual_dividend || 0}
+            />
+            <KpiCard
+              label="Frequency"
+              value={analysis?.current_metrics?.payment_frequency || 'N/A'}
+            />
+             <KpiCard
+              label="Last Pay Date"
+              value={analysis?.current_metrics?.last_payment?.ex_date ? 
+                new Date(analysis.current_metrics.last_payment.ex_date).toLocaleDateString() : 'N/A'}
+            />
+            <Box sx={{ position: 'relative' }}>
+              <KpiCard
+                label="Coverage Grade"
+                value={analysis?.coverage_analysis?.coverage_grades?.composite_grade || 'N/A'}
+              />
+              <Tooltip title="Coverage Grade Explanation">
+                <IconButton
+                  size="small"
+                  onClick={() => setCoverageInfoExpanded(!coverageInfoExpanded)}
+                  sx={{ position: 'absolute', top: 4, right: 4, color: 'text.secondary' }}
+                >
+                  <InfoIcon fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Box>
-          
-          <Collapse in={qualityInfoExpanded}>
-            <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-              <Typography variant="h6" gutterBottom color="primary">
-                How We Calculate Dividend Quality Score
-              </Typography>
-              <Typography variant="body2" paragraph>
-                Our institutional-grade scoring system (0-100) is based on Morningstar and S&P methodologies:
-              </Typography>
-              <Box sx={{ pl: 2 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Consistency (25%):</strong> Years of maintained/increased dividends
+        )}
+        <Collapse in={coverageInfoExpanded}>
+            <Paper elevation={0} sx={{ p: 2, mt: 1, border: '1px solid', borderColor: 'rgba(0,0,0,0.12)' }}>
+                <Typography variant="h6" gutterBottom>Coverage Grade Explanation</Typography>
+                <Typography variant="body2" paragraph>
+                    The Coverage Grade assesses a company's ability to pay its dividends using its earnings and free cash flow. A higher grade suggests a safer dividend.
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Growth (25%):</strong> CAGR analysis with 5-15% optimal target
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Coverage (25%):</strong> EPS & Free Cash Flow coverage ratios
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Yield Quality (15%):</strong> Stability vs volatility assessment
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  <strong>• Financial Strength (10%):</strong> ROE and balance sheet metrics
-                </Typography>
-              </Box>
-              <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
-                <strong>Grading Scale:</strong> A+ (90-100), A (80-89), B (60-79), C (40-59), D (30-39), F (0-29)
-              </Typography>
-            </Box>
-          </Collapse>
-          <LinearProgress 
-            variant="determinate" 
-            value={analysis?.dividend_quality_score?.quality_score || 0} 
-            sx={{ height: 10, borderRadius: 5, mb: 2 }}
-          />
-          <Typography variant="body1" color="text.secondary">
-            <strong>Investment Recommendation:</strong> {analysis?.dividend_quality_score?.investment_recommendation || 'N/A'}
-          </Typography>
-        </CardContent>
-      </Card>
+                <ul>
+                    <li><Typography variant="body2"><strong>Primary:</strong> Net Income / Total Dividends</Typography></li>
+                    <li><Typography variant="body2"><strong>Fallback:</strong> Earnings Per Share / Dividend Per Share</Typography></li>
+                </ul>
+                <Typography variant="caption">Grading Scale: A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (&lt;1.0x)</Typography>
+            </Paper>
+        </Collapse>
 
-      {/* Current Dividend Information and Key Metrics */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-        <Card 
-          elevation={0}
-          sx={{ 
-            border: '1px solid #E2E8F0',
-            borderRadius: 2,
-            '&:hover': {
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <AccountBalanceIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                Current Dividend Information
-              </Typography>
+        <Card elevation={2}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Overall Dividend Quality
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+              <AnimatedDonut value={analysis?.dividend_quality_score?.quality_score || 0} size={150} />
             </Box>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Dividend Yield:</strong></Typography>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const yield_pct = analysis?.current_metrics?.current_yield_pct || 
-                                     currentDividend?.current_dividend_info?.current_yield_pct || 
-                                     currentDividend?.current_metrics?.current_yield_pct ||
-                                     currentDividend?.yield;
-                    
-                    if (yield_pct !== undefined && yield_pct !== null && yield_pct !== 'N/A') {
-                      return `${Number(yield_pct).toFixed(2)}%`;
-                    }
-                    return '0.00%';
-                  })()}
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+                <Chip label={analysis?.dividend_quality_score?.grade || 'N/A'} color="primary" sx={{ mb: 1, fontWeight: 'bold' }} />
+                <Typography variant="h6" >
+                {analysis?.dividend_quality_score?.rating || 'No Rating'}
                 </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Tooltip title="Total dividends per share expected over the next 12 months">
-                  <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                    <strong>Annual Dividend (per share):</strong>
-                  </Typography>
-                </Tooltip>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const annual_div = analysis?.current_metrics?.estimated_annual_dividend ||
-                                      currentDividend?.current_dividend_info?.estimated_annual_dividend ||
-                                      currentDividend?.current_metrics?.estimated_annual_dividend ||
-                                      currentDividend?.estimated_annual;
-                    
-                    if (annual_div !== undefined && annual_div !== null && annual_div !== 'N/A') {
-                      return `$${Number(annual_div).toFixed(2)}`;
-                    }
-                    return '$0.00';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Tooltip title="Most recent dividend payment amount per share">
-                  <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                    <strong>Last Payment (per share):</strong>
-                  </Typography>
-                </Tooltip>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const last_amount = analysis?.current_metrics?.last_payment?.amount ||
-                                       currentDividend?.current_dividend_info?.last_payment?.amount ||
-                                       currentDividend?.current_metrics?.last_payment?.amount ||
-                                       currentDividend?.last_payment?.amount;
-                    
-                    if (last_amount !== undefined && last_amount !== null && last_amount !== 'N/A') {
-                      return `$${Number(last_amount).toFixed(2)}`;
-                    }
-                    return '$0.00';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Tooltip title="Ex-dividend date of the most recent payment">
-                  <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                    <strong>Last Payment Date:</strong>
-                  </Typography>
-                </Tooltip>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const lastPaymentDate = analysis?.current_metrics?.last_payment?.ex_date ||
-                      currentDividend?.current_dividend_info?.last_payment?.ex_date ||
-                      currentDividend?.current_metrics?.last_payment?.ex_date ||
-                      currentDividend?.last_payment?.ex_date;
-                    
-                    if (lastPaymentDate) {
-                      try {
-                        return new Date(lastPaymentDate).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        });
-                      } catch {
-                        return lastPaymentDate;
-                      }
-                    }
-                    return 'N/A';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Payment Frequency:</strong></Typography>
-                <Typography variant="body1" color="primary">
-                  {(() => {
-                    const frequency = analysis?.current_metrics?.payment_frequency ||
-                                     currentDividend?.current_dividend_info?.payment_frequency ||
-                                     currentDividend?.current_metrics?.payment_frequency ||
-                                     currentDividend?.payment_frequency;
-                    
-                    if (frequency && frequency !== 'N/A') {
-                      return frequency;
-                    }
-                    return 'No Dividends';
-                  })()}
-                </Typography>
-              </Box>
             </Box>
+            <LinearProgress
+              variant="determinate"
+              value={analysis?.dividend_quality_score?.quality_score || 0}
+              sx={{ height: 8, borderRadius: 5, mb: 2 }}
+            />
+             <Typography variant="body2" color="text.secondary" align="center">
+              <strong>Recommendation:</strong> {analysis?.dividend_quality_score?.investment_recommendation || 'N/A'}
+            </Typography>
           </CardContent>
         </Card>
 
-        <Card 
-          elevation={0}
-          sx={{ 
-            border: '1px solid #E2E8F0',
-            borderRadius: 2,
-            '&:hover': {
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            },
-          }}
-        >
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <ShowChartIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                Key Metrics Summary
+        {analysis && (
+          <Card elevation={2}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Financial Health
               </Typography>
-            </Box>
-            <Box sx={{ display: 'grid', gap: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Analysis Period:</strong></Typography>
-                <Typography variant="body1">
-                  {(() => {
-                    const years = analysis?.analysis_period?.years_analyzed;
-                    if (years && years > 0) {
-                      return `${Number(years).toFixed(1)} years`;
-                    }
-                    return 'Limited Data';
-                  })()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Sustainability Score:</strong></Typography>
-                          <Typography variant="body1" color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success.main' : 'info.main'}>
-            {(() => {
-              const score = analysis?.sustainability_analysis?.sustainability_score;
-              if (score !== undefined && score !== null && score !== 'N/A') {
-                return `${Number(score)}/100`;
-              }
-              return '0/100';
-            })()}
-          </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body1"><strong>Risk Rating:</strong></Typography>
-                <Chip 
-                  label={(() => {
-                    const rating = analysis?.risk_assessment?.risk_rating;
-                    if (rating && rating !== 'N/A') {
-                      return rating;
-                    }
-                    return 'Unknown';
-                  })()}
-                  color={analysis?.risk_assessment?.risk_rating === 'Low' ? 'success' : 
-                         analysis?.risk_assessment?.risk_rating === 'Medium' ? 'warning' : 'error'}
-                  size="small"
-                />
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Tooltip title="Click for detailed coverage analysis explanation">
-                    <Typography variant="body1" sx={{ borderBottom: '1px dotted', cursor: 'help' }}>
-                      <strong>Coverage Grade:</strong>
-                    </Typography>
-                  </Tooltip>
-                  <IconButton 
-                    size="small"
-                    onClick={() => setCoverageInfoExpanded(!coverageInfoExpanded)}
-                    sx={{ color: 'primary.main' }}
-                  >
-                    {coverageInfoExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                  </IconButton>
-                </Box>
-                <Chip 
-                  label={analysis?.coverage_analysis?.coverage_grades?.composite_grade || 'N/A'}
-                  color={getGradeColor(analysis?.coverage_analysis?.coverage_grades?.composite_grade || '')}
-                  size="small"
-                />
-              </Box>
-              
-              <Collapse in={coverageInfoExpanded}>
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    📊 Coverage Grade Explanation
-                  </Typography>
-                  <Typography variant="body2" paragraph>
-                    <strong>Coverage Grade</strong> measures the company's ability to pay dividends from its earnings and cash flows. Higher ratios indicate stronger dividend security.
-                  </Typography>
-                  <Box sx={{ pl: 2 }}>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>• Primary:</strong> Net Income ÷ Total Dividends (preferred when available)
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>• Fallback:</strong> Earnings Per Share ÷ Dividend Per Share
-                    </Typography>
-                  </Box>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    <strong>Grading Scale:</strong> A+ (3.0x+), A (2.5x+), B (2.0x+), C (1.5x+), D (1.0x+), F (&lt;1.0x)
-                  </Typography>
-                  {analysis?.coverage_analysis?.coverage_grades?.composite_grade === 'N/A' && (
-                    <Typography variant="body2" sx={{ mt: 1, color: 'warning.main' }}>
-                      <strong>Note:</strong> Coverage grade shows "N/A" when insufficient financial data is available for calculation.
-                    </Typography>
-                  )}
-                </Box>
-              </Collapse>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
-    </Stack>
-  );
+              <DividendQualitySnowflake
+                analysis={analysis}
+                ticker={lastAnalyzedTicker}
+                companyInfo={companyInfo}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </Stack>
+    );
+  };
 
   // Sustainability Tab Content
   const SustainabilityTab = () => (
@@ -662,14 +614,14 @@ const DividendAnalysisComponent: React.FC = () => {
             </Tooltip>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(analysis?.sustainability_analysis?.sustainability_score || 0) }}>
-              {analysis?.sustainability_analysis?.sustainability_score || 0}
+            <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(safeSustainabilityScore(analysis)) }}>
+              {safeSustainabilityScore(analysis)}
             </Typography>
             <Box>
               <Chip 
                 label={analysis?.sustainability_analysis?.sustainability_rating || 'N/A'} 
-                              color={analysis?.sustainability_analysis?.sustainability_score >= 80 ? 'success' : 
-                     analysis?.sustainability_analysis?.sustainability_score >= 60 ? 'info' : 'error'}
+                              color={(safeSustainabilityScore(analysis) >= 80 ? 'success' : 
+                     safeSustainabilityScore(analysis) >= 60 ? 'info' : 'error')}
                 size="medium"
               />
               <Typography variant="h6" sx={{ mt: 1 }}>
@@ -679,7 +631,7 @@ const DividendAnalysisComponent: React.FC = () => {
           </Box>
           <LinearProgress 
             variant="determinate" 
-            value={analysis?.sustainability_analysis?.sustainability_score || 0} 
+            value={safeSustainabilityScore(analysis)} 
             sx={{ height: 10, borderRadius: 5, mb: 2 }}
           />
         </CardContent>
@@ -714,8 +666,8 @@ const DividendAnalysisComponent: React.FC = () => {
               p: 3, 
               backgroundColor: 'background.paper',
               border: '2px solid', 
-              borderColor: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.light' : 
-                          analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.light' : 'error.light',
+              borderColor: safePayout(analysis) <= 0.6 ? 'success.light' : 
+                          safePayout(analysis) <= 0.8 ? 'info.light' : 'error.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -724,8 +676,8 @@ const DividendAnalysisComponent: React.FC = () => {
               }
             }}>
               <Typography variant="h6" sx={{ 
-                color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.main' : 'error.main',
+                color: safePayout(analysis) <= 0.6 ? 'success.main' : 
+                       safePayout(analysis) <= 0.8 ? 'info.main' : 'error.main',
                 fontWeight: 500,
                 mb: 1
               }}>
@@ -733,12 +685,12 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <Typography variant="h3" sx={{ 
                 my: 2,
-                color: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info.main' : 'error.main',
+                color: safePayout(analysis) <= 0.6 ? 'success.main' : 
+                       safePayout(analysis) <= 0.8 ? 'info.main' : 'error.main',
                 fontWeight: 600
               }}>
-                {analysis?.sustainability_analysis?.key_ratios?.payout_ratio 
-                  ? `${(analysis.sustainability_analysis.key_ratios.payout_ratio * 100).toFixed(1)}%`
+                {safePayout(analysis) 
+                  ? `${(safePayout(analysis) * 100).toFixed(1)}%`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -746,10 +698,10 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.payout_ratio || 0) * 100, 100)} 
+                value={Math.min((safePayout(analysis) || 0) * 100, 100)} 
                 sx={{ height: 8, borderRadius: 4 }}
-                color={analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'success' : 
-                       analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.8 ? 'info' : 'error'}
+                color={safePayout(analysis) <= 0.6 ? 'success' : 
+                       safePayout(analysis) <= 0.8 ? 'info' : 'error'}
               />
             </Box>
 
@@ -758,8 +710,8 @@ const DividendAnalysisComponent: React.FC = () => {
               p: 3, 
               backgroundColor: 'background.paper',
               border: '2px solid', 
-              borderColor: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.light' : 
-                          analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.light' : 'warning.light',
+              borderColor: safeFcfCoverage(analysis) >= 2 ? 'success.light' : 
+                          safeFcfCoverage(analysis) >= 1 ? 'info.light' : 'warning.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -768,8 +720,8 @@ const DividendAnalysisComponent: React.FC = () => {
               }
             }}>
               <Typography variant="h6" sx={{ 
-                color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.main' : 'warning.main',
+                color: safeFcfCoverage(analysis) >= 2 ? 'success.main' : 
+                       safeFcfCoverage(analysis) >= 1 ? 'info.main' : 'warning.main',
                 fontWeight: 500,
                 mb: 1
               }}>
@@ -777,25 +729,25 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <Typography variant="h3" sx={{ 
                 my: 2,
-                color: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info.main' : 'warning.main',
+                color: safeFcfCoverage(analysis) >= 2 ? 'success.main' : 
+                       safeFcfCoverage(analysis) >= 1 ? 'info.main' : 'warning.main',
                 fontWeight: 600
               }}>
-                {analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
-                  ? `${analysis.sustainability_analysis.key_ratios.fcf_coverage_ratio.toFixed(2)}x`
+                {safeFcfCoverage(analysis) 
+                  ? `${safeFcfCoverage(analysis).toFixed(2)}x`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
+                {safeFcfCoverage(analysis) 
                   ? 'Times free cash flow exceeds dividend payments (FCF-based analysis)'
                   : 'FCF data unavailable - requires cash flow statement analysis'}
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0) * 25, 100)} 
+                value={Math.min((safeFcfCoverage(analysis) || 0) * 25, 100)} 
                 sx={{ height: 8, borderRadius: 4 }}
-                color={analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'success' : 
-                       analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 1 ? 'info' : 'warning'}
+                color={safeFcfCoverage(analysis) >= 2 ? 'success' : 
+                       safeFcfCoverage(analysis) >= 1 ? 'info' : 'warning'}
               />
             </Box>
 
@@ -805,8 +757,8 @@ const DividendAnalysisComponent: React.FC = () => {
               backgroundColor: 'background.paper',
               border: '2px solid', 
               borderColor: (() => {
-                const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                const fcfToEquity = safePayout(analysis);
+                const fcfCoverage = safeFcfCoverage(analysis);
                 
                 if (fcfCoverage === 0) return 'error.light';
                 if (fcfToEquity >= 0.15) return 'success.light';
@@ -822,8 +774,8 @@ const DividendAnalysisComponent: React.FC = () => {
             }}>
               <Typography variant="h6" sx={{ 
                 color: (() => {
-                  const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  const fcfToEquity = safePayout(analysis);
+                  const fcfCoverage = safeFcfCoverage(analysis);
                   
                   if (fcfCoverage === 0) return 'error.main';
                   if (fcfToEquity >= 0.15) return 'success.main';
@@ -838,8 +790,8 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h3" sx={{ 
                 my: 2,
                 color: (() => {
-                  const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  const fcfToEquity = safePayout(analysis);
+                  const fcfCoverage = safeFcfCoverage(analysis);
                   
                   if (fcfCoverage === 0) return 'error.main';
                   if (fcfToEquity >= 0.15) return 'success.main';
@@ -850,13 +802,13 @@ const DividendAnalysisComponent: React.FC = () => {
               }}>
                 {(() => {
                   // Priority 1: Use backend FCF to Equity ratio if available
-                  const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
+                  const fcfToEquity = safePayout(analysis);
                   if (fcfToEquity !== undefined && fcfToEquity !== null) {
                     return `${(fcfToEquity * 100).toFixed(1)}%`;
                   }
                   
                   // Priority 2: Calculate from actual cash flow data
-                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  const fcfCoverage = safeFcfCoverage(analysis);
                   
                   // If FCF coverage is 0, we know FCF is negative
                   if (fcfCoverage === 0) {
@@ -864,8 +816,8 @@ const DividendAnalysisComponent: React.FC = () => {
                   }
                   
                   // Priority 3: Calculate using available financial metrics
-                  const freeCashFlow = analysis?.sustainability_analysis?.financial_metrics?.free_cash_flow;
-                  const marketCap = analysis?.sustainability_analysis?.financial_metrics?.market_cap;
+                  const freeCashFlow = safeSustainabilityScore(analysis);
+                  const marketCap = safeSustainabilityScore(analysis);
                   
                   if (freeCashFlow !== undefined && marketCap && marketCap > 0) {
                     const ratio = freeCashFlow / marketCap;
@@ -873,7 +825,7 @@ const DividendAnalysisComponent: React.FC = () => {
                   }
                   
                   // Priority 4: Estimate using dividend metrics (less reliable)
-                  const currentYield = analysis?.current_metrics?.current_yield_pct;
+                  const currentYield = safePayout(analysis);
                   
                   if (currentYield && fcfCoverage && fcfCoverage > 0) {
                     // Estimate FCF yield = Dividend Yield × FCF Coverage
@@ -886,10 +838,10 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 {(() => {
-                  const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                  const freeCashFlow = analysis?.sustainability_analysis?.financial_metrics?.free_cash_flow;
-                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
-                  const currentYield = analysis?.current_metrics?.current_yield_pct;
+                  const fcfToEquity = safePayout(analysis);
+                  const freeCashFlow = safeSustainabilityScore(analysis);
+                  const fcfCoverage = safeFcfCoverage(analysis);
+                  const currentYield = safePayout(analysis);
                   
                   // When we have actual FCF data
                   if ((fcfToEquity !== undefined && fcfToEquity !== null) || (freeCashFlow !== undefined)) {
@@ -912,13 +864,13 @@ const DividendAnalysisComponent: React.FC = () => {
               <LinearProgress 
                 variant="determinate" 
                 value={(() => {
-                  const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
+                  const fcfToEquity = safePayout(analysis);
                   if (fcfToEquity !== undefined && fcfToEquity !== null) {
                     return Math.min(fcfToEquity * 500, 100); // Scale for percentage
                   }
                   
-                  const freeCashFlow = analysis?.sustainability_analysis?.financial_metrics?.free_cash_flow;
-                  const marketCap = analysis?.sustainability_analysis?.financial_metrics?.market_cap;
+                  const freeCashFlow = safeSustainabilityScore(analysis);
+                  const marketCap = safeSustainabilityScore(analysis);
                   
                   if (freeCashFlow && marketCap && marketCap > 0) {
                     const ratio = freeCashFlow / marketCap;
@@ -929,8 +881,8 @@ const DividendAnalysisComponent: React.FC = () => {
                 })()} 
                 sx={{ height: 8, borderRadius: 4 }}
                 color={(() => {
-                  const fcfToEquity = analysis?.sustainability_analysis?.key_ratios?.fcf_to_equity_ratio;
-                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio;
+                  const fcfToEquity = safePayout(analysis);
+                  const fcfCoverage = safeFcfCoverage(analysis);
                   
                   if (fcfCoverage === 0) return 'error';
                   if (fcfToEquity >= 0.15) return 'success';
@@ -945,8 +897,8 @@ const DividendAnalysisComponent: React.FC = () => {
               p: 3, 
               backgroundColor: 'background.paper',
               border: '2px solid', 
-              borderColor: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.light' : 
-                          analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.light' : 'error.light',
+              borderColor: safeDebtCoverage(analysis) >= 5 ? 'success.light' : 
+                          safeDebtCoverage(analysis) >= 2 ? 'info.light' : 'error.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -955,8 +907,8 @@ const DividendAnalysisComponent: React.FC = () => {
               }
             }}>
               <Typography variant="h6" sx={{ 
-                color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.main' : 'error.main',
+                color: safeDebtCoverage(analysis) >= 5 ? 'success.main' : 
+                       safeDebtCoverage(analysis) >= 2 ? 'info.main' : 'error.main',
                 fontWeight: 500,
                 mb: 1
               }}>
@@ -964,12 +916,12 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <Typography variant="h3" sx={{ 
                 my: 2,
-                color: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success.main' : 
-                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info.main' : 'error.main',
+                color: safeDebtCoverage(analysis) >= 5 ? 'success.main' : 
+                       safeDebtCoverage(analysis) >= 2 ? 'info.main' : 'error.main',
                 fontWeight: 600
               }}>
-                {analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage 
-                  ? `${analysis.sustainability_analysis.key_ratios.debt_service_coverage.toFixed(2)}x`
+                {safeDebtCoverage(analysis) 
+                  ? `${safeDebtCoverage(analysis).toFixed(2)}x`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -977,10 +929,10 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <LinearProgress 
                 variant="determinate" 
-                value={Math.min((analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0) * 10, 100)} 
+                value={Math.min((safeDebtCoverage(analysis) || 0) * 10, 100)} 
                 sx={{ height: 8, borderRadius: 4 }}
-                color={analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'success' : 
-                       analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 2 ? 'info' : 'error'}
+                color={safeDebtCoverage(analysis) >= 5 ? 'success' : 
+                       safeDebtCoverage(analysis) >= 2 ? 'info' : 'error'}
               />
             </Box>
           </Box>
@@ -1008,9 +960,9 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
             </Box>
             
-            {analysis?.sustainability_analysis?.strengths?.length > 0 ? (
+            {(analysis?.sustainability_analysis?.strengths?.length ?? 0) > 0 ? (
               <Box sx={{ display: 'grid', gap: 2 }}>
-                {analysis.sustainability_analysis.strengths.map((strength: string, index: number) => (
+                {(analysis?.sustainability_analysis?.strengths || []).map((strength: string, index: number) => (
                   <Box key={index} sx={{ 
                     display: 'flex', 
                     alignItems: 'flex-start', 
@@ -1070,9 +1022,9 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
             </Box>
             
-            {analysis?.sustainability_analysis?.risk_factors?.length > 0 ? (
+            {(analysis?.sustainability_analysis?.risk_factors?.length ?? 0) > 0 ? (
               <Box sx={{ display: 'grid', gap: 2 }}>
-                {analysis.sustainability_analysis.risk_factors.map((risk: string, index: number) => (
+                {(analysis?.sustainability_analysis?.risk_factors || []).map((risk: string, index: number) => (
                   <Box key={index} sx={{ 
                     display: 'flex', 
                     alignItems: 'flex-start', 
@@ -1146,7 +1098,7 @@ const DividendAnalysisComponent: React.FC = () => {
               p: 3, 
               backgroundColor: 'background.paper',
               border: '2px solid',
-              borderColor: analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.3 ? 'success.light' : 'warning.light',
+              borderColor: safeEarningsVolatility(analysis) <= 0.3 ? 'success.light' : 'warning.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -1159,11 +1111,11 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <Typography variant="h5" sx={{ 
                 mb: 1,
-                color: analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.3 ? 'success.main' : 'warning.main',
+                color: safeEarningsVolatility(analysis) <= 0.3 ? 'success.main' : 'warning.main',
                 fontWeight: 500
               }}>
-                {analysis?.sustainability_analysis?.key_ratios?.earnings_volatility 
-                  ? `${(analysis.sustainability_analysis.key_ratios.earnings_volatility * 100).toFixed(1)}%`
+                {safeEarningsVolatility(analysis) 
+                  ? `${(safeEarningsVolatility(analysis) * 100).toFixed(1)}%`
                   : 'N/A'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -1192,12 +1144,12 @@ const DividendAnalysisComponent: React.FC = () => {
                 color: 'primary.main',
                 fontWeight: 500
               }}>
-                {currentDividend?.current_dividend_info?.current_yield_pct || 
-                 currentDividend?.current_metrics?.current_yield_pct ||
-                 currentDividend?.yield 
-                  ? `${(currentDividend.current_dividend_info?.current_yield_pct || 
-                          currentDividend.current_metrics?.current_yield_pct ||
-                          currentDividend.yield).toFixed(2)}%`
+                {safePayout(analysis) || 
+                 safePayout(analysis) ||
+                 safePayout(analysis) 
+                  ? `${(safePayout(analysis) || 
+                          safePayout(analysis) ||
+                          safePayout(analysis)).toFixed(2)}%`
                   : 'N/A'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -1210,7 +1162,7 @@ const DividendAnalysisComponent: React.FC = () => {
               p: 3, 
               backgroundColor: 'background.paper',
               border: '2px solid',
-              borderColor: analysis?.growth_analytics?.growth_consistency >= 70 ? 'success.light' : 'warning.light',
+              borderColor: safeGrowthConsistency(analysis) >= 70 ? 'success.light' : 'warning.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -1223,10 +1175,10 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <Typography variant="h5" sx={{ 
                 mb: 1,
-                color: analysis?.growth_analytics?.growth_consistency >= 70 ? 'success.main' : 'warning.main',
+                color: safeGrowthConsistency(analysis) >= 70 ? 'success.main' : 'warning.main',
                 fontWeight: 500
               }}>
-                {analysis?.growth_analytics?.growth_consistency || 0}%
+                {safeGrowthConsistency(analysis) || 0}%
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 Historical reliability
@@ -1238,7 +1190,7 @@ const DividendAnalysisComponent: React.FC = () => {
               p: 3, 
               backgroundColor: 'background.paper',
               border: '2px solid',
-              borderColor: analysis?.growth_analytics?.consecutive_increases >= 5 ? 'success.light' : 'warning.light',
+              borderColor: safeConsecutiveIncreases(analysis) >= 5 ? 'success.light' : 'warning.light',
               borderRadius: 3,
               transition: 'all 0.2s ease-in-out',
               '&:hover': {
@@ -1251,11 +1203,11 @@ const DividendAnalysisComponent: React.FC = () => {
               </Typography>
               <Typography variant="h5" sx={{ 
                 mb: 1,
-                color: analysis?.growth_analytics?.consecutive_increases >= 5 ? 'success.main' : 'warning.main',
+                color: safeConsecutiveIncreases(analysis) >= 5 ? 'success.main' : 'warning.main',
                 fontWeight: 500
               }}>
-                {analysis?.growth_analytics?.consecutive_increases !== undefined 
-                  ? analysis.growth_analytics.consecutive_increases
+                {safeConsecutiveIncreases(analysis) !== undefined 
+                  ? safeConsecutiveIncreases(analysis)
                   : 'N/A'}
               </Typography>
               <Typography variant="caption" color="text.secondary">
@@ -1346,16 +1298,16 @@ const DividendAnalysisComponent: React.FC = () => {
           
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(customRiskMode ? calculateCustomRiskScore() : (100 - (analysis?.risk_assessment?.risk_score || 0))) }}>
-                {customRiskMode ? calculateCustomRiskScore() : (analysis?.risk_assessment?.risk_score || 'N/A')}
+              <Typography variant="h3" sx={{ mr: 2, color: getScoreColor(customRiskMode ? calculateCustomRiskScore() : (100 - (safeRiskScore(analysis) || 0))) }}>
+                {customRiskMode ? calculateCustomRiskScore() : (safeRiskScore(analysis) || 'N/A')}
               </Typography>
               <Box>
                 <Chip 
                   label={customRiskMode ? getCustomRiskRating(calculateCustomRiskScore()) : (analysis?.risk_assessment?.risk_rating || 'N/A')} 
                   color={customRiskMode ? 
                     (calculateCustomRiskScore() >= 61 ? 'success' : calculateCustomRiskScore() >= 41 ? 'warning' : 'error') :
-                    (analysis?.risk_assessment?.risk_rating === 'Low' ? 'success' : 
-                     analysis?.risk_assessment?.risk_rating === 'Medium' ? 'warning' : 'error')}
+                    ((analysis?.risk_assessment?.risk_rating || '') === 'Low' ? 'success' : 
+                     (analysis?.risk_assessment?.risk_rating || '') === 'Medium' ? 'warning' : 'error')}
                   size="medium"
                 />
                 <Typography variant="h6" sx={{ mt: 1 }}>
@@ -1393,12 +1345,12 @@ const DividendAnalysisComponent: React.FC = () => {
           </Box>
           <LinearProgress 
             variant="determinate" 
-            value={customRiskMode ? calculateCustomRiskScore() : (analysis?.risk_assessment?.risk_score || 0)} 
+            value={customRiskMode ? calculateCustomRiskScore() : (safeRiskScore(analysis) || 0)} 
             sx={{ height: 10, borderRadius: 5, mb: 2 }}
             color={customRiskMode ? 
               (calculateCustomRiskScore() >= 61 ? 'success' : calculateCustomRiskScore() >= 41 ? 'warning' : 'error') :
-              (analysis?.risk_assessment?.risk_score <= 30 ? 'success' : 
-               analysis?.risk_assessment?.risk_score <= 60 ? 'warning' : 'error')}
+              (safeRiskScore(analysis) <= 30 ? 'success' : 
+               safeRiskScore(analysis) <= 60 ? 'warning' : 'error')}
           />
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="body1" color="text.secondary">
@@ -1643,8 +1595,8 @@ const DividendAnalysisComponent: React.FC = () => {
                 Coverage Analysis
               </Typography>
               <Typography variant="h4" sx={{ my: 1 }}>
-                {analysis?.coverage_analysis?.coverage_ratios?.primary_coverage 
-                  ? `${analysis.coverage_analysis.coverage_ratios.primary_coverage.toFixed(2)}x`
+                {safePrimaryCoverage(analysis) 
+                  ? `${safePrimaryCoverage(analysis).toFixed(2)}x`
                   : 'N/A'}
               </Typography>
               <Chip 
@@ -1659,10 +1611,10 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box sx={{ mt: 1 }}>
                 <LinearProgress 
                   variant="determinate" 
-                  value={Math.min(((analysis?.coverage_analysis?.coverage_ratios?.primary_coverage || 0) / 4) * 100, 100)} 
+                  value={Math.min(((safePrimaryCoverage(analysis) || 0) / 4) * 100, 100)} 
                   sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.coverage_analysis?.coverage_ratios?.primary_coverage >= 3 ? 'success' : 
-                         analysis?.coverage_analysis?.coverage_ratios?.primary_coverage >= 2 ? 'warning' : 'error'}
+                  color={safePrimaryCoverage(analysis) >= 3 ? 'success' : 
+                         safePrimaryCoverage(analysis) >= 2 ? 'warning' : 'error'}
                 />
               </Box>
             </Box>
@@ -1695,10 +1647,10 @@ const DividendAnalysisComponent: React.FC = () => {
               <Typography variant="h4" sx={{ my: 1 }}>
                 {(() => {
                   // Calculate financial stability score from available metrics
-                  const debtCoverage = analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0;
-                  const workingCapital = analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0;
-                  const earningsVol = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 1;
-                  const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0;
+                  const debtCoverage = safeDebtCoverage(analysis);
+                  const workingCapital = safeGrowthVolatility(analysis);
+                  const earningsVol = safeEarningsVolatility(analysis);
+                  const fcfCoverage = safeFcfCoverage(analysis);
                   
                   // Score components (0-5 each, total 20)
                   const debtScore = Math.min(5, Math.max(0, debtCoverage > 10 ? 5 : debtCoverage > 5 ? 4 : debtCoverage > 2 ? 3 : debtCoverage > 1 ? 2 : 1));
@@ -1710,19 +1662,19 @@ const DividendAnalysisComponent: React.FC = () => {
                 })()}/20
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Calculated from debt coverage ({analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage?.toFixed(1)}x), 
-                liquidity ({analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio?.toFixed(2)}), 
-                earnings stability ({((analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 0) * 100).toFixed(1)}%), 
-                and FCF strength ({analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio?.toFixed(1)}x)
+                Calculated from debt coverage ({safeDebtCoverage(analysis)?.toFixed(1)}x), 
+                liquidity ({safeGrowthVolatility(analysis)?.toFixed(2)}), 
+                earnings stability ({(safeEarningsVolatility(analysis) * 100).toFixed(1)}%), 
+                and FCF strength ({safeFcfCoverage(analysis)?.toFixed(1)}x)
               </Typography>
               <Box sx={{ mt: 1 }}>
                 <LinearProgress 
                   variant="determinate" 
                   value={(() => {
-                    const debtCoverage = analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0;
-                    const workingCapital = analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0;
-                    const earningsVol = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 1;
-                    const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0;
+                    const debtCoverage = safeDebtCoverage(analysis);
+                    const workingCapital = safeGrowthVolatility(analysis);
+                    const earningsVol = safeEarningsVolatility(analysis);
+                    const fcfCoverage = safeFcfCoverage(analysis);
                     
                     const debtScore = Math.min(5, Math.max(0, debtCoverage > 10 ? 5 : debtCoverage > 5 ? 4 : debtCoverage > 2 ? 3 : debtCoverage > 1 ? 2 : 1));
                     const liquidityScore = Math.min(5, Math.max(0, workingCapital > 1.5 ? 5 : workingCapital > 1.2 ? 4 : workingCapital > 1 ? 3 : workingCapital > 0.8 ? 2 : 1));
@@ -1734,10 +1686,10 @@ const DividendAnalysisComponent: React.FC = () => {
                   })()} 
                   sx={{ height: 6, borderRadius: 3 }}
                   color={(() => {
-                    const debtCoverage = analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage || 0;
-                    const workingCapital = analysis?.sustainability_analysis?.key_ratios?.working_capital_ratio || 0;
-                    const earningsVol = analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 1;
-                    const fcfCoverage = analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio || 0;
+                    const debtCoverage = safeDebtCoverage(analysis);
+                    const workingCapital = safeGrowthVolatility(analysis);
+                    const earningsVol = safeEarningsVolatility(analysis);
+                    const fcfCoverage = safeFcfCoverage(analysis);
                     
                     const debtScore = Math.min(5, Math.max(0, debtCoverage > 10 ? 5 : debtCoverage > 5 ? 4 : debtCoverage > 2 ? 3 : debtCoverage > 1 ? 2 : 1));
                     const liquidityScore = Math.min(5, Math.max(0, workingCapital > 1.5 ? 5 : workingCapital > 1.2 ? 4 : workingCapital > 1 ? 3 : workingCapital > 0.8 ? 2 : 1));
@@ -1757,8 +1709,8 @@ const DividendAnalysisComponent: React.FC = () => {
                 Earnings Volatility Risk
               </Typography>
               <Typography variant="h4" sx={{ my: 1 }}>
-                {analysis?.sustainability_analysis?.key_ratios?.earnings_volatility 
-                  ? `${(analysis.sustainability_analysis.key_ratios.earnings_volatility * 100).toFixed(1)}%`
+                {safeEarningsVolatility(analysis) 
+                  ? `${(safeEarningsVolatility(analysis) * 100).toFixed(1)}%`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -1767,10 +1719,10 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box sx={{ mt: 1 }}>
                 <LinearProgress 
                   variant="determinate" 
-                  value={100 - Math.min((analysis?.sustainability_analysis?.key_ratios?.earnings_volatility || 0) * 300, 100)} 
+                  value={100 - Math.min((safeEarningsVolatility(analysis) || 0) * 300, 100)} 
                   sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.2 ? 'success' : 
-                         analysis?.sustainability_analysis?.key_ratios?.earnings_volatility <= 0.4 ? 'warning' : 'error'}
+                  color={safeEarningsVolatility(analysis) <= 0.2 ? 'success' : 
+                         safeEarningsVolatility(analysis) <= 0.4 ? 'warning' : 'error'}
                 />
               </Box>
             </Box>
@@ -1781,8 +1733,8 @@ const DividendAnalysisComponent: React.FC = () => {
                 Growth Volatility Risk
               </Typography>
               <Typography variant="h4" sx={{ my: 1 }}>
-                {analysis?.growth_analytics?.growth_volatility 
-                  ? `${analysis.growth_analytics.growth_volatility.toFixed(1)}%`
+                {safeGrowthVolatility(analysis) 
+                  ? `${safeGrowthVolatility(analysis).toFixed(1)}%`
                   : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -1791,10 +1743,10 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box sx={{ mt: 1 }}>
                 <LinearProgress 
                   variant="determinate" 
-                  value={Math.max(100 - (analysis?.growth_analytics?.growth_volatility || 0), 0)} 
+                  value={Math.max(100 - (safeGrowthVolatility(analysis) || 0), 0)} 
                   sx={{ height: 6, borderRadius: 3 }}
-                  color={analysis?.growth_analytics?.growth_volatility <= 20 ? 'success' : 
-                         analysis?.growth_analytics?.growth_volatility <= 40 ? 'warning' : 'error'}
+                  color={safeGrowthVolatility(analysis) <= 20 ? 'success' : 
+                         safeGrowthVolatility(analysis) <= 40 ? 'warning' : 'error'}
                 />
               </Box>
             </Box>
@@ -1817,36 +1769,36 @@ const DividendAnalysisComponent: React.FC = () => {
                  {
                    icon: <SecurityIcon sx={{ color: 'success.main' }} />,
                   title: 'Conservative Payout',
-                  status: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6 ? 'Low Risk' : 'High Risk',
-                  isGood: analysis?.sustainability_analysis?.key_ratios?.payout_ratio <= 0.6,
-                  detail: `Payout ratio: ${analysis?.sustainability_analysis?.key_ratios?.payout_ratio 
-                    ? `${(analysis.sustainability_analysis.key_ratios.payout_ratio * 100).toFixed(1)}%`
+                  status: safePayout(analysis) <= 0.6 ? 'Low Risk' : 'High Risk',
+                  isGood: safePayout(analysis) <= 0.6,
+                  detail: `Payout ratio: ${safePayout(analysis) 
+                    ? `${(safePayout(analysis) * 100).toFixed(1)}%`
                     : 'N/A'}`
                 },
                 {
                   icon: <TrendingUpIcon sx={{ color: 'success.main' }} />,
                   title: 'Strong Cash Flow Coverage',
-                  status: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2 ? 'Strong' : 'Weak',
-                  isGood: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio >= 2,
-                  detail: `FCF Coverage: ${analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio 
-                    ? `${analysis.sustainability_analysis.key_ratios.fcf_coverage_ratio.toFixed(2)}x`
+                  status: safeFcfCoverage(analysis) >= 2 ? 'Strong' : 'Weak',
+                  isGood: safeFcfCoverage(analysis) >= 2,
+                  detail: `FCF Coverage: ${safeFcfCoverage(analysis) 
+                    ? `${safeFcfCoverage(analysis).toFixed(2)}x`
                     : 'N/A'}`
                 },
                 {
                   icon: <AssessmentIcon sx={{ color: 'success.main' }} />,
                   title: 'Debt Management',
-                  status: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5 ? 'Excellent' : 'Monitor',
-                  isGood: analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage >= 5,
-                  detail: `Debt coverage: ${analysis?.sustainability_analysis?.key_ratios?.debt_service_coverage 
-                    ? `${analysis.sustainability_analysis.key_ratios.debt_service_coverage.toFixed(2)}x`
+                  status: safeDebtCoverage(analysis) >= 5 ? 'Excellent' : 'Monitor',
+                  isGood: safeDebtCoverage(analysis) >= 5,
+                  detail: `Debt coverage: ${safeDebtCoverage(analysis) 
+                    ? `${safeDebtCoverage(analysis).toFixed(2)}x`
                     : 'N/A'}`
                 },
                 {
                   icon: <CheckIcon sx={{ color: 'success.main' }} />,
                   title: 'Growth Consistency',
-                  status: analysis?.growth_analytics?.growth_consistency >= 70 ? 'Reliable' : 'Inconsistent',
-                  isGood: analysis?.growth_analytics?.growth_consistency >= 70,
-                  detail: `Consistency: ${analysis?.growth_analytics?.growth_consistency || 0}%`
+                  status: safeGrowthConsistency(analysis) >= 70 ? 'Reliable' : 'Inconsistent',
+                  isGood: safeGrowthConsistency(analysis) >= 70,
+                  detail: `Consistency: ${safeGrowthConsistency(analysis) || 0}%`
                 }
               ].map((factor, index) => (
                 <Box key={index}>
@@ -1901,39 +1853,39 @@ const DividendAnalysisComponent: React.FC = () => {
                 {
                   icon: <WarningIcon sx={{ color: 'error.main' }} />,
                   title: 'High Yield Warning',
-                  status: (currentDividend?.current_dividend_info?.current_yield_pct || 
-                           currentDividend?.current_metrics?.current_yield_pct ||
-                           currentDividend?.yield || 0) > 8 ? 'High Yield Risk' : 'Normal Yield',
-                  isRisk: (currentDividend?.current_dividend_info?.current_yield_pct || 
-                           currentDividend?.current_metrics?.current_yield_pct ||
-                           currentDividend?.yield || 0) > 8,
-                  detail: `Current yield: ${currentDividend?.current_dividend_info?.current_yield_pct || 
-                                          currentDividend?.current_metrics?.current_yield_pct ||
-                                          currentDividend?.yield 
-                    ? `${(currentDividend.current_dividend_info?.current_yield_pct || 
-                            currentDividend.current_metrics?.current_yield_pct ||
-                            currentDividend.yield).toFixed(2)}%`
+                  status: (safePayout(analysis) || 
+                           safePayout(analysis) ||
+                           safePayout(analysis) || 0) > 8 ? 'High Yield Risk' : 'Normal Yield',
+                  isRisk: (safePayout(analysis) || 
+                           safePayout(analysis) ||
+                           safePayout(analysis) || 0) > 8,
+                  detail: `Current yield: ${safePayout(analysis) || 
+                                          safePayout(analysis) ||
+                                          safePayout(analysis) 
+                    ? `${(safePayout(analysis) || 
+                            safePayout(analysis) ||
+                            safePayout(analysis)).toFixed(2)}%`
                     : 'N/A'}`
                 },
                 {
                   icon: <PriorityHighIcon sx={{ color: 'error.main' }} />,
                   title: 'Recent Dividend Cuts',
-                  status: analysis?.growth_analytics?.consecutive_increases > 0 ? 'No Recent Cuts' : 'Monitor History',
-                  isRisk: !(analysis?.growth_analytics?.consecutive_increases > 0),
-                  detail: `Consecutive increases: ${analysis?.growth_analytics?.consecutive_increases || 0} years`
+                  status: safeConsecutiveIncreases(analysis) > 0 ? 'No Recent Cuts' : 'Monitor History',
+                  isRisk: !(safeConsecutiveIncreases(analysis) > 0),
+                  detail: `Consecutive increases: ${safeConsecutiveIncreases(analysis) || 0} years`
                 },
                 {
                   icon: <ErrorOutlineIcon sx={{ color: 'error.main' }} />,
                   title: 'High Payout Risk',
-                  status: analysis?.sustainability_analysis?.key_ratios?.payout_ratio > 0.8 ? 'Unsustainable' : 'Sustainable',
-                  isRisk: analysis?.sustainability_analysis?.key_ratios?.payout_ratio > 0.8,
+                  status: safePayout(analysis) > 0.8 ? 'Unsustainable' : 'Sustainable',
+                  isRisk: safePayout(analysis) > 0.8,
                   detail: 'Risk threshold: 80% payout ratio'
                 },
                 {
                   icon: <WarningIcon sx={{ color: 'error.main' }} />,
                   title: 'Coverage Deterioration',
-                  status: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio < 1 ? 'Insufficient Coverage' : 'Adequate Coverage',
-                  isRisk: analysis?.sustainability_analysis?.key_ratios?.fcf_coverage_ratio < 1,
+                  status: safeFcfCoverage(analysis) < 1 ? 'Insufficient Coverage' : 'Adequate Coverage',
+                  isRisk: safeFcfCoverage(analysis) < 1,
                   detail: 'Minimum safe coverage: 1.0x'
                 }
               ].map((signal, index) => (
@@ -2469,9 +2421,9 @@ const DividendAnalysisComponent: React.FC = () => {
                 <Typography variant="body2" color="text.secondary">Consecutive Increases</Typography>
                 <Typography variant="h4" color="primary">
                   {(() => {
-                    const increases = analysis?.growth_analytics?.consecutive_increases;
-                    if (increases !== undefined && increases !== null && increases !== 'N/A') {
-                      return `${Number(increases)} years`;
+                    const increases = safeConsecutiveIncreases(analysis);
+                    if (increases !== undefined && increases !== null && typeof increases === 'number') {
+                      return `${increases} years`;
                     }
                     return '0 years';
                   })()}
@@ -2481,7 +2433,7 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box>
                 <Typography variant="body2" color="text.secondary">Growth Consistency</Typography>
                 <Typography variant="h4">
-                  {analysis?.growth_analytics?.growth_consistency?.toFixed(1) || 'N/A'}%
+                  {safeGrowthConsistency(analysis)?.toFixed(1) || 'N/A'}%
                 </Typography>
               </Box>
 
@@ -2490,17 +2442,17 @@ const DividendAnalysisComponent: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
                   <Chip 
                     label="Aristocrat (25y+)" 
-                    color={(analysis?.growth_analytics?.consecutive_increases || 0) >= 25 ? 'success' : 'default'} 
+                    color={(safeConsecutiveIncreases(analysis) || 0) >= 25 ? 'success' : 'default'} 
                     size="small"
                   />
                   <Chip 
                     label="Achiever (10y+)" 
-                    color={(analysis?.growth_analytics?.consecutive_increases || 0) >= 10 ? 'success' : 'default'} 
+                    color={(safeConsecutiveIncreases(analysis) || 0) >= 10 ? 'success' : 'default'} 
                     size="small"
                   />
                   <Chip 
                     label="Challenger (5y+)" 
-                    color={(analysis?.growth_analytics?.consecutive_increases || 0) >= 5 ? 'success' : 'default'} 
+                    color={(safeConsecutiveIncreases(analysis) || 0) >= 5 ? 'success' : 'default'} 
                     size="small"
                   />
                 </Box>
@@ -2729,11 +2681,11 @@ const DividendAnalysisComponent: React.FC = () => {
               <Box>
                 <Typography variant="body2" color="text.secondary">Confidence Level</Typography>
                 <Typography variant="h6" color={
-                  analysis?.forecast?.[0]?.confidence_level >= 80 ? 'success.main' :
-                  analysis?.forecast?.[0]?.confidence_level >= 60 ? 'warning.main' : 'error.main'
+                  (safeConfidenceLevel(analysis) >= 80 ? 'success.main' :
+                  safeConfidenceLevel(analysis) >= 60 ? 'warning.main' : 'error.main')
                 }>
-                  {analysis?.forecast?.[0]?.confidence_level ? 
-                    `${Math.round(analysis.forecast[0].confidence_level)}%` : 'N/A'}
+                  {safeConfidenceLevel(analysis) ? 
+                    `${Math.round(safeConfidenceLevel(analysis))}%` : 'N/A'}
                 </Typography>
               </Box>
               
