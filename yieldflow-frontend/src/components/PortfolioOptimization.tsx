@@ -27,15 +27,14 @@ import {
   CircularProgress,
   Avatar,
   Grow,
+  Tabs,
+  Tab,
 } from '@mui/material';
 
 import {
   AutoGraph as AutoGraphIcon,
   Tune as TuneIcon,
-  Assessment as AssessmentIcon,
   Timeline as TimelineIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Newspaper as NewspaperIcon,
   Add as AddIcon,
   Remove as RemoveIcon,
@@ -45,9 +44,10 @@ import {
   Psychology as PsychologyIcon,
   Equalizer as EqualizerIcon,
   Analytics as AnalyticsIcon,
-  Stars as StarsIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
 } from '@mui/icons-material';
-import { Pie, Bar } from 'react-chartjs-2';
+import { Pie, Scatter, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -61,6 +61,8 @@ import {
   BarElement,
 } from 'chart.js';
 import { portfolioService } from '../services/portfolioService';
+import { TAB_LABELS } from './PortfolioOptimization.constants';
+import type { CorrelationMatrix } from '../services/portfolioService';
 
 // Register Chart.js components
 ChartJS.register(
@@ -124,6 +126,13 @@ interface NEPOResults {
   };
 }
 
+interface EfficientFrontier {
+  frontier_points: {
+    volatility: number;
+    expected_return: number;
+  }[];
+}
+
 const PortfolioOptimization: React.FC = () => {
   const [tickers, setTickers] = useState(['AAPL', 'GOOGL', 'KO', 'PG']);
   const [newTicker, setNewTicker] = useState('');
@@ -137,6 +146,12 @@ const PortfolioOptimization: React.FC = () => {
   const [traditionalResults, setTraditionalResults] = useState<OptimizationResults | null>(null);
   const [nepoResults, setNepoResults] = useState<NEPOResults | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [efficientFrontier, setEfficientFrontier] = useState<EfficientFrontier | null>(null);
+  const [correlationMatrix, setCorrelationMatrix] = useState<CorrelationMatrix | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => setActiveTab(newValue);
+
+  const tabLabels = TAB_LABELS;
 
   const addTicker = () => {
     if (newTicker.trim() && !tickers.includes(newTicker.trim().toUpperCase())) {
@@ -227,6 +242,18 @@ const PortfolioOptimization: React.FC = () => {
       }
       
       setShowResults(true);
+
+      // fetch efficient frontier
+      const frontier = await portfolioService.getEfficientFrontier(validTickers, objective as any, 30);
+      setEfficientFrontier(frontier);
+
+      // fetch correlation matrix
+      try {
+        const corr = await portfolioService.getCorrelationMatrix(validTickers);
+        setCorrelationMatrix(corr);
+      } catch (err) {
+        console.error('Failed to load correlation matrix', err);
+      }
     } catch (error) {
       console.error('Optimization failed:', error);
       alert('Optimization failed. Please try again.');
@@ -291,6 +318,50 @@ const PortfolioOptimization: React.FC = () => {
         }
       ]
     };
+  };
+
+  const renderCorrelationMatrix = () => {
+    if (!correlationMatrix) {
+      return <Typography>Loading correlation matrix...</Typography>;
+    }
+
+    const { tickers: corrTickers, matrix } = correlationMatrix;
+
+    const getCellColor = (value: number) => {
+      if (value >= 0) {
+        const alpha = 0.2 + 0.6 * value; // 0.2 to 0.8
+        return `rgba(220,38,38,${alpha})`; // red family
+      }
+      const alpha = 0.2 + 0.6 * (-value);
+      return `rgba(37,99,235,${alpha})`; // blue family
+    };
+
+    return (
+      <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+        <Table stickyHeader size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell></TableCell>
+              {corrTickers.map((t) => (
+                <TableCell key={t} align="center"><strong>{t}</strong></TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {corrTickers.map((rowTicker, i) => (
+              <TableRow key={rowTicker}>
+                <TableCell><strong>{rowTicker}</strong></TableCell>
+                {corrTickers.map((_, j) => (
+                  <TableCell key={`${rowTicker}-${j}`} align="center" sx={{ backgroundColor: getCellColor(matrix[i][j]), color: 'white', fontSize: '0.75rem' }}>
+                    {(matrix[i][j] * 100).toFixed(0)}%
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
   };
 
   return (
@@ -794,470 +865,467 @@ const PortfolioOptimization: React.FC = () => {
             </Box>
           </Paper>
 
-        {/* Results Panel */}
+        {/* Results Panel with Tabs */}
         <Collapse in={showResults && !!results}>
-          <Paper 
-            elevation={0} 
-            sx={{ 
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: 2
-            }}
-          >
-            <Box sx={{ 
-              p: 2, 
-              borderBottom: '1px solid #F1F5F9',
-              backgroundColor: '#F8FAFC'
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    color: '#0F172A'
-                  }}
-                >
-                  <AssessmentIcon sx={{ mr: 1, fontSize: 20 }} />
-                  Portfolio Analysis Results
-                </Typography>
-                {useNewsEnhancement && nepoResults && (
-                  <Chip 
-                    label="NEPO Enhanced" 
-                    size="small" 
-                    sx={{ 
-                      backgroundColor: '#FEF3C7',
-                      color: '#92400E',
-                      border: '1px solid #F59E0B',
-                      fontSize: '0.6875rem',
-                      fontWeight: 600
-                    }}
-                    icon={<StarsIcon sx={{ fontSize: '12px !important' }} />}
-                  />
-                )}
-              </Box>
+          <Paper elevation={0} sx={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 2 }}>
+            {/* Tab Navigation */}
+            <Box sx={{ borderBottom: '1px solid #E2E8F0' }}>
+              <Tabs value={activeTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
+                {tabLabels.map((label, idx) => (
+                  <Tab key={idx} label={label} />
+                ))}
+              </Tabs>
             </Box>
-            
             <Box sx={{ p: 3 }}>
-
-              <Stack spacing={3}>
-                {/* Key Metrics Cards */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
-                  <Paper 
-                    sx={{ 
-                      p: 3, 
-                      textAlign: 'center', 
-                      backgroundColor: '#EFF6FF',
-                      border: '1px solid #DBEAFE',
-                      borderRadius: 1,
-                      borderLeft: '4px solid #3B82F6'
-                    }}
-                  >
-                    <Typography 
-                      variant="body2" 
+              {/* Overview Tab */}
+              {activeTab === 0 && (
+                <Stack spacing={3}>
+                  {/* Key Metrics Cards */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
+                    <Paper 
                       sx={{ 
-                        fontSize: '0.6875rem',
-                        fontWeight: 500,
-                        color: '#64748B',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.025em',
-                        mb: 1
+                        p: 3, 
+                        textAlign: 'center', 
+                        backgroundColor: '#EFF6FF',
+                        border: '1px solid #DBEAFE',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #3B82F6'
                       }}
                     >
-                      Expected Return
-                    </Typography>
-                    <Typography 
-                      variant="h4" 
-                      sx={{ 
-                        fontWeight: 700, 
-                        color: '#1E40AF',
-                        fontFamily: 'monospace',
-                        fontSize: '1.5rem'
-                      }}
-                    >
-                      {results ? formatPercent(results.expected_return) : '--'}
-                    </Typography>
-                  </Paper>
-                  
-                  <Paper 
-                    sx={{ 
-                      p: 3, 
-                      textAlign: 'center', 
-                      backgroundColor: '#FEF2F2',
-                      border: '1px solid #FECACA',
-                      borderRadius: 1,
-                      borderLeft: '4px solid #DC2626'
-                    }}
-                  >
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontSize: '0.6875rem',
-                        fontWeight: 500,
-                        color: '#64748B',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.025em',
-                        mb: 1
-                      }}
-                    >
-                      Volatility Risk
-                    </Typography>
-                    <Typography 
-                      variant="h4" 
-                      sx={{ 
-                        fontWeight: 700, 
-                        color: '#DC2626',
-                        fontFamily: 'monospace',
-                        fontSize: '1.5rem'
-                      }}
-                    >
-                      {results ? formatPercent(results.volatility) : '--'}
-                    </Typography>
-                  </Paper>
-                  
-                  <Paper 
-                    sx={{ 
-                      p: 3, 
-                      textAlign: 'center', 
-                      backgroundColor: '#F0FDF4',
-                      border: '1px solid #BBF7D0',
-                      borderRadius: 1,
-                      borderLeft: '4px solid #10B981'
-                    }}
-                  >
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontSize: '0.6875rem',
-                        fontWeight: 500,
-                        color: '#64748B',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.025em',
-                        mb: 1
-                      }}
-                    >
-                      Sharpe Ratio
-                    </Typography>
-                    <Typography 
-                      variant="h4" 
-                      sx={{ 
-                        fontWeight: 700, 
-                        color: '#059669',
-                        fontFamily: 'monospace',
-                        fontSize: '1.5rem'
-                      }}
-                    >
-                      {results ? results.sharpe_ratio.toFixed(2) : '--'}
-                    </Typography>
-                  </Paper>
-                  
-                  <Paper 
-                    sx={{ 
-                      p: 3, 
-                      textAlign: 'center', 
-                      backgroundColor: '#FFFBEB',
-                      border: '1px solid #FED7AA',
-                      borderRadius: 1,
-                      borderLeft: '4px solid #F59E0B'
-                    }}
-                  >
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        fontSize: '0.6875rem',
-                        fontWeight: 500,
-                        color: '#64748B',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.025em',
-                        mb: 1
-                      }}
-                    >
-                      Div. Yield
-                    </Typography>
-                    <Typography 
-                      variant="h4" 
-                      sx={{ 
-                        fontWeight: 700, 
-                        color: '#D97706',
-                        fontFamily: 'monospace',
-                        fontSize: '1.5rem'
-                      }}
-                    >
-                      {results ? formatPercent(results.expected_dividend_yield) : '--'}
-                    </Typography>
-                  </Paper>
-                </Box>
-
-                {/* Performance Comparison for NEPO */}
-                {useNewsEnhancement && nepoResults && traditionalResults && results && (
-                  <Grow in={showResults} timeout={1100}>
-                    <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%)', borderRadius: 2 }}>
-                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', color: '#92400e' }}>
-                        <TimelineIcon sx={{ mr: 1 }} />
-                        NEPO vs Traditional EPO Performance
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.6875rem',
+                          fontWeight: 500,
+                          color: '#64748B',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.025em',
+                          mb: 1
+                        }}
+                      >
+                        Expected Return
                       </Typography>
-                      
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700, 
+                          color: '#1E40AF',
+                          fontFamily: 'monospace',
+                          fontSize: '1.5rem'
+                        }}
+                      >
+                        {results ? formatPercent(results.expected_return) : '--'}
+                      </Typography>
+                    </Paper>
+                    
+                    <Paper 
+                      sx={{ 
+                        p: 3, 
+                        textAlign: 'center', 
+                        backgroundColor: '#FEF2F2',
+                        border: '1px solid #FECACA',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #DC2626'
+                      }}
+                    >
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.6875rem',
+                          fontWeight: 500,
+                          color: '#64748B',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.025em',
+                          mb: 1
+                        }}
+                      >
+                        Volatility Risk
+                      </Typography>
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700, 
+                          color: '#DC2626',
+                          fontFamily: 'monospace',
+                          fontSize: '1.5rem'
+                        }}
+                      >
+                        {results ? formatPercent(results.volatility) : '--'}
+                      </Typography>
+                    </Paper>
+                    
+                    <Paper 
+                      sx={{ 
+                        p: 3, 
+                        textAlign: 'center', 
+                        backgroundColor: '#F0FDF4',
+                        border: '1px solid #BBF7D0',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #10B981'
+                      }}
+                    >
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.6875rem',
+                          fontWeight: 500,
+                          color: '#64748B',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.025em',
+                          mb: 1
+                        }}
+                      >
+                        Sharpe Ratio
+                      </Typography>
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700, 
+                          color: '#059669',
+                          fontFamily: 'monospace',
+                          fontSize: '1.5rem'
+                        }}
+                      >
+                        {results ? results.sharpe_ratio.toFixed(2) : '--'}
+                      </Typography>
+                    </Paper>
+                    
+                    <Paper 
+                      sx={{ 
+                        p: 3, 
+                        textAlign: 'center', 
+                        backgroundColor: '#FFFBEB',
+                        border: '1px solid #FED7AA',
+                        borderRadius: 1,
+                        borderLeft: '4px solid #F59E0B'
+                      }}
+                    >
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: '0.6875rem',
+                          fontWeight: 500,
+                          color: '#64748B',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.025em',
+                          mb: 1
+                        }}
+                      >
+                        Div. Yield
+                      </Typography>
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontWeight: 700, 
+                          color: '#D97706',
+                          fontFamily: 'monospace',
+                          fontSize: '1.5rem'
+                        }}
+                      >
+                        {results ? formatPercent(results.expected_dividend_yield) : '--'}
+                      </Typography>
+                    </Paper>
+                  </Box>
+
+                  {/* Performance Comparison for NEPO */}
+                  {useNewsEnhancement && nepoResults && traditionalResults && results && (
+                    <Grow in={showResults} timeout={1100}>
+                      <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%)', borderRadius: 2 }}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', color: '#92400e' }}>
+                          <TimelineIcon sx={{ mr: 1 }} />
+                          NEPO vs Traditional EPO Performance
+                        </Typography>
+                        
                                              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                         <Box>
-                           <Box sx={{ mb: 3 }}>
-                             <Typography variant="subtitle2" color="#92400e" gutterBottom>Performance Metrics</Typography>
-                             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                               <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(255, 255, 255, 0.7)', borderRadius: 1 }}>
-                                 <Typography variant="body2" color="text.secondary">Traditional EPO</Typography>
-                                 <Typography variant="h6" color="primary">
-                                   {formatPercent(traditionalResults.expected_return)}
-                                 </Typography>
+                           <Box>
+                             <Box sx={{ mb: 3 }}>
+                               <Typography variant="subtitle2" color="#92400e" gutterBottom>Performance Metrics</Typography>
+                               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(255, 255, 255, 0.7)', borderRadius: 1 }}>
+                                   <Typography variant="body2" color="text.secondary">Traditional EPO</Typography>
+                                   <Typography variant="h6" color="primary">
+                                     {formatPercent(traditionalResults.expected_return)}
+                                   </Typography>
+                                 </Box>
+                                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(245, 158, 11, 0.2)', borderRadius: 1 }}>
+                                   <Typography variant="body2" color="text.secondary">NEPO Enhanced</Typography>
+                                   <Typography variant="h6" color="warning.dark">
+                                     {formatPercent(results.expected_return)}
+                                   </Typography>
+                                 </Box>
                                </Box>
-                               <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(245, 158, 11, 0.2)', borderRadius: 1 }}>
-                                 <Typography variant="body2" color="text.secondary">NEPO Enhanced</Typography>
-                                 <Typography variant="h6" color="warning.dark">
-                                   {formatPercent(results.expected_return)}
-                                 </Typography>
-                               </Box>
+                             </Box>
+                             
+                             <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 1 }}>
+                               <Typography variant="body2" color="text.secondary">Alpha Generated</Typography>
+                               <Typography 
+                                 variant="h5" 
+                                 color={results.expected_return > traditionalResults.expected_return ? 'success.main' : 'error.main'}
+                                 sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}
+                               >
+                                 {results.expected_return > traditionalResults.expected_return ? 
+                                   <TrendingUpIcon sx={{ mr: 0.5 }} /> : 
+                                   <TrendingDownIcon sx={{ mr: 0.5 }} />
+                                 }
+                                 {formatPercent(results.expected_return - traditionalResults.expected_return)}
+                               </Typography>
                              </Box>
                            </Box>
                            
-                           <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 1 }}>
-                             <Typography variant="body2" color="text.secondary">Alpha Generated</Typography>
-                             <Typography 
-                               variant="h5" 
-                               color={results.expected_return > traditionalResults.expected_return ? 'success.main' : 'error.main'}
-                               sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}
-                             >
-                               {results.expected_return > traditionalResults.expected_return ? 
-                                 <TrendingUpIcon sx={{ mr: 0.5 }} /> : 
-                                 <TrendingDownIcon sx={{ mr: 0.5 }} />
-                               }
-                               {formatPercent(results.expected_return - traditionalResults.expected_return)}
-                             </Typography>
+                           <Box>
+                             {createComparisonData() && (
+                               <Box sx={{ height: 200 }}>
+                                 <Bar 
+                                   data={createComparisonData()!} 
+                                   options={{
+                                     responsive: true,
+                                     maintainAspectRatio: false,
+                                     plugins: {
+                                       legend: { position: 'top' as const },
+                                       title: { display: true, text: 'Performance Comparison' }
+                                     },
+                                     scales: {
+                                       y: { beginAtZero: true }
+                                     }
+                                   }}
+                                 />
+                               </Box>
+                             )}
                            </Box>
                          </Box>
-                         
+                      </Paper>
+                    </Grow>
+                  )}
+
+                  {/* Portfolio Allocation */}
+                  <Grow in={showResults} timeout={1300}>
+                    <Box>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                        <ShowChartIcon sx={{ mr: 1 }} />
+                        Portfolio Allocation
+                      </Typography>
+                      
+                                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
                          <Box>
-                           {createComparisonData() && (
-                             <Box sx={{ height: 200 }}>
-                               <Bar 
-                                 data={createComparisonData()!} 
+                           {results && (
+                             <Box sx={{ height: 300 }}>
+                               <Pie 
+                                 data={createPieData(results.optimized_weights)} 
                                  options={{
                                    responsive: true,
                                    maintainAspectRatio: false,
                                    plugins: {
-                                     legend: { position: 'top' as const },
-                                     title: { display: true, text: 'Performance Comparison' }
-                                   },
-                                   scales: {
-                                     y: { beginAtZero: true }
+                                     legend: { position: 'right' as const },
+                                     title: { display: true, text: 'Portfolio Weights' }
                                    }
                                  }}
                                />
                              </Box>
                            )}
                          </Box>
-                       </Box>
-                    </Paper>
-                  </Grow>
-                )}
-
-                {/* Portfolio Allocation */}
-                <Grow in={showResults} timeout={1300}>
-                  <Box>
-                    <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                      <ShowChartIcon sx={{ mr: 1 }} />
-                      Portfolio Allocation
-                    </Typography>
-                    
-                                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                       <Box>
-                         {results && (
-                           <Box sx={{ height: 300 }}>
-                             <Pie 
-                               data={createPieData(results.optimized_weights)} 
-                               options={{
-                                 responsive: true,
-                                 maintainAspectRatio: false,
-                                 plugins: {
-                                   legend: { position: 'right' as const },
-                                   title: { display: true, text: 'Portfolio Weights' }
-                                 }
-                               }}
-                             />
-                           </Box>
-                         )}
-                       </Box>
-                       
-                       <Box>
-                        <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
-                          <Table size="small" stickyHeader>
-                            <TableHead>
-                              <TableRow sx={{ backgroundColor: 'grey.100' }}>
-                                <TableCell><strong>Stock</strong></TableCell>
-                                <TableCell align="right"><strong>Weight</strong></TableCell>
-                                <TableCell align="right"><strong>Amount</strong></TableCell>
-                                <TableCell align="right"><strong>Est. Shares</strong></TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {results && Object.entries(results.optimized_weights).map(([ticker, weight], index) => {
-                                const dollarAmount = weight * investmentAmount;
-                                const estimatedPrice = ticker === 'SPY' ? 500 : ticker === 'GOOGL' ? 150 : 200;
-                                const shares = Math.floor(dollarAmount / estimatedPrice);
-                                
-                                return (
-                                  <Fade key={ticker} in={showResults} timeout={1500 + index * 200}>
-                                    <TableRow hover>
-                                      <TableCell>
-                                        <Chip 
-                                          label={ticker} 
-                                          size="small" 
-                                          variant="outlined"
-                                          avatar={<Avatar sx={{ fontSize: '0.65rem' }}>{ticker[0]}</Avatar>}
-                                        />
-                                      </TableCell>
-                                      <TableCell align="right">
-                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                                          <LinearProgress 
-                                            variant="determinate" 
-                                            value={weight * 100} 
-                                            sx={{ 
-                                              width: 60, 
-                                              mr: 1, 
-                                              height: 8, 
-                                              borderRadius: 4,
-                                              backgroundColor: 'grey.200',
-                                              '& .MuiLinearProgress-bar': {
-                                                borderRadius: 4,
-                                                background: `linear-gradient(90deg, #3b82f6, #1d4ed8)`
-                                              }
-                                            }}
+                         
+                         <Box>
+                          <TableContainer component={Paper} sx={{ maxHeight: 300 }}>
+                            <Table size="small" stickyHeader>
+                              <TableHead>
+                                <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                                  <TableCell><strong>Stock</strong></TableCell>
+                                  <TableCell align="right"><strong>Weight</strong></TableCell>
+                                  <TableCell align="right"><strong>Amount</strong></TableCell>
+                                  <TableCell align="right"><strong>Est. Shares</strong></TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {results && Object.entries(results.optimized_weights).map(([ticker, weight], index) => {
+                                  const dollarAmount = weight * investmentAmount;
+                                  const estimatedPrice = ticker === 'SPY' ? 500 : ticker === 'GOOGL' ? 150 : 200;
+                                  const shares = Math.floor(dollarAmount / estimatedPrice);
+                                  
+                                  return (
+                                    <Fade key={ticker} in={showResults} timeout={1500 + index * 200}>
+                                      <TableRow hover>
+                                        <TableCell>
+                                          <Chip 
+                                            label={ticker} 
+                                            size="small" 
+                                            variant="outlined"
+                                            avatar={<Avatar sx={{ fontSize: '0.65rem' }}>{ticker[0]}</Avatar>}
                                           />
+                                        </TableCell>
+                                        <TableCell align="right">
+                                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                                            <LinearProgress 
+                                              variant="determinate" 
+                                              value={weight * 100} 
+                                              sx={{ 
+                                                width: 60, 
+                                                mr: 1, 
+                                                height: 8, 
+                                                borderRadius: 4,
+                                                backgroundColor: 'grey.200',
+                                                '& .MuiLinearProgress-bar': {
+                                                  borderRadius: 4,
+                                                  background: `linear-gradient(90deg, #3b82f6, #1d4ed8)`
+                                                }
+                                              }}
+                                            />
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                              {(weight * 100).toFixed(1)}%
+                                            </Typography>
+                                          </Box>
+                                        </TableCell>
+                                        <TableCell align="right">
                                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                            {(weight * 100).toFixed(1)}%
+                                            {formatCurrency(dollarAmount)}
                                           </Typography>
-                                        </Box>
-                                      </TableCell>
-                                      <TableCell align="right">
-                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                          {formatCurrency(dollarAmount)}
-                                        </Typography>
-                                      </TableCell>
-                                      <TableCell align="right">
-                                        <Typography variant="body2">
-                                          {shares.toLocaleString()}
-                                        </Typography>
-                                      </TableCell>
-                                    </TableRow>
-                                  </Fade>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                          <Typography variant="body2">
+                                            {shares.toLocaleString()}
+                                          </Typography>
+                                        </TableCell>
+                                      </TableRow>
+                                    </Fade>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
                                                  </TableContainer>
+                         </Box>
                        </Box>
-                     </Box>
-                  </Box>
-                </Grow>
+                    </Box>
+                  </Grow>
 
-                {/* News Intelligence (NEPO only) */}
-                {useNewsEnhancement && nepoResults?.news_intelligence && (
-                  <Grow in={showResults} timeout={1500}>
-                    <Paper sx={{ 
-                      p: 3, 
-                      background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', 
-                      color: 'white',
-                      borderRadius: 2
-                    }}>
-                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                        <NewspaperIcon sx={{ mr: 1 }} />
-                        Market Intelligence & Stock Selection
-                        {nepoResults.news_intelligence.gemini_powered && (
-                          <Chip 
-                            label="AI Powered" 
-                            size="small" 
-                            sx={{ ml: 1, backgroundColor: 'rgba(255, 255, 255, 0.9)', color: 'warning.dark' }}
-                            icon={<PsychologyIcon sx={{ fontSize: '16px !important' }} />}
-                          />
-                        )}
-                      </Typography>
-                      
-                      {/* Investment Thesis */}
-                      <Box sx={{ mb: 3, p: 2, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 1 }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                          Investment Thesis:
+                  {/* News Intelligence (NEPO only) */}
+                  {useNewsEnhancement && nepoResults?.news_intelligence && (
+                    <Grow in={showResults} timeout={1500}>
+                      <Paper sx={{ 
+                        p: 3, 
+                        background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', 
+                        color: 'white',
+                        borderRadius: 2
+                      }}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                          <NewspaperIcon sx={{ mr: 1 }} />
+                          Market Intelligence & Stock Selection
+                          {nepoResults.news_intelligence.gemini_powered && (
+                            <Chip 
+                              label="AI Powered" 
+                              size="small" 
+                              sx={{ ml: 1, backgroundColor: 'rgba(255, 255, 255, 0.9)', color: 'warning.dark' }}
+                              icon={<PsychologyIcon sx={{ fontSize: '16px !important' }} />}
+                            />
+                          )}
                         </Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
-                          {nepoResults.news_intelligence.investment_thesis || 'News-enhanced analysis completed with market intelligence integration.'}
-                        </Typography>
-                      </Box>
-
-                      {/* News Analyses */}
-                      {nepoResults.news_intelligence.news_analyses && Object.keys(nepoResults.news_intelligence.news_analyses).length > 0 && (
-                        <Box>
-                          <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-                            Stock Selection Rationale:
+                        
+                        {/* Investment Thesis */}
+                        <Box sx={{ mb: 3, p: 2, backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 1 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                            Investment Thesis:
                           </Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                            {nepoResults.news_intelligence.investment_thesis || 'News-enhanced analysis completed with market intelligence integration.'}
+                          </Typography>
+                        </Box>
+
+                        {/* News Analyses */}
+                        {nepoResults.news_intelligence.news_analyses && Object.keys(nepoResults.news_intelligence.news_analyses).length > 0 && (
+                          <Box>
+                            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
+                              Stock Selection Rationale:
+                            </Typography>
                                                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                             {Object.entries(nepoResults.news_intelligence.news_analyses).map(([ticker, analysis]: [string, any], index) => (
-                               <Box key={ticker}>
-                                <Fade in={showResults} timeout={2000 + index * 300}>
-                                  <Paper sx={{ 
-                                    p: 2, 
-                                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                                    color: 'text.primary',
-                                    borderRadius: 1,
-                                    border: '1px solid rgba(245, 158, 11, 0.3)'
-                                  }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                      <Avatar sx={{ mr: 1, fontSize: '0.75rem', backgroundColor: 'warning.main' }}>
-                                        {ticker[0]}
-                                      </Avatar>
-                                      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                                        {ticker}
+                               {Object.entries(nepoResults.news_intelligence.news_analyses).map(([ticker, analysis]: [string, any], index) => (
+                                 <Box key={ticker}>
+                                  <Fade in={showResults} timeout={2000 + index * 300}>
+                                    <Paper sx={{ 
+                                      p: 2, 
+                                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                      color: 'text.primary',
+                                      borderRadius: 1,
+                                      border: '1px solid rgba(245, 158, 11, 0.3)'
+                                    }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <Avatar sx={{ mr: 1, fontSize: '0.75rem', backgroundColor: 'warning.main' }}>
+                                          {ticker[0]}
+                                        </Avatar>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                          {ticker}
+                                        </Typography>
+                                        <Chip 
+                                          label={`Sentiment: ${analysis.sentiment_score?.toFixed(2) || 'N/A'}`}
+                                          size="small"
+                                          color="primary"
+                                          sx={{ ml: 'auto' }}
+                                        />
+                                      </Box>
+                                      <Typography variant="body2" sx={{ mb: 1 }}>
+                                        <strong>Confidence:</strong> {((analysis.confidence || 0) * 100).toFixed(0)}%
                                       </Typography>
-                                      <Chip 
-                                        label={`Sentiment: ${analysis.sentiment_score?.toFixed(2) || 'N/A'}`}
-                                        size="small"
-                                        color="primary"
-                                        sx={{ ml: 'auto' }}
-                                      />
-                                    </Box>
-                                    <Typography variant="body2" sx={{ mb: 1 }}>
-                                      <strong>Confidence:</strong> {((analysis.confidence || 0) * 100).toFixed(0)}%
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ fontSize: '0.875rem', lineHeight: 1.4 }}>
-                                      {analysis.selection_reasoning || analysis.summary || `Selected for portfolio diversification and risk-adjusted returns.`}
-                                    </Typography>
+                                      <Typography variant="body2" sx={{ fontSize: '0.875rem', lineHeight: 1.4 }}>
+                                        {analysis.selection_reasoning || analysis.summary || `Selected for portfolio diversification and risk-adjusted returns.`}
+                                      </Typography>
                                                                      </Paper>
-                                 </Fade>
-                               </Box>
-                             ))}
-                           </Box>
+                                   </Fade>
+                                 </Box>
+                               ))}
+                             </Box>
+                          </Box>
+                        )}
+                      </Paper>
+                    </Grow>
+                  )}
+
+                  {/* Methodology */}
+                  <Grow in={showResults} timeout={1700}>
+                    <Paper sx={{ p: 2, backgroundColor: 'grey.50', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        <strong>Methodology:</strong> {useNewsEnhancement 
+                          ? 'News-Enhanced Portfolio Optimization (NEPO) combining quantitative analysis with real-time market intelligence'
+                          : 'Enhanced Portfolio Optimization (EPO) using advanced quantitative methods and correlation shrinkage'
+                        }
+                      </Typography>
+                      {nepoResults?.metadata?.analysis_features && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            <strong>Features:</strong> {nepoResults.metadata.analysis_features.filter(f => f).join(' • ')}
+                          </Typography>
                         </Box>
                       )}
                     </Paper>
                   </Grow>
-                )}
-
-                {/* Methodology */}
-                <Grow in={showResults} timeout={1700}>
-                  <Paper sx={{ p: 2, backgroundColor: 'grey.50', borderRadius: 1 }}>
-                    <Typography variant="body2">
-                      <strong>Methodology:</strong> {useNewsEnhancement 
-                        ? 'News-Enhanced Portfolio Optimization (NEPO) combining quantitative analysis with real-time market intelligence'
-                        : 'Enhanced Portfolio Optimization (EPO) using advanced quantitative methods and correlation shrinkage'
-                      }
-                    </Typography>
-                    {nepoResults?.metadata?.analysis_features && (
-                      <Box sx={{ mt: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          <strong>Features:</strong> {nepoResults.metadata.analysis_features.filter(f => f).join(' • ')}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Paper>
-                </Grow>
-              </Stack>
+                </Stack>
+              )}
+              {/* Efficient Frontier Tab */}
+              {activeTab === 1 && (
+                efficientFrontier ? (
+                  <Box sx={{ height: 400 }}>
+                    <Scatter
+                      data={{
+                        datasets: [{
+                          label: 'Efficient Frontier',
+                          data: efficientFrontier.frontier_points.map(p => ({ x: p.volatility * 100, y: p.expected_return * 100 })),
+                          borderColor: '#3B82F6',
+                          backgroundColor: 'rgba(59,130,246,0.4)',
+                          showLine: true,
+                          fill: false,
+                        }]
+                      }}
+                      options={{
+                        scales: {
+                          x: { title: { display: true, text: 'Volatility (%)' }, beginAtZero: true },
+                          y: { title: { display: true, text: 'Expected Return (%)' }, beginAtZero: true }
+                        },
+                        plugins: { legend: { position: 'top' } }
+                      }}
+                    />
+                  </Box>
+                ) : (
+                  <Typography>Loading Efficient Frontier...</Typography>
+                )
+              )}
+              {/* Correlation Tab */}
+              {activeTab === 2 && renderCorrelationMatrix()}
             </Box>
           </Paper>
         </Collapse>

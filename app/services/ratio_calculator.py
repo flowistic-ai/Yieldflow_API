@@ -354,10 +354,11 @@ class RatioCalculator:
             # Dividend ratios (if dividend data available)
             dividend_per_share = market_data.get('dividend_per_share', 0)
             if dividend_per_share > 0:
+                payout_ratio_result = self.calculate_payout_ratio(dividend_per_share, ratios.get('earnings_per_share'))
                 ratios['dividend_yield'] = dividend_per_share / stock_price
-                
-                if ratios.get('earnings_per_share', 0) > 0:
-                    ratios['payout_ratio'] = dividend_per_share / ratios['earnings_per_share']
+                ratios['payout_ratio'] = payout_ratio_result['value']
+                ratios['payout_ratio_warning'] = payout_ratio_result['warning']
+                ratios['payout_ratio_explanation'] = payout_ratio_result['explanation']
             
             return {
                 'ratios': ratios,
@@ -841,3 +842,53 @@ class RatioCalculator:
             summary['key_ratios']['current_ratio'] = liq_ratios.get('current_ratio')
         
         return summary
+
+    def calculate_payout_ratio(self, dividend_per_share, eps):
+        """
+        Advanced payout ratio calculation with comprehensive error handling
+        
+        Args:
+            dividend_per_share (float): Total annual dividend per share
+            eps (float): Earnings per share
+        
+        Returns:
+            dict: Comprehensive payout ratio analysis
+        """
+        # Comprehensive payout ratio calculation with advanced error handling
+        if eps is None or eps == 0:
+            return {
+                'value': None,
+                'warning': 'division_by_zero',
+                'explanation': 'Cannot calculate payout ratio with zero or missing earnings',
+                'raw_dividend_per_share': dividend_per_share
+            }
+        
+        if eps < 0:
+            return {
+                'value': None,
+                'warning': 'negative_earnings',
+                'explanation': f'Negative earnings (EPS: {eps}) make traditional payout ratio meaningless',
+                'raw_dividend_per_share': dividend_per_share,
+                'raw_eps': eps,
+                'financial_health_warning': (
+                    'Company is currently experiencing financial challenges. '
+                    'Negative earnings suggest potential sustainability risks for dividend.'
+                )
+            }
+        
+        # Standard payout ratio calculation
+        payout_ratio = (dividend_per_share / eps) * 100
+        
+        # Cap extreme values and add warnings
+        if payout_ratio > 100:
+            return {
+                'value': min(payout_ratio, 1000),
+                'warning': 'high_payout',
+                'explanation': f'Payout ratio of {payout_ratio:.2f}% exceeds 100%, indicating potential dividend sustainability concerns',
+                'recommendation': 'Carefully review company\'s financial statements and future earnings potential'
+            }
+        
+        return {
+            'value': payout_ratio,
+            'warning': None
+        }

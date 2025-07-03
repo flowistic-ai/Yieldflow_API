@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 import os
 import asyncio
+import numpy as np
 
 from app.core.deps import get_current_user
 from app.models.user import User
@@ -419,6 +420,49 @@ async def backtest_portfolio(
     except Exception as e:
         logger.error(f"Backtest failed: {e}")
         raise HTTPException(status_code=500, detail=f"Backtest failed: {str(e)}")
+
+# Correlation Matrix Endpoint
+@router.get('/correlation-matrix')
+async def get_correlation_matrix(
+    tickers: List[str] = Query(..., description="List of stock tickers"),
+    current_user = Depends(get_current_user)
+):
+    """Return historical correlation matrix for the given tickers.
+
+    The matrix is calculated from 5-year daily log returns (same data source as optimization).
+    A simple hierarchical-like ordering (by average absolute correlation) is returned to allow
+    frontend clustering visuals without heavy dependencies.
+    """
+    try:
+        data_provider = DataProvider()
+        optimizer = EnhancedPortfolioOptimizer(data_provider)
+
+        # 1. Pull historical returns (5y)
+        returns_df = await optimizer._get_historical_returns(tickers)
+        # 2. Compute covariance then correlation
+        cov = optimizer._compute_covariance_matrix(returns_df)
+        vol = np.sqrt(np.diag(cov))
+        vol_matrix = np.outer(vol, vol)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            corr = cov / vol_matrix
+        corr = np.nan_to_num(corr, nan=0.0, posinf=0.0, neginf=0.0)
+        np.fill_diagonal(corr, 1.0)
+
+        # 3. Determine simple clustering order (highest avg |corr| first)
+        avg_corr = np.mean(np.abs(corr), axis=1)
+        order_indices = np.argsort(-avg_corr)  # descending
+        ordered_tickers = [tickers[i] for i in order_indices]
+        ordered_matrix = corr[order_indices][:, order_indices]
+
+        return {
+            "tickers": ordered_tickers,
+            "matrix": ordered_matrix.tolist(),
+            "order": ordered_tickers  # alias, kept for clarity
+        }
+
+    except Exception as e:
+        logger.error(f"Correlation matrix generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate correlation matrix: {str(e)}")
 
 # Debug endpoints removed - AI integration is working
 
