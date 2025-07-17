@@ -233,28 +233,61 @@ class LiveInvestmentAssistant:
                     criteria['initial_investment'] = float(investment_match.group(1).replace(',', ''))
                     break
             
-            # Extract target income - more flexible patterns  
-            income_patterns = [
-                r'want\s*\$?\s*([\d,]+)\s*(?:monthly|per month|/month|month)',  # "want $100 monthly"
-                r'earn\s*\$?\s*([\d,]+)\s*(?:monthly|per month|/month|month)',  # "earn $100 monthly"
-                r'need\s*\$?\s*([\d,]+)\s*(?:monthly|per month|/month|month)',  # "need $100 monthly"
-                r'\$\s*([\d,]+)\s*(?:monthly|per month|/month|month)',          # "$100 monthly"
-                r'want\s*to\s*earn\s*\$?\s*([\d,]+)',                           # "want to earn $100"
-                r'want\s*to\s*make\s*\$?\s*([\d,]+)'                            # "want to make $100"
+            # Extract annual return percentage FIRST (highest priority)
+            annual_return_patterns = [
+                r'want\s*([\d.]+)%?\s*(?:annual|yearly|year|per year)\s*return',  # "want 8% annual return"
+                r'want\s*([\d.]+)%?\s*return\s*(?:annual|yearly|per year)',      # "want 8% return annually"
+                r'([\d.]+)%?\s*(?:annual|yearly)\s*return',                      # "8% annual return"
+                r'return\s*(?:of\s*)?([\d.]+)%?\s*(?:annual|yearly|per year)',   # "return of 8% annually"
+                r'([\d.]+)%?\s*(?:annual|yearly)\s*(?:dividend\s*)?yield',       # "8% annual yield"
+                r'target.*?([\d.]+)%?\s*(?:annual|yearly)',                      # "target 8% annual"
+                r'expecting.*?([\d.]+)%?\s*(?:annual|yearly)',                   # "expecting 8% annual"
+                r'achieve.*?([\d.]+)%?\s*(?:annual|yearly)',                     # "achieve 8% annual"
             ]
             
-            for pattern in income_patterns:
-                income_match = re.search(pattern, query_lower)
-                if income_match:
-                    target_amount = float(income_match.group(1).replace(',', ''))
-                    # Check if it's explicitly monthly or assume monthly if amount is reasonable
-                    if 'monthly' in query_lower or 'month' in query_lower or target_amount < 2000:
-                        criteria['target_annual_income'] = target_amount * 12
-                        criteria['target_monthly_income'] = target_amount
-                    else:
-                        criteria['target_annual_income'] = target_amount
-                        criteria['target_monthly_income'] = target_amount / 12
-                    break
+            for pattern in annual_return_patterns:
+                return_match = re.search(pattern, query_lower)
+                if return_match:
+                    try:
+                        annual_return_pct = float(return_match.group(1))
+                        if annual_return_pct <= 1.0:  # Already decimal
+                            annual_return_decimal = annual_return_pct
+                        else:  # Percentage format
+                            annual_return_decimal = annual_return_pct / 100.0
+                        
+                        # Calculate target income from investment amount and return percentage
+                        if 'initial_investment' in criteria:
+                            target_annual_income = criteria['initial_investment'] * annual_return_decimal
+                            criteria['target_annual_income'] = target_annual_income
+                            criteria['target_monthly_income'] = target_annual_income / 12
+                            criteria['user_specified_return_pct'] = annual_return_pct
+                            break
+                    except ValueError:
+                        continue
+            
+            # Extract target income - more flexible patterns (only if no annual return found)
+            if 'target_annual_income' not in criteria:
+                income_patterns = [
+                    r'want\s*\$?\s*([\d,]+)\s*(?:monthly|per month|/month|month)',  # "want $100 monthly"
+                    r'earn\s*\$?\s*([\d,]+)\s*(?:monthly|per month|/month|month)',  # "earn $100 monthly"
+                    r'need\s*\$?\s*([\d,]+)\s*(?:monthly|per month|/month|month)',  # "need $100 monthly"
+                    r'\$\s*([\d,]+)\s*(?:monthly|per month|/month|month)',          # "$100 monthly"
+                    r'want\s*to\s*earn\s*\$?\s*([\d,]+)',                           # "want to earn $100"
+                    r'want\s*to\s*make\s*\$?\s*([\d,]+)'                            # "want to make $100"
+                ]
+            
+                for pattern in income_patterns:
+                    income_match = re.search(pattern, query_lower)
+                    if income_match:
+                        target_amount = float(income_match.group(1).replace(',', ''))
+                        # Check if it's explicitly monthly or assume monthly if amount is reasonable
+                        if 'monthly' in query_lower or 'month' in query_lower or target_amount < 2000:
+                            criteria['target_annual_income'] = target_amount * 12
+                            criteria['target_monthly_income'] = target_amount
+                        else:
+                            criteria['target_annual_income'] = target_amount
+                            criteria['target_monthly_income'] = target_amount / 12
+                        break
             
             # For exploratory queries like "realistic income from $3000", DON'T set a default target
             # For goal-oriented queries, keep the existing logic
@@ -654,7 +687,7 @@ class LiveInvestmentAssistant:
                 return await self._provide_exploratory_guidance(initial_investment, original_query)
             elif target_annual_income > 0:
                 # For goal-oriented queries with specific targets
-                return await self._provide_goal_oriented_guidance(initial_investment, target_annual_income, target_monthly_income, original_query)
+                return await self._provide_goal_oriented_guidance(initial_investment, target_annual_income, target_monthly_income, criteria, original_query)
             else:
                 # Fallback for goal-oriented queries without targets
                 return await self._provide_exploratory_guidance(initial_investment, original_query)
@@ -765,7 +798,7 @@ class LiveInvestmentAssistant:
         }
         return descriptions.get(risk_level, 'Diversified dividend portfolio')
     
-    async def _provide_goal_oriented_guidance(self, initial_investment: float, target_annual_income: float, target_monthly_income: float, original_query: str) -> LiveResponse:
+    async def _provide_goal_oriented_guidance(self, initial_investment: float, target_annual_income: float, target_monthly_income: float, criteria: Dict[str, Any], original_query: str) -> LiveResponse:
         """Provide goal-oriented guidance for achieving specific income targets"""
         required_yield = target_annual_income / initial_investment
         
@@ -825,6 +858,9 @@ class LiveInvestmentAssistant:
                 'annual_income': round(annual_from_stock, 2)
             })
         
+        # Get user-specified return percentage if available
+        user_specified_return_pct = criteria.get('user_specified_return_pct')
+        
         return LiveResponse(
             True,
             {
@@ -832,6 +868,7 @@ class LiveInvestmentAssistant:
                     'investment_amount': initial_investment,
                     'target_monthly': target_monthly_income,
                     'required_yield': round(required_yield * 100, 1),
+                    'user_specified_return_pct': user_specified_return_pct,  # Add this for display
                     'risk_assessment': risk_level,
                     'max_potential_annual': round(max_potential, 2),
                     'max_potential_monthly': round(max_potential / 12, 2),
@@ -842,11 +879,13 @@ class LiveInvestmentAssistant:
                     'analysis_type': 'goal_oriented_planning'
                 }
             },
-            f"With ${initial_investment:,}, max potential: ${max_potential/12:,.0f}/month at {risk_level} risk. Realistic: ${realistic_monthly:,.0f}/month.",
+            # Improved message to acknowledge user's specific target
+            f"With ${initial_investment:,}, target {user_specified_return_pct or required_yield*100:.1f}% return = ${target_monthly_income:.0f}/month. Max potential: ${max_potential/12:.0f}/month at {risk_level} risk. Realistic: ${realistic_monthly:.0f}/month.",
             [
+                f"Target Return: {user_specified_return_pct or required_yield*100:.1f}% annually (${target_monthly_income:.0f}/month)",
                 f"Risk Level: {risk_level}",
-                f"Max Potential: ${max_potential/12:,.0f}/month",
-                f"Realistic Expectation: ${realistic_monthly:,.0f}/month",
+                f"Max Potential: ${max_potential/12:.0f}/month",
+                f"Realistic Expectation: ${realistic_monthly:.0f}/month",
                 f"Strategy: {strategy.title()} dividend approach"
             ],
             0, "Concise guidance"

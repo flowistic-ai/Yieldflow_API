@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional, Dict, Any
-import logging
 from datetime import datetime
 import os
 import asyncio
 import numpy as np
+import structlog
 
 from app.core.deps import get_current_user
 from app.models.user import User
@@ -27,7 +27,7 @@ from app.core.config import settings
 from app.services.cache_service import CacheService
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 @router.post("/optimize", response_model=PortfolioOptimizationResult)
 async def optimize_dividend_portfolio(

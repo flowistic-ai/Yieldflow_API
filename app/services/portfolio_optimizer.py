@@ -4,15 +4,15 @@ from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
 from scipy.optimize import minimize
 from scipy.linalg import LinAlgError
-import logging
 from datetime import datetime, timedelta
 import asyncio
+import structlog
 
 from app.services.data_provider import DataProvider
 from app.schemas.financial import DividendAnalysisResponse
 from app.services.news_sentiment_service import NewsEnhancedPortfolioService
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 @dataclass
 class AssetMetrics:

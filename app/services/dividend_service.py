@@ -8,7 +8,6 @@ from datetime import datetime, date, timedelta
 import structlog
 from statistics import mean, stdev
 import math
-import logging
 try:
     from fredapi import Fred
 except ImportError:
@@ -64,16 +63,19 @@ class DividendService:
         self.RISK_FREE_RATE_PROXY = 'GS10'  # 10-Year Treasury
         self.MARKET_BENCHMARK = 'SP500'     # S&P 500 Index
         
-        # Industry dividend yield benchmarks (will be dynamic in production)
+        # Industry dividend yield benchmarks (updated with more current data - Q4 2024)
         self.sector_benchmarks = {
-            'Technology': {'yield_range': [0.5, 2.5], 'payout_target': 25, 'growth_expectation': 8, 'avg_yield': 1.2, 'payout_ratio': 25},
-            'Utilities': {'yield_range': [3.0, 6.0], 'payout_target': 70, 'growth_expectation': 3, 'avg_yield': 4.5, 'payout_ratio': 70},
-            'Real Estate': {'yield_range': [2.5, 5.5], 'payout_target': 85, 'growth_expectation': 4, 'avg_yield': 3.8, 'payout_ratio': 85},
-            'Consumer Staples': {'yield_range': [2.0, 4.0], 'payout_target': 60, 'growth_expectation': 5, 'avg_yield': 2.8, 'payout_ratio': 60},
-            'Healthcare': {'yield_range': [1.5, 3.5], 'payout_target': 45, 'growth_expectation': 6, 'avg_yield': 2.1, 'payout_ratio': 45},
-            'Financials': {'yield_range': [2.0, 4.5], 'payout_target': 40, 'growth_expectation': 7, 'avg_yield': 3.2, 'payout_ratio': 40},
-            'Energy': {'yield_range': [3.0, 7.0], 'payout_target': 35, 'growth_expectation': 2, 'avg_yield': 4.2, 'payout_ratio': 35},
-            'Industrials': {'yield_range': [1.8, 3.5], 'payout_target': 50, 'growth_expectation': 6, 'avg_yield': 2.5, 'payout_ratio': 50},
+            'Technology': {'yield_range': [0.3, 2.8], 'payout_target': 30, 'growth_expectation': 12, 'avg_yield': 1.8, 'payout_ratio': 30},
+            'Utilities': {'yield_range': [2.8, 6.2], 'payout_target': 75, 'growth_expectation': 2, 'avg_yield': 4.8, 'payout_ratio': 75},
+            'Real Estate': {'yield_range': [3.2, 7.5], 'payout_target': 90, 'growth_expectation': 3, 'avg_yield': 5.2, 'payout_ratio': 90},
+            'Consumer Staples': {'yield_range': [2.2, 4.5], 'payout_target': 65, 'growth_expectation': 4, 'avg_yield': 3.1, 'payout_ratio': 65},
+            'Healthcare': {'yield_range': [1.8, 4.2], 'payout_target': 50, 'growth_expectation': 8, 'avg_yield': 2.8, 'payout_ratio': 50},
+            'Financials': {'yield_range': [2.5, 5.8], 'payout_target': 45, 'growth_expectation': 6, 'avg_yield': 3.8, 'payout_ratio': 45},
+            'Energy': {'yield_range': [3.5, 8.2], 'payout_target': 40, 'growth_expectation': 1, 'avg_yield': 5.5, 'payout_ratio': 40},
+            'Industrials': {'yield_range': [1.5, 4.0], 'payout_target': 55, 'growth_expectation': 7, 'avg_yield': 2.8, 'payout_ratio': 55},
+            'Communication Services': {'yield_range': [1.2, 6.5], 'payout_target': 60, 'growth_expectation': 5, 'avg_yield': 3.5, 'payout_ratio': 60},
+            'Consumer Discretionary': {'yield_range': [0.8, 3.5], 'payout_target': 35, 'growth_expectation': 9, 'avg_yield': 2.0, 'payout_ratio': 35},
+            'Materials': {'yield_range': [2.0, 5.0], 'payout_target': 50, 'growth_expectation': 4, 'avg_yield': 3.2, 'payout_ratio': 50}
         }
 
     async def get_comprehensive_dividend_analysis(

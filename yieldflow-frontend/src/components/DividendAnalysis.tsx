@@ -96,17 +96,24 @@ function TabPanel(props: TabPanelProps) {
 
 // PayoutRatioDisplay component with enhanced error handling
 const PayoutRatioDisplay = ({ analysis }: { analysis?: DividendAnalysis | null }) => {
-  // Try multiple possible locations for payout ratio data
-  const payoutRatioComplex = analysis?.current_metrics?.payout_ratio;
-  const payoutRatioSimple = analysis?.current_dividend_info?.payout_ratio;
+  // Check sustainability analysis first (this is where data actually exists)
   const payoutRatioSustainability = analysis?.sustainability_analysis?.key_ratios?.payout_ratio;
   
-  console.log('PayoutRatioDisplay - Complex:', payoutRatioComplex);
-  console.log('PayoutRatioDisplay - Simple:', payoutRatioSimple);
-  console.log('PayoutRatioDisplay - Sustainability:', payoutRatioSustainability);
+  // Only check other locations if sustainability data doesn't exist
+  const payoutRatioComplex = !payoutRatioSustainability ? analysis?.current_metrics?.payout_ratio : undefined;
+  const payoutRatioSimple = !payoutRatioSustainability && !payoutRatioComplex ? analysis?.current_dividend_info?.payout_ratio : undefined;
   
-  // Handle sustainability analysis payout ratio (decimal format)
-  if (typeof payoutRatioSustainability === 'number' && !payoutRatioComplex && !payoutRatioSimple) {
+  // Only log the working data source to reduce console noise
+  if (payoutRatioSustainability) {
+    console.log('PayoutRatioDisplay - Using Sustainability data:', payoutRatioSustainability);
+  } else if (payoutRatioComplex) {
+    console.log('PayoutRatioDisplay - Using Complex data:', payoutRatioComplex);
+  } else if (payoutRatioSimple) {
+    console.log('PayoutRatioDisplay - Using Simple data:', payoutRatioSimple);
+  }
+  
+  // Handle sustainability analysis payout ratio (decimal format) - PRIMARY PATH
+  if (typeof payoutRatioSustainability === 'number') {
     const payoutPercentage = payoutRatioSustainability * 100;
     const isHighPayout = payoutPercentage > 80;
     const isVeryHighPayout = payoutPercentage > 100;

@@ -8,10 +8,8 @@ import aiohttp
 import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
-import logging
 import re
 from collections import defaultdict
-
 import structlog
 from app.core.config import settings
 
