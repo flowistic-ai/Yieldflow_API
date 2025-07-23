@@ -16,12 +16,20 @@ RUN apt-get update \
         build-essential \
         libpq-dev \
     && rm -rf /var/lib/apt/lists/*
+    
 
-# Install uv (fast dependency manager)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# Download the latest installer
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+
+# Run the installer then remove it
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Ensure the installed binary is on the `PATH`
+ENV PATH="/root/.local/bin/:$PATH"
 
 # Copy dependency lockfiles and install Python dependencies with uv
 COPY requirements-uv.txt uv.lock ./
+RUN uv init
 RUN uv pip install -r requirements-uv.txt --system --no-cache-dir
 
 # Copy project
