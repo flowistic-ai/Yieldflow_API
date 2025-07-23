@@ -114,17 +114,36 @@ export default class FinancialDataService {
 
   constructor() {
     this.baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-    this.apiKey = process.env.REACT_APP_API_KEY || 'yk_eXZGE3PhU1E39cg5lEdTRSFl6BRKBX3w6Gk8GK0fD_g'; // Default to basic test key
+    this.apiKey = process.env.REACT_APP_API_KEY || 'yk_wMUsnDqpdIjHFj2lFB-CxjHdKQte4BkpJBY1rNFA3bw'; // Default to pro test key
   }
 
   private async makeRequest(endpoint: string): Promise<any> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-        'x-api-key': this.apiKey,
-      },
-    });
+    // Create AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
+
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+          'x-api-key': this.apiKey,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return await this.handleResponse(response);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - server took too long to respond (60s)');
+      }
+      throw error;
+    }
+  }
+
+  private async handleResponse(response: Response): Promise<any> {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: response.statusText }));

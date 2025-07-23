@@ -1,4 +1,3 @@
-import logging
 import asyncio
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
@@ -6,6 +5,7 @@ import json
 import statistics
 from concurrent.futures import ThreadPoolExecutor
 import time
+import structlog
 
 # Import LLM clients (install as needed)
 try:
@@ -30,7 +30,7 @@ import requests
 from app.core.config import settings
 from app.schemas.portfolio import PortfolioInsights
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 class EnhancedAIInsightsService:
     """

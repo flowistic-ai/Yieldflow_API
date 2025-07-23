@@ -1,11 +1,12 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-const API_KEY = process.env.REACT_APP_API_KEY || 'yk_DqSugEeLU7cYgCVWqHQ3Nz6Nju0Gq3Iz20OK97BeHDc';
+const API_KEY = process.env.REACT_APP_API_KEY || 'yk_wMUsnDqpdIjHFj2lFB-CxjHdKQte4BkpJBY1rNFA3bw';
 
 // Create axios instance with API key
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 60000, // 60 seconds for complex portfolio optimization
   headers: {
     'X-API-KEY': API_KEY,
     'Content-Type': 'application/json',

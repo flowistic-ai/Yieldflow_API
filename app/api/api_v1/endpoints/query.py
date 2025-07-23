@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, Dict, Any
-import logging
 from datetime import datetime
+import structlog
 
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.services.live_investment_assistant import LiveInvestmentAssistant
+from app.services.professional_investment_assistant import ProfessionalInvestmentAssistant
 from pydantic import BaseModel, Field
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 class QueryRequest(BaseModel):
     """Natural language query request."""

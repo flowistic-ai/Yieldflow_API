@@ -629,8 +629,28 @@ async def get_peer_comparison_chart(
                 target_sector = None
 
             peer_list = []
-            if target_sector:
-                # Get potential tickers from S&P 500 constituents via yfinance shared list
+            
+            # Use curated sector peer groups for more reliable comparisons
+            sector_peer_groups = {
+                'Technology': ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'CRM', 'ORCL', 'ADBE', 'INTC', 'IBM'],
+                'Healthcare': ['JNJ', 'PFE', 'UNH', 'ABBV', 'MRK', 'LLY', 'BMY', 'AMGN', 'GILD', 'CVS'],
+                'Financials': ['JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'AXP', 'USB', 'PNC', 'TFC'],
+                'Energy': ['XOM', 'CVX', 'COP', 'EOG', 'SLB', 'PSX', 'VLO', 'MPC', 'KMI', 'OKE'],
+                'Utilities': ['NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'XEL', 'SRE', 'PEG', 'PCG'],
+                'Consumer Staples': ['PG', 'KO', 'PEP', 'WMT', 'COST', 'CL', 'KMB', 'GIS', 'HSY', 'CPB'],
+                'Industrials': ['BA', 'HON', 'UPS', 'CAT', 'GE', 'MMM', 'LMT', 'RTX', 'DE', 'EMR'],
+                'Consumer Discretionary': ['AMZN', 'TSLA', 'HD', 'MCD', 'NKE', 'SBUX', 'TJX', 'LOW', 'BKNG', 'CMG'],
+                'Communication Services': ['GOOGL', 'META', 'NFLX', 'DIS', 'CMCSA', 'VZ', 'T', 'TMUS', 'CHTR', 'ATVI'],
+                'Real Estate': ['AMT', 'PLD', 'CCI', 'EQIX', 'PSA', 'O', 'WELL', 'SPG', 'EQR', 'DLR'],
+                'Materials': ['LIN', 'SHW', 'ECL', 'APD', 'FCX', 'NUE', 'DOW', 'DD', 'PPG', 'IFF']
+            }
+            
+            if target_sector and target_sector in sector_peer_groups:
+                peer_candidates = sector_peer_groups[target_sector]
+                peer_list = [sym for sym in peer_candidates if sym != ticker.upper()][:5]
+            
+            # Fallback: try Wikipedia S&P 500 scraping if curated list doesn't work
+            if not peer_list and target_sector:
                 import pandas as pd
                 try:
                     sp500 = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]
@@ -639,7 +659,7 @@ async def get_peer_comparison_chart(
                 except Exception:
                     peer_list = []
 
-            # Fallback: use yfinance peers API which may include cross-sector names but better than nothing
+            # Secondary fallback: use yfinance peers API
             if not peer_list:
                 try:
                     peer_list = yf.Ticker(ticker).get_peers()[:5]
@@ -647,9 +667,21 @@ async def get_peer_comparison_chart(
                 except Exception:
                     peer_list = []
 
-            # Absolute fallback if still empty → choose mega-caps same sector list
+            # Final fallback: sector-appropriate defaults
             if not peer_list:
-                peer_list = ['JNJ','PFE','MRK','ABBV','LLY'] if target_sector == 'Healthcare' else ['MSFT','AAPL','GOOGL','AMZN','META']
+                sector_defaults = {
+                    'Technology': ['AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA'],
+                    'Healthcare': ['JNJ', 'PFE', 'UNH', 'ABBV', 'MRK'],
+                    'Financials': ['JPM', 'BAC', 'WFC', 'GS', 'MS'],
+                    'Energy': ['XOM', 'CVX', 'COP', 'EOG', 'SLB'],
+                    'Utilities': ['NEE', 'DUK', 'SO', 'D', 'AEP']
+                }
+                
+                if target_sector and target_sector in sector_defaults:
+                    peer_list = sector_defaults[target_sector]
+                else:
+                    # Ultimate fallback: broad market leaders
+                    peer_list = ['JNJ', 'PFE', 'MRK', 'ABBV', 'LLY']
 
         # Limit to max 5 peers
         peer_list = peer_list[:5]

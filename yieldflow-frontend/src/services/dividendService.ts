@@ -3,7 +3,11 @@ import axios from 'axios';
 const API_BASE_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1`;
 
 // API Key from environment variable
-const API_KEY = process.env.REACT_APP_API_KEY || 'yk_DqSugEeLU7cYgCVWqHQ3Nz6Nju0Gq3Iz20OK97BeHDc';
+const API_KEY = process.env.REACT_APP_API_KEY || 'yk_wMUsnDqpdIjHFj2lFB-CxjHdKQte4BkpJBY1rNFA3bw';
+
+// Debug: Log the API key being used (remove after testing)
+console.log('DividendService using API_KEY:', API_KEY);
+console.log('Environment REACT_APP_API_KEY:', process.env.REACT_APP_API_KEY);
 
 // Configure axios defaults
 axios.defaults.headers.common['X-API-KEY'] = API_KEY;
@@ -118,11 +122,19 @@ export interface DividendChart {
 
 class DividendService {
   async getCurrentDividendInfo(ticker: string): Promise<any> {
-    const response = await axios.get(`${API_BASE_URL}/dividends/${ticker}/current`, {
-      headers: {
-        'X-API-KEY': API_KEY
-      }
+    const headers = {
+      'X-API-KEY': API_KEY,
+      'Content-Type': 'application/json'
+    };
+    console.log('getCurrentDividendInfo using API_KEY:', API_KEY);
+    
+    // Create a fresh axios instance to avoid any conflicts
+    const axiosInstance = axios.create({
+      timeout: 60000, // Increased to 60 seconds for complex analysis
+      headers: headers
     });
+    
+    const response = await axiosInstance.get(`${API_BASE_URL}/dividends/${ticker}/current`);
     return response.data;
   }
 
@@ -135,11 +147,21 @@ class DividendService {
       params.append('include_peer_comparison', 'true');
     }
     
-    const response = await axios.get(`${API_BASE_URL}/dividends/${ticker}/analysis?${params.toString()}`, {
-      headers: {
-        'X-API-KEY': API_KEY
-      }
+    const headers = {
+      'X-API-KEY': API_KEY,
+      'Content-Type': 'application/json'
+    };
+    const url = `${API_BASE_URL}/dividends/${ticker}/analysis?${params.toString()}`;
+    
+    console.log('getDividendAnalysis using API_KEY:', API_KEY);
+    
+    // Create a fresh axios instance to avoid any conflicts
+    const axiosInstance = axios.create({
+      timeout: 60000, // Increased to 60 seconds for complex analysis
+      headers: headers
     });
+    
+    const response = await axiosInstance.get(url);
     return response.data;
   }
 
@@ -167,12 +189,21 @@ class DividendService {
       params.append('years', years.toString());
     }
     
+    const headers = {
+      'X-API-KEY': API_KEY,
+      'Content-Type': 'application/json'
+    };
     const url = `${API_BASE_URL}/dividends/${ticker}/charts/growth${params.toString() ? '?' + params.toString() : ''}`;
-    const response = await axios.get(url, {
-      headers: {
-        'X-API-KEY': API_KEY
-      }
+    
+    console.log('getDividendGrowthChart using API_KEY:', API_KEY);
+    
+    // Create a fresh axios instance to avoid any conflicts
+    const axiosInstance = axios.create({
+      timeout: 60000, // Increased to 60 seconds for complex analysis
+      headers: headers
     });
+    
+    const response = await axiosInstance.get(url);
     return response.data;
   }
 
@@ -195,11 +226,21 @@ class DividendService {
   }
 
   async getPeerComparisonChart(ticker: string): Promise<DividendChart> {
-    const response = await axios.get(`${API_BASE_URL}/dividends/${ticker}/charts/peer-comparison`, {
-      headers: {
-        'X-API-KEY': API_KEY
-      }
+    const headers = {
+      'X-API-KEY': API_KEY,
+      'Content-Type': 'application/json'
+    };
+    const url = `${API_BASE_URL}/dividends/${ticker}/charts/peer-comparison`;
+    
+    console.log('getPeerComparisonChart using API_KEY:', API_KEY);
+    
+    // Create a fresh axios instance to avoid any conflicts
+    const axiosInstance = axios.create({
+      timeout: 60000, // Increased to 60 seconds for complex analysis
+      headers: headers
     });
+    
+    const response = await axiosInstance.get(url);
     return response.data;
   }
 
@@ -240,15 +281,20 @@ export const getCompanyInfo = async (ticker: string): Promise<{
   website: string;
   last_updated: string;
 }> => {
-  const response = await fetch(`${API_BASE_URL}/dividends/${ticker}/company-info`, {
-    headers: {
-      'X-API-KEY': API_KEY,
-    },
+  const headers = {
+    'X-API-KEY': API_KEY,
+    'Content-Type': 'application/json'
+  };
+  const url = `${API_BASE_URL}/dividends/${ticker}/company-info`;
+  
+  console.log('getCompanyInfo using API_KEY:', API_KEY);
+  
+  // Use axios instead of fetch for consistency
+  const axiosInstance = axios.create({
+    timeout: 60000, // Increased to 60 seconds for complex analysis
+    headers: headers
   });
   
-  if (!response.ok) {
-    throw new Error(`Failed to fetch company info: ${response.statusText}`);
-  }
-  
-  return response.json();
+  const response = await axiosInstance.get(url);
+  return response.data;
 };

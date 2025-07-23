@@ -49,7 +49,7 @@ const SmartQueryInterface: React.FC = () => {
   const [selectedRiskLevel, setSelectedRiskLevel] = useState<string>('conservative');
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-  const API_KEY = process.env.REACT_APP_API_KEY || 'yk_DqSugEeLU7cYgCVWqHQ3Nz6Nju0Gq3Iz20OK97BeHDc';
+  const API_KEY = process.env.REACT_APP_API_KEY || 'yk_wMUsnDqpdIjHFj2lFB-CxjHdKQte4BkpJBY1rNFA3bw';
 
   // Pre-tested, guaranteed-to-work question templates
   const questionTemplates: QuestionTemplate[] = [

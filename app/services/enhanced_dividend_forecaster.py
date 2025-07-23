@@ -23,17 +23,17 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Any, Optional, Tuple
-import logging
 from statistics import mean, stdev
 from dataclasses import dataclass
 import math
 import requests
 from textblob import TextBlob
 import yfinance as yf
+import structlog
 
 from app.core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 @dataclass
 class FinancialMetrics:
@@ -395,7 +395,13 @@ class EnhancedDividendForecaster:
             recency_weight = 0.5
         
         # Source credibility (simplified)
-        source = article.get('source', {}).get('name', '').lower()
+        source_data = article.get('source', {})
+        if isinstance(source_data, dict):
+            source = source_data.get('name', '').lower()
+        elif isinstance(source_data, str):
+            source = source_data.lower()
+        else:
+            source = ''
         credibility_weights = {
             'reuters': 1.0, 'bloomberg': 1.0, 'wsj': 1.0, 'financial times': 1.0,
             'cnbc': 0.9, 'marketwatch': 0.8, 'yahoo finance': 0.7,

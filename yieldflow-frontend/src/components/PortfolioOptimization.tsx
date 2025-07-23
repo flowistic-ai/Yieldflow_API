@@ -752,10 +752,10 @@ const PortfolioOptimization: React.FC = () => {
                         value={timeHorizon}
                         onChange={(e) => setTimeHorizon(e.target.value)}
                         sx={{
-                          backgroundColor: '#FEF3C7',
+                          backgroundColor: '#F8FAFC',
                           fontSize: '0.875rem',
                           '& .MuiOutlinedInput-notchedOutline': {
-                            borderColor: '#F59E0B'
+                            borderColor: '#CBD5E1'
                           }
                         }}
                       >
@@ -784,7 +784,13 @@ const PortfolioOptimization: React.FC = () => {
                     <TextField
                       type="number"
                       value={maxWeight}
-                      onChange={(e) => setMaxWeight(Number(e.target.value))}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(',', '.');
+                        const parsed = Number(raw);
+                        if (!isNaN(parsed)) {
+                          setMaxWeight(parsed);
+                        }
+                      }}
                       inputProps={{ min: 0.1, max: 1, step: 0.1 }}
                       size="small"
                       sx={{ 
@@ -850,11 +856,11 @@ const PortfolioOptimization: React.FC = () => {
                     severity="info" 
                     sx={{ 
                       fontSize: '0.75rem',
-                      backgroundColor: '#FEF3C7',
-                      color: '#92400E',
-                      border: '1px solid #F59E0B',
+                      backgroundColor: '#E0F2FE',
+                      color: '#0369A1',
+                      border: '1px solid #7DD3FC',
                       '& .MuiAlert-icon': {
-                        color: '#F59E0B'
+                        color: '#0284C7'
                       }
                     }}
                   >
@@ -1030,8 +1036,8 @@ const PortfolioOptimization: React.FC = () => {
                   {/* Performance Comparison for NEPO */}
                   {useNewsEnhancement && nepoResults && traditionalResults && results && (
                     <Grow in={showResults} timeout={1100}>
-                      <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%)', borderRadius: 2 }}>
-                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', color: '#92400e' }}>
+                      <Paper sx={{ p: 3, background: 'linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%)', borderRadius: 2, boxShadow: '0px 4px 24px rgba(0,0,0,0.05)' }}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', color: 'text.primary' }}>
                           <TimelineIcon sx={{ mr: 1 }} />
                           NEPO vs Traditional EPO Performance
                         </Typography>
@@ -1039,7 +1045,7 @@ const PortfolioOptimization: React.FC = () => {
                                              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
                            <Box>
                              <Box sx={{ mb: 3 }}>
-                               <Typography variant="subtitle2" color="#92400e" gutterBottom>Performance Metrics</Typography>
+                               <Typography variant="subtitle2" color="text.primary" gutterBottom>Performance Metrics</Typography>
                                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                                  <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(255, 255, 255, 0.7)', borderRadius: 1 }}>
                                    <Typography variant="body2" color="text.secondary">Traditional EPO</Typography>
@@ -1047,16 +1053,16 @@ const PortfolioOptimization: React.FC = () => {
                                      {formatPercent(traditionalResults.expected_return)}
                                    </Typography>
                                  </Box>
-                                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(245, 158, 11, 0.2)', borderRadius: 1 }}>
+                                 <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>
                                    <Typography variant="body2" color="text.secondary">NEPO Enhanced</Typography>
-                                   <Typography variant="h6" color="warning.dark">
+                                   <Typography variant="h6" color="primary.main">
                                      {formatPercent(results.expected_return)}
                                    </Typography>
                                  </Box>
                                </Box>
                              </Box>
                              
-                             <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: 1 }}>
+                             <Box sx={{ textAlign: 'center', p: 2, backgroundColor: '#FFFFFF', borderRadius: 1, boxShadow: '0px 2px 8px rgba(0,0,0,0.05)' }}>
                                <Typography variant="body2" color="text.secondary">Alpha Generated</Typography>
                                <Typography 
                                  variant="h5" 
@@ -1201,9 +1207,10 @@ const PortfolioOptimization: React.FC = () => {
                     <Grow in={showResults} timeout={1500}>
                       <Paper sx={{ 
                         p: 3, 
-                        background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', 
-                        color: 'white',
-                        borderRadius: 2
+                        backgroundColor: '#F1F5F9', 
+                        color: 'text.primary',
+                        borderRadius: 2,
+                        boxShadow: '0px 4px 24px rgba(0,0,0,0.05)'
                       }}>
                         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
                           <NewspaperIcon sx={{ mr: 1 }} />
@@ -1212,7 +1219,7 @@ const PortfolioOptimization: React.FC = () => {
                             <Chip 
                               label="AI Powered" 
                               size="small" 
-                              sx={{ ml: 1, backgroundColor: 'rgba(255, 255, 255, 0.9)', color: 'warning.dark' }}
+                              sx={{ ml: 1, backgroundColor: 'rgba(0,0,0,0.04)', color: 'primary.main' }}
                               icon={<PsychologyIcon sx={{ fontSize: '16px !important' }} />}
                             />
                           )}
@@ -1230,10 +1237,11 @@ const PortfolioOptimization: React.FC = () => {
                                   <Fade in={showResults} timeout={2000 + index * 300}>
                                     <Paper sx={{ 
                                       p: 2, 
-                                      backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                                      backgroundColor: 'white', 
                                       color: 'text.primary',
                                       borderRadius: 1,
-                                      border: '1px solid rgba(245, 158, 11, 0.3)'
+                                      border: '1px solid #E2E8F0',
+                                      boxShadow: '0px 2px 12px rgba(0,0,0,0.04)'
                                     }}>
                                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                         <Avatar sx={{ mr: 1, fontSize: '0.75rem', backgroundColor: 'warning.main' }}>
@@ -1294,27 +1302,37 @@ const PortfolioOptimization: React.FC = () => {
                           <Typography variant="h6" gutterBottom>
                             Efficient Frontier
                           </Typography>
-                          <Scatter
-                            data={{
-                              datasets: [
-                                {
-                                  label: 'Efficient Frontier',
-                                  data: efficientFrontier.frontier_points.map(p => ({ x: p.volatility * 100, y: p.expected_return * 100 })),
-                                  borderColor: '#3B82F6',
-                                  backgroundColor: 'rgba(59,130,246,0.4)',
-                                  showLine: true,
-                                  fill: false,
-                                },
-                              ],
-                            }}
-                            options={{
-                              scales: {
-                                x: { title: { display: true, text: 'Volatility (%)' }, beginAtZero: true },
-                                y: { title: { display: true, text: 'Expected Return (%)' }, beginAtZero: true },
-                              },
-                              plugins: { legend: { position: 'top' } },
-                            }}
-                          />
+                          {(() => {
+                            const vols = efficientFrontier.frontier_points.map(p => p.volatility * 100);
+                            const rets = efficientFrontier.frontier_points.map(p => p.expected_return * 100);
+                            const xMin = Math.min(...vols) * 0.9;
+                            const xMax = Math.max(...vols) * 1.1;
+                            const yMin = Math.min(...rets) * 0.9;
+                            const yMax = Math.max(...rets) * 1.1;
+                            return (
+                              <Scatter
+                                data={{
+                                  datasets: [
+                                    {
+                                      label: 'Efficient Frontier',
+                                      data: efficientFrontier.frontier_points.map(p => ({ x: p.volatility * 100, y: p.expected_return * 100 })),
+                                      borderColor: '#3B82F6',
+                                      backgroundColor: 'rgba(59,130,246,0.4)',
+                                      showLine: true,
+                                      fill: false,
+                                    },
+                                  ],
+                                }}
+                                options={{
+                                  scales: {
+                                    x: { title: { display: true, text: 'Volatility (%)' }, suggestedMin: xMin, suggestedMax: xMax },
+                                    y: { title: { display: true, text: 'Expected Return (%)' }, suggestedMin: yMin, suggestedMax: yMax },
+                                  },
+                                  plugins: { legend: { position: 'top' } },
+                                }}
+                              />
+                            );
+                          })()}
                         </Box>
                       )}
 
