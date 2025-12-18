@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  frontend:
+    build:
+      context: ./yieldflow-frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    networks:
+      - yieldflow-network
+
   api:
     build: .
     ports:
@@ -16,6 +31,8 @@ services:
     volumes:
       - .:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - yieldflow-network
 
   db:
     image: postgres:14
@@ -28,6 +45,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - yieldflow-network
 
   redis:
     image: redis:7-alpine
@@ -35,6 +54,8 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - yieldflow-network
 
   adminer:
     image: adminer
@@ -42,7 +63,13 @@ services:
       - "8080:8080"
     depends_on:
       - db
+    networks:
+      - yieldflow-network
 
 volumes:
   postgres_data:
   redis_data: 
+
+networks:
+  yieldflow-network:
+    driver: bridge 

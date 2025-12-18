@@ -1,0 +1,27 @@
+{
+  "api_key": "yk_mLMOo1J_zYogEcfVdqiuCD8av0OCm3Y2XwR3mkl_wwE",
+  "plan": "free",
+  "user_data": {
+    "id": 1,
+    "email": "test@yieldflow.ai",
+    "full_name": "Test User",
+    "company": "Yieldflow Testing",
+    "plan": "free",
+    "is_verified": true,
+    "is_superuser": false,
+    "created_at": "2025-11-27T13:51:58.636500"
+  },
+  "api_key_data": {
+    "key_id": "c82541d6-564f-496d-b08b-d37997ac5cfe",
+    "key": "yk_mLMOo1J_zYogEcfVdqiuCD8av0OCm3Y2XwR3mkl_wwE",
+    "key_hash": "738c0dcf8ddefef93d5d3860f5fb867745e8610d8c5d51a9a5983f5b6ecf4918",
+    "name": "Free Test Key",
+    "user_id": 1,
+    "is_active": true,
+    "expires_at": "2026-11-27T13:51:58.636928",
+    "created_at": "2025-11-27T13:51:58.636941",
+    "allowed_ips": null,
+    "scopes": null
+  },
+  "created_at": "2025-11-27T13:51:58.637032"
+}

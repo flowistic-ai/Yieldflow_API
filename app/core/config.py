@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Any, ClassVar, Optional
-from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -34,16 +34,19 @@ class Settings(BaseSettings):
     GOOGLE_GEMINI_API_KEY: str = Field(default="", description="Google Gemini API key for AI insights")
     NEWS_API_KEY: str = Field(default="", description="NewsAPI.org API key for news sentiment analysis")
     
-    # CORS settings
-    BACKEND_CORS_ORIGINS: List[str] = Field(
-        default=[
-            "http://localhost:3000", 
-            "http://localhost:8000", 
-            "https://localhost:3000",
-            "https://yieldflow-api.onrender.com"
-        ],
-        description="List of allowed CORS origins"
+    # CORS settings - store as string to avoid JSON parsing issues
+    BACKEND_CORS_ORIGINS_STR: str = Field(
+        default="http://localhost:3000,http://localhost:8000,https://localhost:3000",
+        alias="BACKEND_CORS_ORIGINS",
+        description="List of allowed CORS origins (comma-separated)"
     )
+    
+    @property
+    def BACKEND_CORS_ORIGINS(self) -> List[str]:
+        """Parse CORS origins from string"""
+        if isinstance(self.BACKEND_CORS_ORIGINS_STR, str):
+            return [origin.strip() for origin in self.BACKEND_CORS_ORIGINS_STR.split(",") if origin.strip()]
+        return self.BACKEND_CORS_ORIGINS_STR
     
     # Security settings
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="JWT token expiration in minutes")
@@ -90,10 +93,16 @@ class Settings(BaseSettings):
     ENABLE_COMPLIANCE_FEATURES: bool = Field(default=True, description="Enable European compliance features")
     ENABLE_CACHING: bool = Field(default=True, description="Enable caching")
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"  # Allow extra fields in environment but ignore them
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore",
+        json_schema_extra={
+            "BACKEND_CORS_ORIGINS": {
+                "json_schema_extra": {"json_encoders": {List[str]: lambda v: ",".join(v)}}
+            }
+        }
+    )
 
 
 # Global settings instance
